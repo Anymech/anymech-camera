@@ -771,14 +771,64 @@ function callServerNoWait(fnName, args){
         btnSubmit.textContent = "SUBMITTING...";
 
         let resp;
-        try{
-          resp = await callServer("captureFromOcr", [
-            pendingCapture.memberId,
-            pendingCapture.itemName,
-            pendingCapture.weight,
-            pendingCapture.dataUrl
-          ]);
-        }catch(err){
+
+if (!isOnline()) {
+
+  // 🔴 OFFLINE — store locally
+  const offlineItem = {
+    id: Date.now(),
+    action: "captureFromOcr",
+    payload: {
+      memberId: pendingCapture.memberId,
+      itemName: pendingCapture.itemName,
+      weight: pendingCapture.weight,
+      imageDataUrl: pendingCapture.dataUrl
+    }
+  };
+
+  await offlineEnqueue(offlineItem);
+
+  setStatus("📴 No internet.\nSaved offline.\nWill auto sync when online.");
+
+  btnSubmit.textContent = "SUBMIT";
+  uiState = "idle";
+  setBtn("CAPTURE");
+  showCaptureButtons();
+  return;
+}
+
+try{
+  resp = await callServer("captureFromOcr", [
+    pendingCapture.memberId,
+    pendingCapture.itemName,
+    pendingCapture.weight,
+    pendingCapture.dataUrl
+  ]);
+}catch(err){
+
+  // 🔴 NETWORK ERROR — store offline
+  const offlineItem = {
+    id: Date.now(),
+    action: "captureFromOcr",
+    payload: {
+      memberId: pendingCapture.memberId,
+      itemName: pendingCapture.itemName,
+      weight: pendingCapture.weight,
+      imageDataUrl: pendingCapture.dataUrl
+    }
+  };
+
+  await offlineEnqueue(offlineItem);
+
+  setStatus("⚠️ Network error.\nSaved offline.\nWill auto sync.");
+
+  btnSubmit.textContent = "SUBMIT";
+  uiState = "idle";
+  setBtn("CAPTURE");
+  showCaptureButtons();
+  return;
+}
+      catch(err){
           const msSub = _ms_(tSub0);
           setStatus(
             "ERROR: Submit call failed\n" +
@@ -980,6 +1030,44 @@ function callServerNoWait(fnName, args){
       btnReset.addEventListener("click", resetClick);
 
       showCaptureButtons();
+        // ===============================
+// AUTO SYNC WHEN ONLINE
+// ===============================
+async function syncOfflineQueue(){
+// Trigger sync when connection returns
+window.addEventListener("online", () => {
+  syncOfflineQueue();
+});
+
+// Try sync every 30 seconds
+setInterval(syncOfflineQueue, 30000);
+  if (!isOnline()) return;
+
+  const items = await offlineList();
+  if (!items.length) return;
+
+  setStatus("🔄 Syncing offline data...");
+
+  for (const item of items){
+
+    try{
+      await callServer("captureFromOcr", [
+        item.payload.memberId,
+        item.payload.itemName,
+        item.payload.weight,
+        item.payload.imageDataUrl
+      ]);
+
+      await offlineRemove(item.id);
+
+    }catch(e){
+      console.log("Sync failed, will retry later.");
+      return; // stop sync if still failing
+    }
+  }
+
+  setStatus("✅ Offline data synced successfully.");
+}
     </script>
   </div>
 
