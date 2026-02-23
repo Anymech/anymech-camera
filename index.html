@@ -599,6 +599,7 @@ function showSaveOfflineOnly(){
     btnSaveOffline.style.display = "none";
     return;
   }
+
   btnFixedWrap.style.display = "none";
   document.getElementById("btnCapture").style.display = "none";
   btnSubmit.style.display = "none";
@@ -1023,14 +1024,19 @@ if (!isOnline()){
           };
 
           uiState = "await_submit";
-          setBtn("CAPTURE");
-          setStatus(
-            "OCR DONE ✅\n" +
-            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
-            "TIMING:\nOCR call: " + msOcr + " ms"
-          );
 
-          showSubmitButtonOnly();
+setStatus(
+  "OCR DONE ✅\n" +
+  "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
+  "TIMING:\nOCR call: " + msOcr + " ms"
+);
+
+// 🔥 THIS IS IMPORTANT
+btnSubmit.style.display = "block";
+btnReset.style.display = "block";
+btnSaveOffline.style.display = "none";
+btnFixedWrap.style.display = "none";
+document.getElementById("btnCapture").style.display = "none";
           return;
         }
       }
