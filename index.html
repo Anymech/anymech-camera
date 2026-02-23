@@ -610,7 +610,7 @@ function showSaveOfflineOnly(){
         btnFixedWrap.style.display = on ? "block" : "none";
         document.getElementById("btnCapture").style.display = on ? "none" : "block";
 
-        if (uiState === "await_submit") {
+   if ((uiState !== "await_submit" && uiState !== "await_submit_offline") || !pendingCapture){
           btnFixedWrap.style.display = "none";
           document.getElementById("btnCapture").style.display = "none";
           btnSubmit.style.display = "block";
@@ -759,15 +759,16 @@ window.saveOfflineClick = async function saveOfflineClick(){
   }
 
   try{
-    await offlineEnqueue({
-      id: Date.now(),
-      payload: {
-        memberId: pendingCapture.memberId || "",
-        itemName: pendingCapture.itemName || "",
-        weight: pendingCapture.weight,
-        imageDataUrl: pendingCapture.dataUrl
-      }
-    });
+   await offlineEnqueue({
+  id: Date.now(),
+  payload: {
+  memberId: pendingCapture.memberId || "",
+  itemName: pendingCapture.itemName || "",
+  weight: pendingCapture.weight,
+  imageDataUrl: pendingCapture.dataUrl,
+  needsOcr: true
+}
+});
   }catch(e){
     setStatus(
       "❌ SAVE OFFLINE FAILED\n" +
@@ -962,6 +963,29 @@ window.saveOfflineClick = async function saveOfflineClick(){
           setStatus("Image captured ✅\nRunning OCR...");
           const tOcr0 = performance.now();
           let r;
+          // ✅ OFFLINE: capture image and allow user to queue via SUBMIT
+if (!isOnline()){
+  pendingCapture = {
+    memberId: "",
+    itemName: "",
+    weight: null,
+    dataUrl: dataUrl,
+    ocrMemberName: "",
+    ocrItemName: ""
+  };
+
+  uiState = "await_submit_offline";
+  setBtn("CAPTURE");
+  setStatus(
+    "📴 Offline mode:\n" +
+    "Image captured ✅\n" +
+    "Now press SUBMIT to queue it.\n" +
+    "OCR + Sheet sync will run automatically when internet returns."
+  );
+
+  showSubmitButtonOnly(); // shows SUBMIT + RESET
+  return;
+}
           try{
             r = await callServer("visionExtract", [dataUrl]);
           }catch(err){
@@ -1045,33 +1069,61 @@ window.saveOfflineClick = async function saveOfflineClick(){
       // AUTO SYNC WHEN ONLINE ✅ FIXED (listeners outside)
       // ===============================
       async function syncOfflineQueue(){
-        if (!isOnline()) return;
+  if (!isOnline()) return;
 
-        const items = await offlineList();
-        if (!items.length) return;
+  const items = await offlineList();
+  if (!items.length) return;
 
-        setStatus("🔄 Syncing offline data...");
+  setStatus("🔄 Syncing offline queue... (" + items.length + ")");
 
-        for (const item of items){
-          try{
-            await callServer("captureFromOcr", [
-              item.payload.memberId,
-              item.payload.itemName,
-              item.payload.weight,
-              item.payload.imageDataUrl
-            ]);
+  for (const item of items){
+    try{
+      let memberId = item.payload.memberId || "";
+      let itemName = item.payload.itemName || "";
+      let weight   = item.payload.weight;
+      const img    = item.payload.imageDataUrl;
 
-            await offlineRemove(item.id);
+      // ✅ Step 1: OCR if needed
+      if (item.payload.needsOcr === true || !memberId || !itemName || weight === null || weight === undefined){
+        const ocr = await callServer("visionExtract", [img]);
 
-          }catch(e){
-            console.log("Sync failed, will retry later.");
-            return;
-          }
+        if (!ocr || !ocr.ok){
+          // OCR failed even online -> keep item, retry later
+          setStatus("⚠️ OCR retry pending for one item. Will retry automatically.");
+          return;
         }
 
-        setStatus("✅ Offline data synced successfully.");
+        memberId = ocr.memberId || "";
+        itemName = ocr.itemName || "";
+        weight   = ocr.weight;
+
+        // If OCR still didn't produce required values, don't submit yet
+        if (!memberId || !itemName || weight === null || weight === undefined){
+          setStatus("⚠️ OCR returned incomplete data. Keeping in queue for retry.");
+          return;
+        }
       }
 
+      // ✅ Step 2: Submit to sheet
+      const resp = await callServer("captureFromOcr", [memberId, itemName, weight, img]);
+
+      if (!resp || !resp.ok){
+        setStatus("⚠️ Submit failed for one item. Will retry automatically.");
+        return;
+      }
+
+      // ✅ Step 3: remove from queue only after success
+      await offlineRemove(item.id);
+
+    }catch(e){
+      console.log("Sync failed, will retry later.", e);
+      setStatus("⚠️ Sync error. Will retry automatically.");
+      return;
+    }
+  }
+
+  setStatus("✅ Offline queue synced successfully.");
+}
       // listeners OUTSIDE (very important)
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
