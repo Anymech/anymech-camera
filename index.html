@@ -1,218 +1,282 @@
-<script>
-function _ms_(t0){ return Math.round((performance.now() - t0)); }
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Anymech Live Capture</title>
 
-let uiState = "idle";
+<style>
+body{font-family:system-ui,Arial;margin:16px;max-width:900px}
+.appFrame{border:1px solid #e6e6e6;border-radius:22px;padding:18px;box-shadow:0 14px 40px rgba(0,0,0,0.10);background:#fff}
+.card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
+.status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
+.kv div{padding:8px 0;border-bottom:1px dashed #eee}
+.label{font-weight:700}
+.btn{width:100%;padding:22px;border-radius:16px;font-size:22px;font-weight:900;border:1px solid #b9b9b9;cursor:pointer;background:linear-gradient(#ffffff,#f1f1f1)}
+.ok{color:#0a7a0a;font-weight:800}
+.appTitle{text-align:center;font-size:38px;font-weight:900;color:#0b4fd6;margin:6px 0 18px 0}
+video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
+canvas{display:none}
+</style>
+</head>
+
+<body>
+<div class="appFrame">
+<h1 class="appTitle">ANYMECH PRODUCTS</h1>
+
+<div class="card">
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
+<div class="status" id="status">Press CAPTURE to start.</div>
+</div>
+
+<div class="card">
+<div class="kv">
+<div class="label">NEW M.NO</div><div id="memberId">-</div>
+<div class="label">MEMBER NAME</div><div id="memberName">-</div>
+<div class="label">ITEM NAME</div><div id="itemName">-</div>
+<div class="label">CAPTURED WEIGHT</div><div id="capW">-</div>
+<div class="label">STATUS</div><div id="stage">-</div>
+</div>
+</div>
+
+<button class="btn" id="btnCapture">CAPTURE</button>
+<button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
+
+</div>
+
+<script>
+const APPS_SCRIPT_WEBAPP_URL =
+"https://script.google.com/macros/s/AKfycbwJr73l_9BJfiRAEpIz-x90zhOX78ny4kH53X_RifEqFN7WFcgnnAUpwbeMisMVvtFQcA/exec";
+
 let stream = null;
 let pendingCapture = null;
 
-// ===============================
-// OFFLINE QUEUE (IndexedDB)
-// ===============================
-const OFFLINE_DB = "anymech_offline_db";
-const OFFLINE_STORE = "queue";
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const btnCapture = document.getElementById("btnCapture");
+const btnSubmit = document.getElementById("btnSubmit");
 
-function idbOpen(){
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(OFFLINE_DB, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(OFFLINE_STORE)) {
-        db.createObjectStore(OFFLINE_STORE, { keyPath: "id" });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
+function setStatus(t){ document.getElementById("status").textContent = t; }
+function setText(id,t){ document.getElementById(id).textContent = (t ?? "-"); }
 
-async function offlineEnqueue(item){
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(OFFLINE_STORE, "readwrite");
-    tx.objectStore(OFFLINE_STORE).put(item);
-    tx.oncomplete = () => { db.close(); resolve(true); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-  });
-}
-
-async function offlineList(){
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(OFFLINE_STORE, "readonly");
-    const req = tx.objectStore(OFFLINE_STORE).getAll();
-    req.onsuccess = () => { const out = req.result || []; db.close(); resolve(out); };
-    req.onerror = () => { db.close(); reject(req.error); };
-  });
-}
-
-async function offlineRemove(id){
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(OFFLINE_STORE, "readwrite");
-    tx.objectStore(OFFLINE_STORE).delete(id);
-    tx.oncomplete = () => { db.close(); resolve(true); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-  });
-}
-
-function isOnline(){
-  return navigator.onLine === true;
-}
-
-// ===============================
-// SERVER CALL (FIXED)
-// ===============================
-const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwJr73l_9BJfiRAEpIz-x90zhOX78ny4kH53X_RifEqFN7WFcgnnAUpwbeMisMVvtFQcA/exec";
-
-async function callServer(fnName, args){
-  let payload = {};
-
-  if (fnName === "visionExtract") {
-    payload = { action: "visionExtract", imageDataUrl: args[0] };
-  } else if (fnName === "captureFromOcr") {
-    payload = {
-      action: "captureFromOcr",
-      memberId: args[0],
-      itemName: args[1],
-      weight: args[2],
-      imageDataUrl: args[3]
-    };
-  } else if (fnName === "postFailTasks") {
-    payload = {
-      action: "postFailTasks",
-      imageDataUrl: args[0],
-      failMessage: args[1],
-      rawText: args[2]
-    };
-  }
-
+// ✅ CORS-safe call: Apps Script sometimes returns text, so parse safely
+async function callServer(payload){
   const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },   // ✅ FIXED
-    body: JSON.stringify(payload)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    // mode:"cors" is default, but keeping it explicit is fine
+    mode: "cors"
   });
 
-  const text = await res.text();
-  return JSON.parse(text);
+  const txt = await res.text();
+  let json;
+  try { json = JSON.parse(txt); }
+  catch(e){
+    throw new Error("Server returned non-JSON: " + txt.slice(0, 180));
+  }
+  return json;
 }
 
-function callServerNoWait(fnName, args){
-  callServer(fnName, args).catch(err=>{
-    console.log("Background fail:", err);
+async function startCamera(){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    throw new Error("Camera API not available in this browser.");
+  }
+  // GitHub Pages is HTTPS; if opened as file:// it will fail
+  if (!window.isSecureContext){
+    throw new Error("Camera blocked: open via HTTPS (GitHub Pages link), not file://");
+  }
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: "environment" } },
+    audio: false
   });
+  video.srcObject = stream;
+
+  await new Promise(r=>{
+    if (video.readyState >= 2) return r();
+    video.onloadedmetadata = ()=>r();
+  });
+
+  await video.play();
 }
 
-// ===============================
-// SUBMIT CLICK (FIXED)
-// ===============================
-window.submitClick = async function submitClick(){
-
-  if (uiState !== "await_submit" || !pendingCapture){
-    setStatus("No captured data pending. Please CAPTURE first.");
-    uiState = "idle";
-    setBtn("CAPTURE");
-    showCaptureButtons();
-    return;
-  }
-
-  btnSubmit.textContent = "SUBMITTING...";
-
-  // OFFLINE
-  if (!isOnline()) {
-    await offlineEnqueue({
-      id: Date.now(),
-      payload: {
-        memberId: pendingCapture.memberId,
-        itemName: pendingCapture.itemName,
-        weight: pendingCapture.weight,
-        imageDataUrl: pendingCapture.dataUrl
-      }
-    });
-
-    setStatus("📴 Saved offline. Will auto sync when online.");
-    btnSubmit.textContent = "SUBMIT";
-    uiState = "idle";
-    setBtn("CAPTURE");
-    showCaptureButtons();
-    return;
-  }
-
-  let resp;
-
+function stopCamera(){
   try{
-    resp = await callServer("captureFromOcr", [
-      pendingCapture.memberId,
-      pendingCapture.itemName,
-      pendingCapture.weight,
-      pendingCapture.dataUrl
-    ]);
-  }catch(err){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+  }catch(e){}
+  stream = null;
+  video.srcObject = null;
+}
 
-    await offlineEnqueue({
-      id: Date.now(),
-      payload: {
-        memberId: pendingCapture.memberId,
-        itemName: pendingCapture.itemName,
-        weight: pendingCapture.weight,
-        imageDataUrl: pendingCapture.dataUrl
+function captureImage(){
+  const w = video.videoWidth || 1280;
+  const h = video.videoHeight || 720;
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", 0.8);
+}
+
+// -------------------------------
+// CAPTURE FLOW (2-tap)
+// 1st tap: start camera
+// 2nd tap: capture frame + OCR
+// -------------------------------
+btnCapture.onclick = async ()=>{
+  try{
+    setStatus("Starting camera...");
+    await startCamera();
+    setStatus("Camera ready ✅ Tap CAPTURE again to freeze frame.");
+    btnCapture.textContent = "CAPTURE FRAME";
+
+    // second tap handler
+    btnCapture.onclick = async ()=>{
+      try{
+        setStatus("Capturing...");
+        const img = captureImage();
+        stopCamera();
+
+        setStatus("Running OCR...");
+        const resp = await callServer({ action:"visionExtract", imageDataUrl: img });
+
+        if(!resp || !resp.ok){
+          setStatus("OCR FAILED: " + (resp && resp.message ? resp.message : "Unknown error"));
+          btnCapture.textContent="CAPTURE";
+          // restore first tap handler
+          btnCapture.onclick = arguments.callee.caller; // not reliable in strict mode, so we rebind below
+          bindFirstTap();
+          return;
+        }
+
+        setText("memberId", resp.memberId);
+        setText("memberName", resp.memberName);
+        setText("itemName", resp.itemName);
+        setText("capW", resp.weight);
+
+        pendingCapture = {
+          memberId: resp.memberId,
+          itemName: resp.itemName,
+          weight: resp.weight,
+          imageDataUrl: img
+        };
+
+        setStatus("OCR DONE ✅ Press SUBMIT.");
+        btnSubmit.style.display="block";
+        btnCapture.style.display="none";
+      }catch(e){
+        setStatus("Capture/OCR error: " + (e && e.message ? e.message : String(e)));
+        stopCamera();
+        btnCapture.textContent="CAPTURE";
+        bindFirstTap();
       }
-    });
+    };
 
-    setStatus("⚠️ Network error. Saved offline.");
-    btnSubmit.textContent = "SUBMIT";
-    uiState = "idle";
-    setBtn("CAPTURE");
-    showCaptureButtons();
-    return;
+  }catch(e){
+    setStatus("Camera error: " + (e && e.message ? e.message : String(e)));
+    stopCamera();
+    btnCapture.textContent="CAPTURE";
+    bindFirstTap();
   }
-
-  if (!resp || !resp.ok){
-    setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown error"));
-    btnSubmit.textContent = "SUBMIT";
-    return;
-  }
-
-  setStatus("SUCCESS ✅ " + resp.message);
-  btnSubmit.textContent = "SUBMIT";
-  uiState = "idle";
-  setBtn("CAPTURE");
-  showCaptureButtons();
 };
 
-// ===============================
-// AUTO SYNC (FIXED)
-// ===============================
-async function syncOfflineQueue(){
-
-  if (!isOnline()) return;
-
-  const items = await offlineList();
-  if (!items.length) return;
-
-  setStatus("🔄 Syncing offline data...");
-
-  for (const item of items){
+// helper to restore first-tap binding cleanly
+function bindFirstTap(){
+  btnCapture.onclick = async ()=>{
     try{
-      await callServer("captureFromOcr", [
-        item.payload.memberId,
-        item.payload.itemName,
-        item.payload.weight,
-        item.payload.imageDataUrl
-      ]);
+      setStatus("Starting camera...");
+      await startCamera();
+      setStatus("Camera ready ✅ Tap CAPTURE again to freeze frame.");
+      btnCapture.textContent = "CAPTURE FRAME";
 
-      await offlineRemove(item.id);
+      btnCapture.onclick = async ()=>{
+        try{
+          setStatus("Capturing...");
+          const img = captureImage();
+          stopCamera();
+
+          setStatus("Running OCR...");
+          const resp = await callServer({ action:"visionExtract", imageDataUrl: img });
+
+          if(!resp || !resp.ok){
+            setStatus("OCR FAILED: " + (resp && resp.message ? resp.message : "Unknown error"));
+            btnCapture.textContent="CAPTURE";
+            bindFirstTap();
+            return;
+          }
+
+          setText("memberId", resp.memberId);
+          setText("memberName", resp.memberName);
+          setText("itemName", resp.itemName);
+          setText("capW", resp.weight);
+
+          pendingCapture = {
+            memberId: resp.memberId,
+            itemName: resp.itemName,
+            weight: resp.weight,
+            imageDataUrl: img
+          };
+
+          setStatus("OCR DONE ✅ Press SUBMIT.");
+          btnSubmit.style.display="block";
+          btnCapture.style.display="none";
+        }catch(e){
+          setStatus("Capture/OCR error: " + (e && e.message ? e.message : String(e)));
+          stopCamera();
+          btnCapture.textContent="CAPTURE";
+          bindFirstTap();
+        }
+      };
 
     }catch(e){
-      console.log("Sync failed, retry later.");
+      setStatus("Camera error: " + (e && e.message ? e.message : String(e)));
+      stopCamera();
+      btnCapture.textContent="CAPTURE";
+      bindFirstTap();
+    }
+  };
+}
+// ensure correct first binding
+bindFirstTap();
+
+// -------------------------------
+// SUBMIT
+// -------------------------------
+btnSubmit.onclick = async ()=>{
+  try{
+    if(!pendingCapture){
+      setStatus("Nothing to submit.");
       return;
     }
+    setStatus("Submitting...");
+    const resp = await callServer({
+      action:"captureFromOcr",
+      memberId: pendingCapture.memberId,
+      itemName: pendingCapture.itemName,
+      weight: pendingCapture.weight,
+      imageDataUrl: pendingCapture.imageDataUrl
+    });
+
+    if(!resp || !resp.ok){
+      setStatus("Submit failed: " + (resp && resp.message ? resp.message : "Unknown error"));
+      return;
+    }
+
+    setStatus("SUCCESS ✅ " + resp.message);
+    setText("stage", resp.stage || "DONE");
+
+    pendingCapture = null;
+    btnSubmit.style.display="none";
+    btnCapture.style.display="block";
+    btnCapture.textContent="CAPTURE";
+    bindFirstTap();
+  }catch(e){
+    setStatus("Submit error: " + (e && e.message ? e.message : String(e)));
   }
-
-  setStatus("✅ Offline data synced.");
-}
-
-// listeners OUTSIDE function (FIXED)
-window.addEventListener("online", syncOfflineQueue);
-setInterval(syncOfflineQueue, 30000);
-
+};
 </script>
+</body>
+</html>
