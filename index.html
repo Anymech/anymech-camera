@@ -746,19 +746,7 @@ function showSaveOfflineOnly(){
           showCaptureButtons();
         }
       }
-
-      // ===============================
-      // SUBMIT CLICK ✅ UPDATED (offline save + auto sync)
-      // ===============================
-      window.submitClick = async function submitClick(){
-        if (uiState !== "await_submit" || !pendingCapture){
-          setStatus("No captured data pending. Please CAPTURE first.");
-          uiState = "idle";
-          pendingCapture = null;
-          setBtn("CAPTURE");
-          showCaptureButtons();
-          return;
-        }
+// SAVE OFFLINE handler (must be outside submitClick)
 window.saveOfflineClick = async function saveOfflineClick(){
   if (!pendingCapture){
     setStatus("Nothing to save. Please CAPTURE first.");
@@ -779,8 +767,21 @@ window.saveOfflineClick = async function saveOfflineClick(){
   pendingCapture = null;
   uiState = "idle";
   setBtn("CAPTURE");
+  btnSaveOffline.style.display = "none";
   showCaptureButtons();
 };
+      // ===============================
+      // SUBMIT CLICK ✅ UPDATED (offline save + auto sync)
+      // ===============================
+      window.submitClick = async function submitClick(){
+        if (uiState !== "await_submit" || !pendingCapture){
+          setStatus("No captured data pending. Please CAPTURE first.");
+          uiState = "idle";
+          pendingCapture = null;
+          setBtn("CAPTURE");
+          showCaptureButtons();
+          return;
+        }
         const tSub0 = performance.now();
         setStatus("Submitting...");
         btnSubmit.textContent = "SUBMITTING...";
