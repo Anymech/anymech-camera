@@ -1,650 +1,157 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Anymech Live Capture</title>
-  <style>
-    body{font-family:system-ui,Arial;margin:16px;max-width:900px}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Anymech Live Capture</title>
 
-    .appFrame{
-      border:1px solid #e6e6e6;
-      border-radius:22px;
-      padding:18px;
-      box-shadow:0 14px 40px rgba(0,0,0,0.10);
-      background:#fff;
-    }
-
-    /* ✅ FULL SCREEN CAMERA PREVIEW */
-    .camWrap{
-      width: 100vw;
-      height: 100vh;
-      margin: 0;
-      position: fixed;
-      inset: 0;
-      padding-top: 0;
-      background: #000;
-      border-radius: 0;
-      overflow: hidden;
-      z-index: 9990;
-      display: none;
-    }
-
-    .camWrap video{
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
-    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
-
-    .kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
-    .kv div{padding:8px 0;border-bottom:1px dashed #eee}
-    .label{font-weight:700}
-    .kv div:nth-child(2n){font-weight:800}
-
-    video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
-    canvas{display:none}
-    .ok{color:#0a7a0a;font-weight:800}
-
-    .guideLine{
-      position:absolute;
-      left:0; right:0;
-      height:2px;
-      background:rgba(255,0,0,0.85);
-      top:50%;
-      pointer-events:none;
-    }
-    .guideLabel{
-      position:absolute;
-      left:10px;
-      top:calc(50% - 22px);
-      background:rgba(0,0,0,0.55);
-      color:#fff;
-      font-size:12px;
-      padding:4px 8px;
-      border-radius:8px;
-      pointer-events:none;
-    }
-
-    .btn{
-      width:100%;
-      padding:22px;
-      border-radius:16px;
-      font-size:22px;
-      font-weight:900;
-      border:1px solid #b9b9b9;
-      cursor:pointer;
-      background:linear-gradient(#ffffff,#f1f1f1);
-      box-shadow:
-        0 10px 0 #d0d0d0,
-        0 18px 28px rgba(0,0,0,0.12);
-      transition:transform 0.08s ease, box-shadow 0.08s ease;
-      user-select:none;
-      -webkit-tap-highlight-color:transparent;
-    }
-    .btn:active{
-      transform:translateY(6px);
-      box-shadow:
-        0 4px 0 #d0d0d0,
-        0 10px 18px rgba(0,0,0,0.12);
-    }
-
-    .btnFixed{
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 22px;
-      z-index: 9992;
-      width: min(92vw, 420px);
-      display: none;
-    }
-
-    .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
-    .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
-
-    @media (max-width: 520px){
-      body{margin:10px;max-width:100%}
-      .appFrame{padding:12px;border-radius:18px}
-      .card{margin:10px 0;padding:12px}
-      .kv{grid-template-columns:140px 1fr}
-      .btn{padding:24px;font-size:22px;border-radius:18px}
-    }
-
-    .overlayDone{
-      position:fixed;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      background:rgba(0,0,0,0.18);
-      z-index:9999;
-    }
-    .overlayCard{
-      background:#fff;
-      border-radius:20px;
-      padding:22px 18px;
-      box-shadow:0 18px 50px rgba(0,0,0,0.20);
-      text-align:center;
-      width:min(320px, 88vw);
-    }
-    .overlayTick{
-      font-size:64px;
-      line-height:1;
-      color:#0a7a0a;
-      font-weight:900;
-      margin-bottom:10px;
-    }
-    .overlayText{
-      font-size:18px;
-      font-weight:900;
-      color:#0a7a0a;
-      letter-spacing:0.4px;
-    }
-
-    .appTitle{
-      text-align:center;
-      font-size:38px;
-      font-weight:900;
-      color:#0b4fd6;
-      letter-spacing:1.2px;
-      margin:6px 0 18px 0;
-    }
-  </style>
+<style>
+body{font-family:system-ui,Arial;margin:16px;max-width:900px}
+.appFrame{border:1px solid #e6e6e6;border-radius:22px;padding:18px;box-shadow:0 14px 40px rgba(0,0,0,0.10);background:#fff}
+.card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
+.status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
+.kv div{padding:8px 0;border-bottom:1px dashed #eee}
+.label{font-weight:700}
+.btn{width:100%;padding:22px;border-radius:16px;font-size:22px;font-weight:900;border:1px solid #b9b9b9;cursor:pointer;background:linear-gradient(#ffffff,#f1f1f1)}
+.ok{color:#0a7a0a;font-weight:800}
+.appTitle{text-align:center;font-size:38px;font-weight:900;color:#0b4fd6;margin:6px 0 18px 0}
+video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
+canvas{display:none}
+</style>
 </head>
 
 <body>
-  <div class="appFrame">
-    <h1 class="appTitle">ANYMECH PRODUCTS</h1>
+<div class="appFrame">
+<h1 class="appTitle">ANYMECH PRODUCTS</h1>
 
-    <div class="card">
-      <div class="camWrap" id="camWrap">
-        <video id="video" autoplay playsinline></video>
-        <div class="guideLine"></div>
-        <div class="guideLabel">Top: Card | Bottom: Scale</div>
-      </div>
+<div class="card">
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
+<div class="status" id="status">Press CAPTURE to start.</div>
+</div>
 
-      <canvas id="canvas"></canvas>
+<div class="card">
+<div class="kv">
+<div class="label">NEW M.NO</div><div id="memberId">-</div>
+<div class="label">MEMBER NAME</div><div id="memberName">-</div>
+<div class="label">ITEM NAME</div><div id="itemName">-</div>
+<div class="label">CAPTURED WEIGHT</div><div id="capW">-</div>
+<div class="label">STATUS</div><div id="stage">-</div>
+</div>
+</div>
 
-      <div class="btnFixed" id="btnFixedWrap">
-        <button class="btn" id="btnCaptureFixed">CAPTURE</button>
-      </div>
+<button class="btn" id="btnCapture">CAPTURE</button>
+<button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
 
-      <div class="status" id="status">Press CAPTURE to start live camera.</div>
-    </div>
+</div>
 
-    <div class="card">
-      <div class="kv">
-        <div class="label">NEW M.NO</div><div id="memberId">-</div>
-        <div class="label">MEMBER NAME</div><div id="memberName">-</div>
-        <div class="label">ITEM NAME</div><div id="itemName">-</div>
-        <div class="label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+<script>
 
-        <div class="label">OUT WEIGHT</div><div id="outW">-</div>
-        <div class="label">IN WEIGHT</div><div id="inW">-</div>
-        <div class="label">READY WEIGHT</div><div id="readyW">-</div>
+const APPS_SCRIPT_WEBAPP_URL =
+"https://script.google.com/macros/s/AKfycbyot2nMVhJLIYFqNsukdaqyD4ck1IJCR-ihcUUomGvl9dQmHEtR1NdpfO543STx3m8R/exec";
 
-        <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
-        <div class="label">STATUS</div><div id="stage">-</div>
-      </div>
-    </div>
+let stream = null;
+let pendingCapture = null;
 
-    <button class="btn" id="btnCapture">CAPTURE</button>
-    <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
-    <button class="btn" id="btnReset" style="display:none;">RESET</button>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const btnCapture = document.getElementById("btnCapture");
+const btnSubmit = document.getElementById("btnSubmit");
 
-    <!-- ONLINE FIRST: keep button hidden -->
-    <button class="btn" id="btnSaveOffline" style="display:none;">SAVE OFFLINE</button>
+function setStatus(t){ document.getElementById("status").textContent = t; }
+function setText(id,t){ document.getElementById(id).textContent = t ?? "-"; }
 
-    <script>
-      window.onerror = function (msg, src, line, col, err) {
-        const s = "JS ERROR: " + msg + "\n" + (src||"") + ":" + line + ":" + col;
-        try { document.getElementById("status").textContent = s; } catch(e) {}
-        return false;
+async function callServer(payload){
+  const res = await fetch(APPS_SCRIPT_WEBAPP_URL,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(payload)
+  });
+  return await res.json();
+}
+
+async function startCamera(){
+  stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  video.srcObject = stream;
+  await video.play();
+}
+
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+  video.srcObject=null;
+}
+
+function captureImage(){
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video,0,0,w,h);
+  return canvas.toDataURL("image/jpeg",0.8);
+}
+
+btnCapture.onclick = async ()=>{
+  try{
+    setStatus("Starting camera...");
+    await startCamera();
+    setStatus("Camera ready. Tap CAPTURE again.");
+    btnCapture.textContent="CAPTURE FRAME";
+    btnCapture.onclick = async ()=>{
+      setStatus("Capturing...");
+      const img = captureImage();
+      stopCamera();
+      setStatus("Running OCR...");
+      const resp = await callServer({
+        action:"visionExtract",
+        imageDataUrl:img
+      });
+      if(!resp.ok){
+        setStatus("OCR FAILED: "+resp.message);
+        btnCapture.textContent="CAPTURE";
+        return;
+      }
+      setText("memberId",resp.memberId);
+      setText("memberName",resp.memberName);
+      setText("itemName",resp.itemName);
+      setText("capW",resp.weight);
+      pendingCapture = {
+        memberId:resp.memberId,
+        itemName:resp.itemName,
+        weight:resp.weight,
+        imageDataUrl:img
       };
-    </script>
-
-    <script>
-      function _ms_(t0){ return Math.round((performance.now() - t0)); }
-
-      let uiState = "idle";
-      let stream = null;
-      let pendingCapture = null; // { memberId, itemName, weight, dataUrl, ocrMemberName, ocrItemName }
-
-      const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
-      const camWrap = document.getElementById("camWrap");
-      const btnFixedWrap = document.getElementById("btnFixedWrap");
-      const btnCaptureFixed = document.getElementById("btnCaptureFixed");
-
-      const btnSubmit = document.getElementById("btnSubmit");
-      const btnReset  = document.getElementById("btnReset");
-
-      function setStatus(t){ document.getElementById("status").textContent = t; }
-      function setBtn(t){ document.getElementById("btnCapture").textContent = t; btnCaptureFixed.textContent = t; }
-      function setText(id, t){ document.getElementById(id).textContent = (t ?? "-"); }
-
-      function setStageText(t, completed){
-        const el = document.getElementById("stage");
-        el.textContent = t ?? "-";
-        el.className = completed ? "ok" : "";
-      }
-
-      function setShortMaterial(v){
-        const el = document.getElementById("shortMat");
-        el.className = "";
-        if (v === null || v === undefined || v === "" || Number.isNaN(v)){
-          el.textContent = "-";
-          return;
-        }
-        const n = Number(v);
-        el.textContent = n.toFixed(3);
-        if (n < -0.200) el.className = "hlRed";
-        else if (n > 0.200) el.className = "hlGreen";
-      }
-
-      function tickSound(){
-        try{
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.type = "square";
-          o.frequency.value = 1200;
-          g.gain.value = 0.06;
-          o.connect(g); g.connect(ctx.destination);
-          o.start();
-          setTimeout(()=>{ o.stop(); ctx.close(); }, 90);
-        }catch(e){}
-      }
-
-      function showLoggedOverlay(){
-        const el = document.getElementById("overlayDone");
-        if (!el) return;
-        el.style.display = "flex";
-        setTimeout(()=>{ el.style.display = "none"; }, 1000);
-      }
-
-      function resetDisplay(){
-        setText("memberId","-");
-        setText("memberName","-");
-        setText("itemName","-");
-        setText("outW","-");
-        setText("inW","-");
-        setText("readyW","-");
-        setShortMaterial(null);
-        setStageText("-", false);
-        setText("capW","-");
-      }
-
-      // ===============================
-      // ✅ ONLINE SERVER CALL (NO FETCH)
-      // Uses google.script.run => stable in Apps Script Web App
-      // ===============================
-      function callServer(fnName, args){
-        return new Promise((resolve, reject) => {
-          try{
-            if (!google || !google.script || !google.script.run){
-              reject(new Error("google.script.run not available. Open the page from Apps Script Web App URL (not local file)."));
-              return;
-            }
-
-            const runner = google.script.run
-              .withSuccessHandler(resolve)
-              .withFailureHandler(err => reject(err));
-
-            if (fnName === "visionExtract") return runner.visionExtract(args[0]);
-            if (fnName === "captureFromOcr") return runner.captureFromOcr(args[0], args[1], args[2], args[3]);
-            if (fnName === "postFailTasks") return runner.postFailTasks(args[0], args[1], args[2]);
-
-            reject(new Error("Unknown fnName: " + fnName));
-          }catch(e){
-            reject(e);
-          }
-        });
-      }
-
-      function showCaptureButtons(){
-        document.getElementById("btnCapture").style.display =
-          (camWrap.style.display === "block") ? "none" : "block";
-
-        btnFixedWrap.style.display =
-          (camWrap.style.display === "block") ? "block" : "none";
-
-        btnSubmit.style.display = "none";
-        btnReset.style.display = "none";
-      }
-
-      function showSubmitButtonOnly(){
-        btnFixedWrap.style.display = "none";
-        document.getElementById("btnCapture").style.display = "none";
-        btnSubmit.style.display = "block";
-        btnReset.style.display = "block";
-      }
-
-      function showCameraUI(on){
-        camWrap.style.display = on ? "block" : "none";
-        btnFixedWrap.style.display = on ? "block" : "none";
-        document.getElementById("btnCapture").style.display = on ? "none" : "block";
-      }
-
-      window.startLiveCamera = async function startLiveCamera(){
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-          throw new Error("Camera API not available in this browser/webview.");
-        }
-        if (!window.isSecureContext){
-          throw new Error("Camera blocked: page is not HTTPS (secure). Open using https:// web app link.");
-        }
-
-        try { video.muted = true; } catch(e) {}
-
-        const preferred = {
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            aspectRatio: { ideal: 16/9 }
-          },
-          audio: false
-        };
-
-        try{
-          stream = await navigator.mediaDevices.getUserMedia(preferred);
-        }catch(e1){
-          try{
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { ideal: "environment" }, aspectRatio: { ideal: 16/9 } },
-              audio: false
-            });
-          }catch(e2){
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          }
-        }
-
-        video.srcObject = stream;
-
-        await new Promise(r => {
-          if (video.videoWidth && video.videoHeight) return r();
-          video.onloadedmetadata = () => r();
-        });
-
-        await video.play();
-        await new Promise(r => requestAnimationFrame(r));
-        await new Promise(r => requestAnimationFrame(r));
-
-        showCameraUI(true);
-      }
-
-      window.stopLiveCamera = function stopLiveCamera(){
-        try{
-          if (stream){
-            stream.getTracks().forEach(t => t.stop());
-            stream = null;
-          }
-        }catch(e){}
-        video.srcObject = null;
-        showCameraUI(false);
-      }
-
-      function captureDataUrlFull(){
-        const vw = video.videoWidth || 1920;
-        const vh = video.videoHeight || 1080;
-
-        const sx = 0, sy = 0, sw = vw, sh = vh;
-        const maxW = 1280;
-
-        const isPortraitFrame = vh > vw;
-        const baseW = isPortraitFrame ? vh : sw;
-        const baseH = isPortraitFrame ? vw : sh;
-
-        const scale = Math.min(1, maxW / baseW);
-        const outW = Math.round(baseW * scale);
-        const outH = Math.round(baseH * scale);
-
-        canvas.width = outW;
-        canvas.height = outH;
-
-        const ctx = canvas.getContext("2d", { willReadFrequently:true });
-        ctx.save();
-
-        if (isPortraitFrame){
-          ctx.translate(outW, 0);
-          ctx.rotate(Math.PI / 2);
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outH, outW);
-        } else {
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
-        }
-
-        ctx.restore();
-        return canvas.toDataURL("image/jpeg", 0.75);
-      }
-
-      window.resetClick = async function resetClick(){
-        pendingCapture = null;
-        btnSubmit.textContent = "SUBMIT";
-
-        resetDisplay();
-
-        setBtn("CAPTURE FRAME");
-        setStatus("RESET ✅\nStarting camera again...");
-        try{
-          await startLiveCamera();
-          uiState = "camera_on";
-          setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image, then OCR (Submit will show).");
-          showCaptureButtons();
-        }catch(err){
-          uiState = "idle";
-          setBtn("CAPTURE");
-          setStatus("RESET ✅\nCamera failed: " + (err && err.message ? err.message : String(err)));
-          showCaptureButtons();
-        }
-      }
-
-      window.submitClick = async function submitClick(){
-        if (uiState !== "await_submit" || !pendingCapture){
-          setStatus("No captured data pending. Please CAPTURE first.");
-          uiState = "idle";
-          pendingCapture = null;
-          setBtn("CAPTURE");
-          showCaptureButtons();
-          return;
-        }
-
-        const tSub0 = performance.now();
-        setStatus("Submitting...");
-        btnSubmit.textContent = "SUBMITTING...";
-
-        let resp;
-        try{
-          resp = await callServer("captureFromOcr", [
-            pendingCapture.memberId,
-            pendingCapture.itemName,
-            pendingCapture.weight,
-            pendingCapture.dataUrl
-          ]);
-        }catch(err){
-          setStatus("❌ Submit failed (server).\n" + (err && err.message ? err.message : String(err)));
-          btnSubmit.textContent = "SUBMIT";
-          return;
-        }
-
-        const msSub = _ms_(tSub0);
-
-        if (!resp || !resp.ok){
-          setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown submit error"));
-          btnSubmit.textContent = "SUBMIT";
-          return;
-        }
-
-        const d = (resp && resp.data) ? resp.data : {};
-        const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
-        const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
-        const rdW  = (d.readyWeight !== undefined && d.readyWeight !== null && String(d.readyWeight).trim() !== "") ? Number(d.readyWeight) : null;
-
-        setText("outW",   (outW !== null && !Number.isNaN(outW)) ? String(outW) : "-");
-        setText("inW",    (inW  !== null && !Number.isNaN(inW))  ? String(inW)  : "-");
-        setText("readyW", (rdW  !== null && !Number.isNaN(rdW))  ? String(rdW)  : "-");
-
-        if (resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
-        if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
-        else setShortMaterial(null);
-
-        setText("memberId",   d.memberId || pendingCapture.memberId || "-");
-        setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
-        setText("itemName",   d.itemName || pendingCapture.itemName || "-");
-        setText("capW","-");
-
-        let st = d.statusText || resp.stage || "-";
-        const completed = !!d.completed;
-
-        if (resp.stage === "OUT") { st = "OUT ✅"; showLoggedOverlay(); }
-        else if (resp.stage === "READY" || completed === true) { st = "COMPLETED ✅"; showLoggedOverlay(); }
-        else if (resp.stage === "IN") { st = "IN ✅"; }
-
-        setStageText(st, completed || resp.stage === "READY");
-
-        pendingCapture = null;
-
-        setStatus(
-          "SUCCESS ✅ " + resp.message + " (" + st + ")" +
-          "\n\nTIMING:\nSubmit call: " + msSub + " ms"
-        );
-
-        // After IN, start camera again for READY
-        if (resp.stage === "IN") {
-          uiState = "idle";
-          btnSubmit.textContent = "SUBMIT";
-          setBtn("CAPTURE READY");
-          setStatus("IN saved ✅\nNow capture READY WEIGHT (click CAPTURE READY).");
-          try{
-            await startLiveCamera();
-            uiState = "camera_on";
-            showCaptureButtons();
-          }catch(err){
-            uiState = "idle";
-            setBtn("CAPTURE");
-            showCaptureButtons();
-            setStatus("IN saved ✅\nCamera failed for READY: " + (err && err.message ? err.message : String(err)));
-          }
-          return;
-        }
-
-        uiState = "idle";
-        btnSubmit.textContent = "SUBMIT";
-        setBtn("CAPTURE");
-        showCaptureButtons();
-      }
-
-      window.captureClick = async function captureClick(){
-        if (uiState === "idle"){
-          pendingCapture = null;
-          btnSubmit.textContent = "SUBMIT";
-          btnSubmit.style.display = "none";
-          btnReset.style.display = "none";
-
-          resetDisplay();
-          setBtn("CAPTURE FRAME");
-          setStatus("Starting live camera...");
-          try{
-            await startLiveCamera();
-            uiState = "camera_on";
-            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image, then OCR (Submit will show).");
-            showCaptureButtons();
-          }catch(err){
-            uiState = "idle";
-            setBtn("CAPTURE");
-            setStatus("Camera failed: " + (err && err.message ? err.message : String(err)));
-            showCaptureButtons();
-          }
-          return;
-        }
-
-        if (uiState === "camera_on"){
-          setBtn("PROCESSING...");
-          setStatus("Capturing image...");
-          const dataUrl = captureDataUrlFull();
-
-          stopLiveCamera();
-
-          setStatus("Image captured ✅\nRunning OCR...");
-          const tOcr0 = performance.now();
-
-          let r;
-          try{
-            r = await callServer("visionExtract", [dataUrl]);
-          }catch(err){
-            const msOcr = _ms_(tOcr0);
-            setStatus("❌ OCR call failed (server).\n" + (err && err.message ? err.message : String(err)) + "\nOCR ms: " + msOcr);
-            uiState = "idle";
-            setBtn("CAPTURE");
-            showCaptureButtons();
-            return;
-          }
-
-          const msOcr = _ms_(tOcr0);
-
-          if (!r || !r.ok){
-            // keep your fail logging optional (ONLINE FIRST)
-            setStatus(
-              "❌ OCR FAILED\n" +
-              (r && r.message ? ("Reason: " + r.message + "\n") : "") +
-              "\nOCR ms: " + msOcr
-            );
-            uiState = "idle";
-            setBtn("CAPTURE");
-            showCaptureButtons();
-            return;
-          }
-
-          setText("memberId", r.memberId || "-");
-          setText("memberName", r.memberName || "-");
-          setText("itemName", r.itemName || "-");
-          setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
-
-          pendingCapture = {
-            memberId: r.memberId,
-            itemName: r.itemName,
-            weight: r.weight,
-            dataUrl: dataUrl,
-            ocrMemberName: r.memberName || "",
-            ocrItemName: r.itemName || ""
-          };
-
-          uiState = "await_submit";
-          setBtn("CAPTURE");
-          setStatus(
-            "OCR DONE ✅\n" +
-            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
-            "OCR ms: " + msOcr
-          );
-
-          showSubmitButtonOnly();
-          return;
-        }
-      }
-
-      // init
-      resetDisplay();
-      setBtn("CAPTURE");
-      setStatus("Press CAPTURE to start live camera.");
-
-      document.getElementById("btnCapture").addEventListener("click", captureClick);
-      btnCaptureFixed.addEventListener("click", captureClick);
-
-      btnSubmit.addEventListener("click", submitClick);
-      btnReset.addEventListener("click", resetClick);
-
-      showCaptureButtons();
-    </script>
-  </div>
-
-  <div class="overlayDone" id="overlayDone">
-    <div class="overlayCard">
-      <div class="overlayTick">✅</div>
-      <div class="overlayText">LOGGED COMPLETED</div>
-    </div>
-  </div>
+      setStatus("OCR DONE. Press SUBMIT.");
+      btnSubmit.style.display="block";
+      btnCapture.style.display="none";
+    };
+  }catch(e){
+    setStatus("Camera error: "+e.message);
+  }
+};
+
+btnSubmit.onclick = async ()=>{
+  if(!pendingCapture){ setStatus("Nothing to submit."); return; }
+  setStatus("Submitting...");
+  const resp = await callServer({
+    action:"captureFromOcr",
+    memberId:pendingCapture.memberId,
+    itemName:pendingCapture.itemName,
+    weight:pendingCapture.weight,
+    imageDataUrl:pendingCapture.imageDataUrl
+  });
+  if(!resp.ok){
+    setStatus("Submit failed: "+resp.message);
+    return;
+  }
+  setStatus("SUCCESS: "+resp.message);
+  setText("stage",resp.stage || "DONE");
+  btnSubmit.style.display="none";
+  btnCapture.style.display="block";
+  btnCapture.textContent="CAPTURE";
+};
+
+</script>
 </body>
 </html>
