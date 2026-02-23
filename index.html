@@ -47,9 +47,8 @@ canvas{display:none}
 </div>
 
 <script>
-
 const APPS_SCRIPT_WEBAPP_URL =
-"https://script.google.com/macros/s/AKfycbyot2nMVhJLIYFqNsukdaqyD4ck1IJCR-ihcUUomGvl9dQmHEtR1NdpfO543STx3m8R/exec";
+"https://script.google.com/macros/s/AKfycby5a_KgY93CyY4sJ3t2M6L7JCEd7irf50O-F5LrLPa2OmgekCQU0I8ZBNJREaF7co9nWA/exec";
 
 let stream = null;
 let pendingCapture = null;
@@ -60,98 +59,224 @@ const btnCapture = document.getElementById("btnCapture");
 const btnSubmit = document.getElementById("btnSubmit");
 
 function setStatus(t){ document.getElementById("status").textContent = t; }
-function setText(id,t){ document.getElementById(id).textContent = t ?? "-"; }
+function setText(id,t){ document.getElementById(id).textContent = (t ?? "-"); }
 
+// ✅ CORS-safe call: Apps Script sometimes returns text, so parse safely
 async function callServer(payload){
-  const res = await fetch(APPS_SCRIPT_WEBAPP_URL,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(payload)
+  const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    // mode:"cors" is default, but keeping it explicit is fine
+    mode: "cors"
   });
-  return await res.json();
+
+  const txt = await res.text();
+  let json;
+  try { json = JSON.parse(txt); }
+  catch(e){
+    throw new Error("Server returned non-JSON: " + txt.slice(0, 180));
+  }
+  return json;
 }
 
 async function startCamera(){
-  stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    throw new Error("Camera API not available in this browser.");
+  }
+  // GitHub Pages is HTTPS; if opened as file:// it will fail
+  if (!window.isSecureContext){
+    throw new Error("Camera blocked: open via HTTPS (GitHub Pages link), not file://");
+  }
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: "environment" } },
+    audio: false
+  });
   video.srcObject = stream;
+
+  await new Promise(r=>{
+    if (video.readyState >= 2) return r();
+    video.onloadedmetadata = ()=>r();
+  });
+
   await video.play();
 }
 
 function stopCamera(){
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-  video.srcObject=null;
+  try{
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+  }catch(e){}
+  stream = null;
+  video.srcObject = null;
 }
 
 function captureImage(){
-  const w = video.videoWidth;
-  const h = video.videoHeight;
+  const w = video.videoWidth || 1280;
+  const h = video.videoHeight || 720;
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(video,0,0,w,h);
-  return canvas.toDataURL("image/jpeg",0.8);
+  ctx.drawImage(video, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", 0.8);
 }
 
+// -------------------------------
+// CAPTURE FLOW (2-tap)
+// 1st tap: start camera
+// 2nd tap: capture frame + OCR
+// -------------------------------
 btnCapture.onclick = async ()=>{
   try{
     setStatus("Starting camera...");
     await startCamera();
-    setStatus("Camera ready. Tap CAPTURE again.");
-    btnCapture.textContent="CAPTURE FRAME";
+    setStatus("Camera ready ✅ Tap CAPTURE again to freeze frame.");
+    btnCapture.textContent = "CAPTURE FRAME";
+
+    // second tap handler
     btnCapture.onclick = async ()=>{
-      setStatus("Capturing...");
-      const img = captureImage();
-      stopCamera();
-      setStatus("Running OCR...");
-      const resp = await callServer({
-        action:"visionExtract",
-        imageDataUrl:img
-      });
-      if(!resp.ok){
-        setStatus("OCR FAILED: "+resp.message);
+      try{
+        setStatus("Capturing...");
+        const img = captureImage();
+        stopCamera();
+
+        setStatus("Running OCR...");
+        const resp = await callServer({ action:"visionExtract", imageDataUrl: img });
+
+        if(!resp || !resp.ok){
+          setStatus("OCR FAILED: " + (resp && resp.message ? resp.message : "Unknown error"));
+          btnCapture.textContent="CAPTURE";
+          // restore first tap handler
+          btnCapture.onclick = arguments.callee.caller; // not reliable in strict mode, so we rebind below
+          bindFirstTap();
+          return;
+        }
+
+        setText("memberId", resp.memberId);
+        setText("memberName", resp.memberName);
+        setText("itemName", resp.itemName);
+        setText("capW", resp.weight);
+
+        pendingCapture = {
+          memberId: resp.memberId,
+          itemName: resp.itemName,
+          weight: resp.weight,
+          imageDataUrl: img
+        };
+
+        setStatus("OCR DONE ✅ Press SUBMIT.");
+        btnSubmit.style.display="block";
+        btnCapture.style.display="none";
+      }catch(e){
+        setStatus("Capture/OCR error: " + (e && e.message ? e.message : String(e)));
+        stopCamera();
         btnCapture.textContent="CAPTURE";
-        return;
+        bindFirstTap();
       }
-      setText("memberId",resp.memberId);
-      setText("memberName",resp.memberName);
-      setText("itemName",resp.itemName);
-      setText("capW",resp.weight);
-      pendingCapture = {
-        memberId:resp.memberId,
-        itemName:resp.itemName,
-        weight:resp.weight,
-        imageDataUrl:img
-      };
-      setStatus("OCR DONE. Press SUBMIT.");
-      btnSubmit.style.display="block";
-      btnCapture.style.display="none";
     };
+
   }catch(e){
-    setStatus("Camera error: "+e.message);
+    setStatus("Camera error: " + (e && e.message ? e.message : String(e)));
+    stopCamera();
+    btnCapture.textContent="CAPTURE";
+    bindFirstTap();
   }
 };
 
+// helper to restore first-tap binding cleanly
+function bindFirstTap(){
+  btnCapture.onclick = async ()=>{
+    try{
+      setStatus("Starting camera...");
+      await startCamera();
+      setStatus("Camera ready ✅ Tap CAPTURE again to freeze frame.");
+      btnCapture.textContent = "CAPTURE FRAME";
+
+      btnCapture.onclick = async ()=>{
+        try{
+          setStatus("Capturing...");
+          const img = captureImage();
+          stopCamera();
+
+          setStatus("Running OCR...");
+          const resp = await callServer({ action:"visionExtract", imageDataUrl: img });
+
+          if(!resp || !resp.ok){
+            setStatus("OCR FAILED: " + (resp && resp.message ? resp.message : "Unknown error"));
+            btnCapture.textContent="CAPTURE";
+            bindFirstTap();
+            return;
+          }
+
+          setText("memberId", resp.memberId);
+          setText("memberName", resp.memberName);
+          setText("itemName", resp.itemName);
+          setText("capW", resp.weight);
+
+          pendingCapture = {
+            memberId: resp.memberId,
+            itemName: resp.itemName,
+            weight: resp.weight,
+            imageDataUrl: img
+          };
+
+          setStatus("OCR DONE ✅ Press SUBMIT.");
+          btnSubmit.style.display="block";
+          btnCapture.style.display="none";
+        }catch(e){
+          setStatus("Capture/OCR error: " + (e && e.message ? e.message : String(e)));
+          stopCamera();
+          btnCapture.textContent="CAPTURE";
+          bindFirstTap();
+        }
+      };
+
+    }catch(e){
+      setStatus("Camera error: " + (e && e.message ? e.message : String(e)));
+      stopCamera();
+      btnCapture.textContent="CAPTURE";
+      bindFirstTap();
+    }
+  };
+}
+// ensure correct first binding
+bindFirstTap();
+
+// -------------------------------
+// SUBMIT
+// -------------------------------
 btnSubmit.onclick = async ()=>{
-  if(!pendingCapture){ setStatus("Nothing to submit."); return; }
-  setStatus("Submitting...");
-  const resp = await callServer({
-    action:"captureFromOcr",
-    memberId:pendingCapture.memberId,
-    itemName:pendingCapture.itemName,
-    weight:pendingCapture.weight,
-    imageDataUrl:pendingCapture.imageDataUrl
-  });
-  if(!resp.ok){
-    setStatus("Submit failed: "+resp.message);
-    return;
-  }
-  setStatus("SUCCESS: "+resp.message);
-  setText("stage",resp.stage || "DONE");
-  btnSubmit.style.display="none";
-  btnCapture.style.display="block";
-  btnCapture.textContent="CAPTURE";
-};
+  try{
+    if(!pendingCapture){
+      setStatus("Nothing to submit.");
+      return;
+    }
+    setStatus("Submitting...");
+    const resp = await callServer({
+      action:"captureFromOcr",
+      memberId: pendingCapture.memberId,
+      itemName: pendingCapture.itemName,
+      weight: pendingCapture.weight,
+      imageDataUrl: pendingCapture.imageDataUrl
+    });
 
+    if(!resp || !resp.ok){
+      setStatus("Submit failed: " + (resp && resp.message ? resp.message : "Unknown error"));
+      return;
+    }
+
+    setStatus("SUCCESS ✅ " + resp.message);
+    setText("stage", resp.stage || "DONE");
+
+    pendingCapture = null;
+    btnSubmit.style.display="none";
+    btnCapture.style.display="block";
+    btnCapture.textContent="CAPTURE";
+    bindFirstTap();
+  }catch(e){
+    setStatus("Submit error: " + (e && e.message ? e.message : String(e)));
+  }
+};
 </script>
 </body>
 </html>
