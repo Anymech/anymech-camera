@@ -758,15 +758,24 @@ window.saveOfflineClick = async function saveOfflineClick(){
     return;
   }
 
-  await offlineEnqueue({
-    id: Date.now(),
-    payload: {
-      memberId: pendingCapture.memberId || "",
-      itemName: pendingCapture.itemName || "",
-      weight: pendingCapture.weight,
-      imageDataUrl: pendingCapture.dataUrl
-    }
-  });
+  try{
+    await offlineEnqueue({
+      id: Date.now(),
+      payload: {
+        memberId: pendingCapture.memberId || "",
+        itemName: pendingCapture.itemName || "",
+        weight: pendingCapture.weight,
+        imageDataUrl: pendingCapture.dataUrl
+      }
+    });
+  }catch(e){
+    setStatus(
+      "❌ SAVE OFFLINE FAILED\n" +
+      "IndexedDB error (browser storage blocked / private mode / quota).\n\n" +
+      (e && e.message ? e.message : String(e))
+    );
+    return;
+  }
 
   setStatus("📴 Saved OFFLINE ✅\nWill auto sync when online.");
   pendingCapture = null;
