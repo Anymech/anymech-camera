@@ -579,17 +579,13 @@
       // =========================
       // button sequencing helpers
       // =========================
-     function showCaptureButtons(){
-  document.getElementById("btnCapture").style.display =
-    (camWrap.style.display === "block") ? "none" : "block";
-
-  btnFixedWrap.style.display =
-    (camWrap.style.display === "block") ? "block" : "none";
-
-  btnSubmit.style.display = "none";
-  btnReset.style.display = "none";
-  btnSaveOffline.style.display = "none"; // ADD THIS
-}
+      function showCaptureButtons(){
+        document.getElementById("btnCapture").style.display = (camWrap.style.display === "block") ? "none" : "block";
+        btnFixedWrap.style.display = (camWrap.style.display === "block") ? "block" : "none";
+        btnSubmit.style.display = "none";
+        btnReset.style.display = "none";
+        btnSaveOffline.style.display = "none";
+      }
 
       function showSubmitButtonOnly(){
         btnSaveOffline.style.display = "none";
@@ -772,7 +768,6 @@ window.saveOfflineClick = async function saveOfflineClick(){
   pendingCapture = null;
   uiState = "idle";
   setBtn("CAPTURE");
-  btnSaveOffline.style.display = "none";
   showCaptureButtons();
 };
       // ===============================
@@ -787,6 +782,7 @@ window.saveOfflineClick = async function saveOfflineClick(){
           showCaptureButtons();
           return;
         }
+
         const tSub0 = performance.now();
         setStatus("Submitting...");
         btnSubmit.textContent = "SUBMITTING...";
@@ -956,30 +952,20 @@ window.saveOfflineClick = async function saveOfflineClick(){
           try{
             r = await callServer("visionExtract", [dataUrl]);
           }catch(err){
-  const msOcr = _ms_(tOcr0);
+            const msOcr = _ms_(tOcr0);
 
-  // ✅ prepare offline save
-  pendingCapture = {
-    memberId: "",
-    itemName: "",
-    weight: null,
-    dataUrl: dataUrl,
-    ocrMemberName: "",
-    ocrItemName: ""
-  };
+            setStatus(
+              "ERROR: OCR call failed\n" +
+              (err && err.message ? err.message : String(err)) +
+              "\n\nTIMING:\nOCR call: " + msOcr + " ms"
+            );
 
-  uiState = "await_save_offline";
+            setBtn("CAPTURE");
+            uiState = "idle";
+            showCaptureButtons();
+            return;
+          }
 
-  setStatus(
-    "OCR failed (likely offline).\n\n" +
-    "You can SAVE OFFLINE now.\n" +
-    "When internet returns, OCR + Submit will auto-run.\n\n" +
-    "TIMING:\nOCR call: " + msOcr + " ms"
-  );
-
-  showSaveOfflineOnly();
-  return;
-}
           const msOcr = _ms_(tOcr0);
 
          if (!r || !r.ok){
