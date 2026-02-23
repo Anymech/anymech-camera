@@ -956,20 +956,30 @@ window.saveOfflineClick = async function saveOfflineClick(){
           try{
             r = await callServer("visionExtract", [dataUrl]);
           }catch(err){
-            const msOcr = _ms_(tOcr0);
+  const msOcr = _ms_(tOcr0);
 
-            setStatus(
-              "ERROR: OCR call failed\n" +
-              (err && err.message ? err.message : String(err)) +
-              "\n\nTIMING:\nOCR call: " + msOcr + " ms"
-            );
+  // ✅ prepare offline save
+  pendingCapture = {
+    memberId: "",
+    itemName: "",
+    weight: null,
+    dataUrl: dataUrl,
+    ocrMemberName: "",
+    ocrItemName: ""
+  };
 
-            setBtn("CAPTURE");
-            uiState = "idle";
-            showCaptureButtons();
-            return;
-          }
+  uiState = "await_save_offline";
 
+  setStatus(
+    "OCR failed (likely offline).\n\n" +
+    "You can SAVE OFFLINE now.\n" +
+    "When internet returns, OCR + Submit will auto-run.\n\n" +
+    "TIMING:\nOCR call: " + msOcr + " ms"
+  );
+
+  showSaveOfflineOnly();
+  return;
+}
           const msOcr = _ms_(tOcr0);
 
          if (!r || !r.ok){
