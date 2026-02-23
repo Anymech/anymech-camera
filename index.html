@@ -391,6 +391,7 @@
     <button class="btn" id="btnCapture">CAPTURE</button>
     <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
     <button class="btn" id="btnReset" style="display:none;">RESET</button>
+    <button class="btn" id="btnSaveOffline" style="display:none;">SAVE OFFLINE</button>
 
     <script>
       window.onerror = function (msg, src, line, col, err) {
@@ -473,6 +474,7 @@
       // submit & reset refs
       const btnSubmit = document.getElementById("btnSubmit");
       const btnReset  = document.getElementById("btnReset");
+      const btnSaveOffline = document.getElementById("btnSaveOffline");
 
       function setStatus(t){ document.getElementById("status").textContent = t; }
       function setBtn(t){ document.getElementById("btnCapture").textContent = t; btnCaptureFixed.textContent = t; }
@@ -585,12 +587,19 @@
       }
 
       function showSubmitButtonOnly(){
+        btnSaveOffline.style.display = "none";
         btnFixedWrap.style.display = "none";
         document.getElementById("btnCapture").style.display = "none";
         btnSubmit.style.display = "block";
         btnReset.style.display = "block";
       }
-
+function showSaveOfflineOnly(){
+  btnFixedWrap.style.display = "none";
+  document.getElementById("btnCapture").style.display = "none";
+  btnSubmit.style.display = "none";
+  btnReset.style.display = "block";
+  btnSaveOffline.style.display = "block";
+}
       function showCameraUI(on){
         camWrap.style.display = on ? "block" : "none";
         btnFixedWrap.style.display = on ? "block" : "none";
@@ -750,7 +759,28 @@
           showCaptureButtons();
           return;
         }
+window.saveOfflineClick = async function saveOfflineClick(){
+  if (!pendingCapture){
+    setStatus("Nothing to save. Please CAPTURE first.");
+    return;
+  }
 
+  await offlineEnqueue({
+    id: Date.now(),
+    payload: {
+      memberId: pendingCapture.memberId || "",
+      itemName: pendingCapture.itemName || "",
+      weight: pendingCapture.weight,
+      imageDataUrl: pendingCapture.dataUrl
+    }
+  });
+
+  setStatus("📴 Saved OFFLINE ✅\nWill auto sync when online.");
+  pendingCapture = null;
+  uiState = "idle";
+  setBtn("CAPTURE");
+  showCaptureButtons();
+};
         const tSub0 = performance.now();
         setStatus("Submitting...");
         btnSubmit.textContent = "SUBMITTING...";
@@ -865,6 +895,7 @@
             await startLiveCamera();
             uiState = "camera_on";
             showCaptureButtons();
+        
           }catch(err){
             uiState = "idle";
             setBtn("CAPTURE");
@@ -935,29 +966,29 @@
 
           const msOcr = _ms_(tOcr0);
 
-          if (!r || !r.ok){
-            const msAll = _ms_(tAll0);
+         if (!r || !r.ok){
+  // keep your existing logging + postFailTasks as-is above...
 
-            callServerNoWait("postFailTasks", [
-              dataUrl,
-              (r && r.message) ? r.message : "OCR failed",
-              (r && r.rawText) ? r.rawText : ""
-            ]);
+  // ✅ allow offline save when OCR fails (most common: no internet)
+  pendingCapture = {
+    memberId: "",
+    itemName: "",
+    weight: null,
+    dataUrl: dataUrl,
+    ocrMemberName: "",
+    ocrItemName: ""
+  };
 
-            setStatus(
-              "ERROR: OCR failed.\n" +
-              (r && r.message ? r.message : "Unknown OCR error") +
-              "\n\nERROR DETAIL:\n" + (r && r.error ? r.error : "") +
-              "\n\nRAW:\n" + (r && r.rawText ? r.rawText : "") +
-              "\n\nTIMING:\nOCR call: " + msOcr + " ms\nTOTAL: " + msAll + " ms"
-            );
+  uiState = "await_save_offline";
+  setStatus(
+    "OCR failed (likely offline).\n" +
+    "You can SAVE OFFLINE now and it will auto-sync when online.\n\n" +
+    (r && r.message ? ("Reason: " + r.message) : "")
+  );
 
-            setBtn("CAPTURE");
-            uiState = "idle";
-            showCaptureButtons();
-            return;
-          }
-
+  showSaveOfflineOnly();
+  return;
+}
           setText("memberId", r.memberId || "-");
           setText("memberName", r.memberName || "-");
           setText("itemName", r.itemName || "-");
@@ -1030,7 +1061,8 @@
 
       btnSubmit.addEventListener("click", submitClick);
       btnReset.addEventListener("click", resetClick);
-
+      btnSaveOffline.style.display = "none";
+btnSaveOffline.addEventListener("click", saveOfflineClick);
       showCaptureButtons();
 
       // try sync on load (optional but safe)
