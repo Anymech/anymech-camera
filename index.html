@@ -563,6 +563,7 @@
 
        const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
   method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify(payload)
 });
 
@@ -610,7 +611,7 @@ function showSaveOfflineOnly(){
         btnFixedWrap.style.display = on ? "block" : "none";
         document.getElementById("btnCapture").style.display = on ? "none" : "block";
 
-   if ((uiState !== "await_submit" && uiState !== "await_submit_offline") || !pendingCapture){
+        if ((uiState === "await_submit" || uiState === "await_submit_offline") && pendingCapture) {
           btnFixedWrap.style.display = "none";
           document.getElementById("btnCapture").style.display = "none";
           btnSubmit.style.display = "block";
@@ -751,45 +752,45 @@ function showSaveOfflineOnly(){
           showCaptureButtons();
         }
       }
-// SAVE OFFLINE handler (must be outside submitClick)
-window.saveOfflineClick = async function saveOfflineClick(){
-  if (!pendingCapture){
-    setStatus("Nothing to save. Please CAPTURE first.");
-    return;
-  }
+      // SAVE OFFLINE handler (must be outside submitClick)
+      window.saveOfflineClick = async function saveOfflineClick(){
+        if (!pendingCapture){
+          setStatus("Nothing to save. Please CAPTURE first.");
+          return;
+        }
 
-  try{
-   await offlineEnqueue({
-  id: Date.now(),
-  payload: {
-  memberId: pendingCapture.memberId || "",
-  itemName: pendingCapture.itemName || "",
-  weight: pendingCapture.weight,
-  imageDataUrl: pendingCapture.dataUrl,
-  needsOcr: true
-}
-});
-  }catch(e){
-    setStatus(
-      "❌ SAVE OFFLINE FAILED\n" +
-      "IndexedDB error (browser storage blocked / private mode / quota).\n\n" +
-      (e && e.message ? e.message : String(e))
-    );
-    return;
-  }
+        try{
+         await offlineEnqueue({
+        id: Date.now(),
+        payload: {
+        memberId: pendingCapture.memberId || "",
+        itemName: pendingCapture.itemName || "",
+        weight: pendingCapture.weight,
+        imageDataUrl: pendingCapture.dataUrl,
+        needsOcr: true
+      }
+      });
+        }catch(e){
+          setStatus(
+            "❌ SAVE OFFLINE FAILED\n" +
+            "IndexedDB error (browser storage blocked / private mode / quota).\n\n" +
+            (e && e.message ? e.message : String(e))
+          );
+          return;
+        }
 
-  setStatus("📴 Saved OFFLINE ✅\nWill auto sync when online.");
-  pendingCapture = null;
-  uiState = "idle";
-  setBtn("CAPTURE");
-  btnSaveOffline.style.display = "none";
-  showCaptureButtons();
-};
+        setStatus("📴 Saved OFFLINE ✅\nWill auto sync when online.");
+        pendingCapture = null;
+        uiState = "idle";
+        setBtn("CAPTURE");
+        btnSaveOffline.style.display = "none";
+        showCaptureButtons();
+      };
       // ===============================
       // SUBMIT CLICK ✅ UPDATED (offline save + auto sync)
       // ===============================
       window.submitClick = async function submitClick(){
-        if (uiState !== "await_submit" || !pendingCapture){
+        if ((uiState !== "await_submit" && uiState !== "await_submit_offline") || !pendingCapture){
           setStatus("No captured data pending. Please CAPTURE first.");
           uiState = "idle";
           pendingCapture = null;
@@ -806,10 +807,11 @@ window.saveOfflineClick = async function saveOfflineClick(){
           await offlineEnqueue({
             id: Date.now(),
             payload: {
-              memberId: pendingCapture.memberId,
-              itemName: pendingCapture.itemName,
+              memberId: pendingCapture.memberId || "",
+              itemName: pendingCapture.itemName || "",
               weight: pendingCapture.weight,
-              imageDataUrl: pendingCapture.dataUrl
+              imageDataUrl: pendingCapture.dataUrl,
+              needsOcr: true
             }
           });
 
@@ -835,10 +837,11 @@ window.saveOfflineClick = async function saveOfflineClick(){
           await offlineEnqueue({
             id: Date.now(),
             payload: {
-              memberId: pendingCapture.memberId,
-              itemName: pendingCapture.itemName,
+              memberId: pendingCapture.memberId || "",
+              itemName: pendingCapture.itemName || "",
               weight: pendingCapture.weight,
-              imageDataUrl: pendingCapture.dataUrl
+              imageDataUrl: pendingCapture.dataUrl,
+              needsOcr: !(pendingCapture.memberId && pendingCapture.itemName && pendingCapture.weight !== null && pendingCapture.weight !== undefined)
             }
           });
 
