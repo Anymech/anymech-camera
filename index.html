@@ -579,12 +579,17 @@
       // =========================
       // button sequencing helpers
       // =========================
-      function showCaptureButtons(){
-        document.getElementById("btnCapture").style.display = (camWrap.style.display === "block") ? "none" : "block";
-        btnFixedWrap.style.display = (camWrap.style.display === "block") ? "block" : "none";
-        btnSubmit.style.display = "none";
-        btnReset.style.display = "none";
-      }
+     function showCaptureButtons(){
+  document.getElementById("btnCapture").style.display =
+    (camWrap.style.display === "block") ? "none" : "block";
+
+  btnFixedWrap.style.display =
+    (camWrap.style.display === "block") ? "block" : "none";
+
+  btnSubmit.style.display = "none";
+  btnReset.style.display = "none";
+  btnSaveOffline.style.display = "none"; // ADD THIS
+}
 
       function showSubmitButtonOnly(){
         btnSaveOffline.style.display = "none";
