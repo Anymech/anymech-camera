@@ -1,282 +1,1096 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Anymech Live Capture</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anymech Live Capture</title>
+  <style>
+    body{font-family:system-ui,Arial;margin:16px;max-width:900px}
 
-<style>
-body{font-family:system-ui,Arial;margin:16px;max-width:900px}
-.appFrame{border:1px solid #e6e6e6;border-radius:22px;padding:18px;box-shadow:0 14px 40px rgba(0,0,0,0.10);background:#fff}
-.card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
-.status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
-.kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
-.kv div{padding:8px 0;border-bottom:1px dashed #eee}
-.label{font-weight:700}
-.btn{width:100%;padding:22px;border-radius:16px;font-size:22px;font-weight:900;border:1px solid #b9b9b9;cursor:pointer;background:linear-gradient(#ffffff,#f1f1f1)}
-.ok{color:#0a7a0a;font-weight:800}
-.appTitle{text-align:center;font-size:38px;font-weight:900;color:#0b4fd6;margin:6px 0 18px 0}
-video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
-canvas{display:none}
-</style>
+    .appFrame{
+      border:1px solid #e6e6e6;
+      border-radius:22px;
+      padding:18px;
+      box-shadow:0 14px 40px rgba(0,0,0,0.10);
+      background:#fff;
+    }
+
+    .brandTitle{
+      font-size:22px;
+      font-weight:900;
+      color:#0b5ed7;
+      letter-spacing:0.6px;
+      margin:0 0 10px 0;
+      text-align:center;
+    }
+
+    /* ✅ FULL SCREEN CAMERA PREVIEW */
+    .camWrap{
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      position: fixed;
+      inset: 0;
+      padding-top: 0;
+      background: #000;
+      border-radius: 0;
+      overflow: hidden;
+      z-index: 9990;
+      display: none; /* only show when camera is ON */
+    }
+
+    .camWrap video{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
+    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
+
+    .kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
+    .kv div{padding:8px 0;border-bottom:1px dashed #eee}
+    .label{font-weight:700}
+    .kv div:nth-child(2n){font-weight:800}
+
+    video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
+    canvas{display:none}
+    .ok{color:#0a7a0a;font-weight:800}
+
+    .guideLine{
+      position:absolute;
+      left:0; right:0;
+      height:2px;
+      background:rgba(255,0,0,0.85);
+      top:50%;
+      pointer-events:none;
+    }
+    .guideLabel{
+      position:absolute;
+      left:10px;
+      top:calc(50% - 22px);
+      background:rgba(0,0,0,0.55);
+      color:#fff;
+      font-size:12px;
+      padding:4px 8px;
+      border-radius:8px;
+      pointer-events:none;
+    }
+
+    /* ✅ CAPTURE BUTTON ON TOP OF FULL SCREEN CAMERA */
+    .btn{
+      width:100%;
+      padding:22px;
+      border-radius:16px;
+      font-size:22px;
+      font-weight:900;
+      border:1px solid #b9b9b9;
+      cursor:pointer;
+      background:linear-gradient(#ffffff,#f1f1f1);
+      box-shadow:
+        0 10px 0 #d0d0d0,
+        0 18px 28px rgba(0,0,0,0.12);
+      transition:transform 0.08s ease, box-shadow 0.08s ease;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .btn:active{
+      transform:translateY(6px);
+      box-shadow:
+        0 4px 0 #d0d0d0,
+        0 10px 18px rgba(0,0,0,0.12);
+    }
+
+    /* ✅ button fixed bottom-center while camera full screen */
+    .btnFixed{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 22px;
+      z-index: 9992;
+      width: min(92vw, 420px);
+      display: none; /* show only when camera is ON */
+    }
+
+    .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
+    .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
+
+    /* ✅ ADDED: mobile view (no logic change) */
+    @media (max-width: 520px){
+      body{margin:10px;max-width:100%}
+      .appFrame{padding:12px;border-radius:18px}
+      .card{margin:10px 0;padding:12px}
+      .kv{grid-template-columns:140px 1fr}
+      .btn{padding:24px;font-size:22px;border-radius:18px}
+      .brandTitle{font-size:22px}
+    }
+
+    /* ✅ ADDED: overlay for "LOGGED COMPLETED" */
+    .overlayDone{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.18);
+      z-index:9999;
+    }
+    .overlayCard{
+      background:#fff;
+      border-radius:20px;
+      padding:22px 18px;
+      box-shadow:0 18px 50px rgba(0,0,0,0.20);
+      text-align:center;
+      width:min(320px, 88vw);
+    }
+    .overlayTick{
+      font-size:64px;
+      line-height:1;
+      color:#0a7a0a;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+    .overlayText{
+      font-size:18px;
+      font-weight:900;
+      color:#0a7a0a;
+      letter-spacing:0.4px;
+    }
+
+    /* ✅ MOBILE VIEW ENHANCEMENT – DO NOT AFFECT DESKTOP */
+    @media (max-width: 768px) {
+
+      body{
+        margin:8px;
+        font-size:20px;
+      }
+
+      .appFrame{
+        padding:20px;
+        border-radius:26px;
+      }
+
+      h2{
+        font-size:26px;
+        text-align:center;
+      }
+
+      .card{
+        padding:18px;
+      }
+
+      .kv{
+        grid-template-columns: 140px 1fr;
+        gap:14px;
+      }
+
+      .kv div{
+        font-size:18px;
+        padding:12px 0;
+      }
+
+      .label{
+        font-size:18px;
+        font-weight:800;
+      }
+
+      video{
+        border-radius:16px;
+      }
+
+      .btn{
+        font-size:22px;
+        padding:26px;
+        border-radius:18px;
+      }
+
+      .status{
+        font-size:16px;
+        padding:16px;
+      }
+
+    }
+    .appTitle{
+      text-align:center;
+      font-size:38px;
+      font-weight:900;
+      color:#0b4fd6;
+      letter-spacing:1.2px;
+      margin:6px 0 18px 0;
+    }
+    /* 🔥 Bigger capture details for mobile */
+    .kv div{
+      font-size:24px;
+      padding:16px 0;
+    }
+
+    .label{
+      font-size:24px;
+      font-weight:900;
+    }
+
+    /* Values on right side */
+    #memberId,
+    #memberName,
+    #itemName,
+    #outW,
+    #inW,
+    #readyW,
+    #stage{
+      font-size:18px;
+      font-weight:800;
+    }
+    @media (max-width: 768px){
+      .appTitle{
+        font-size:42px;
+      }
+
+      .kv div{
+        font-size:26px;
+      }
+
+      .label{
+        font-size:26px;
+      }
+
+      #memberId,
+      #memberName,
+      #itemName,
+      #outW,
+      #inW,
+      #readyW,
+      #stage{
+        font-size:18px;
+      }
+
+      /* ✅ Centered bottom CAPTURE button (layout only) */
+      #btnCapture{
+        display: block;
+        margin: 28px auto 6px auto; /* center + push to bottom of layout */
+        width: min(92%, 420px);
+        padding: 30px;
+        font-size: 26px;
+        font-weight: 900;
+        border-radius: 20px;
+      }
+
+      /* 📱 Bigger & thumb-friendly on mobile */
+      @media (max-width: 768px){
+        #btnCapture{
+          width: 94%;
+          padding: 34px;
+          font-size: 28px;
+          border-radius: 22px;
+        }
+      }
+      /* ✅ CAPTURE button at very bottom after all details */
+      #btnCapture{
+        display: block;
+        margin: 32px auto 12px auto; /* pushes it BELOW details */
+        width: min(94%, 460px);
+        padding: 32px;
+        font-size: 28px;
+        font-weight: 900;
+        border-radius: 22px;
+      }
+
+      /* 📱 Mobile emphasis */
+      @media (max-width: 768px){
+        #btnCapture{
+          width: 96%;
+          padding: 36px;
+          font-size: 30px;
+          border-radius: 24px;
+        }
+      }
+
+    }
+
+    /* ✅ ADDED: match SUBMIT bottom styling (no logic change) */
+    #btnSubmit{
+      display: block;
+      margin: 32px auto 12px auto;
+      width: min(94%, 460px);
+      padding: 32px;
+      font-size: 28px;
+      font-weight: 900;
+      border-radius: 22px;
+    }
+    @media (max-width: 768px){
+      #btnSubmit{
+        width: 96%;
+        padding: 36px;
+        font-size: 30px;
+        border-radius: 24px;
+      }
+    }
+
+    /* ✅ ADDED: match RESET bottom styling (no logic change) */
+    #btnReset{
+      display: block;
+      margin: 12px auto 12px auto;
+      width: min(94%, 460px);
+      padding: 32px;
+      font-size: 28px;
+      font-weight: 900;
+      border-radius: 22px;
+    }
+    @media (max-width: 768px){
+      #btnReset{
+        width: 96%;
+        padding: 36px;
+        font-size: 30px;
+        border-radius: 24px;
+      }
+    }
+  </style>
 </head>
 
 <body>
-<div class="appFrame">
-<h1 class="appTitle">ANYMECH PRODUCTS</h1>
+  <div class="appFrame">
+    <h1 class="appTitle">ANYMECH PRODUCTS</h1>
 
-<div class="card">
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas"></canvas>
-<div class="status" id="status">Press CAPTURE to start.</div>
-</div>
+    <div class="card">
+      <!-- ✅ Full screen camera layer -->
+      <div class="camWrap" id="camWrap">
+        <video id="video" autoplay playsinline></video>
+        <div class="guideLine"></div>
+        <div class="guideLabel">Top: Card | Bottom: Scale</div>
+      </div>
 
-<div class="card">
-<div class="kv">
-<div class="label">NEW M.NO</div><div id="memberId">-</div>
-<div class="label">MEMBER NAME</div><div id="memberName">-</div>
-<div class="label">ITEM NAME</div><div id="itemName">-</div>
-<div class="label">CAPTURED WEIGHT</div><div id="capW">-</div>
-<div class="label">STATUS</div><div id="stage">-</div>
-</div>
-</div>
+      <canvas id="canvas"></canvas>
 
-<button class="btn" id="btnCapture">CAPTURE</button>
-<button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
+      <!-- ✅ full-screen fixed button -->
+      <div class="btnFixed" id="btnFixedWrap">
+        <button class="btn" id="btnCaptureFixed">CAPTURE</button>
+      </div>
 
-</div>
+      <div class="status" id="status">Press CAPTURE to start live camera.</div>
+    </div>
 
-<script>
-const APPS_SCRIPT_WEBAPP_URL =
-"https://script.google.com/macros/s/AKfycbwJr73l_9BJfiRAEpIz-x90zhOX78ny4kH53X_RifEqFN7WFcgnnAUpwbeMisMVvtFQcA/exec";
+    <div class="card">
+      <div class="kv">
+        <div class="label">NEW M.NO</div><div id="memberId">-</div>
+        <div class="label">MEMBER NAME</div><div id="memberName">-</div>
+        <div class="label">ITEM NAME</div><div id="itemName">-</div>
+        <div class="label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
 
-let stream = null;
-let pendingCapture = null;
+        <div class="label">OUT WEIGHT</div><div id="outW">-</div>
+        <div class="label">IN WEIGHT</div><div id="inW">-</div>
+        <div class="label">READY WEIGHT</div><div id="readyW">-</div>
 
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const btnCapture = document.getElementById("btnCapture");
-const btnSubmit = document.getElementById("btnSubmit");
+        <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
 
-function setStatus(t){ document.getElementById("status").textContent = t; }
-function setText(id,t){ document.getElementById(id).textContent = (t ?? "-"); }
+        <div class="label">STATUS</div><div id="stage">-</div>
+      </div>
+    </div>
 
-// ✅ CORS-safe call: Apps Script sometimes returns text, so parse safely
-async function callServer(payload){
-  const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    // mode:"cors" is default, but keeping it explicit is fine
-    mode: "cors"
+    <!-- ✅ buttons -->
+    <button class="btn" id="btnCapture">CAPTURE</button>
+    <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
+    <button class="btn" id="btnReset" style="display:none;">RESET</button>
+    <button class="btn" id="btnSaveOffline" style="display:none;">SAVE OFFLINE</button>
+
+    <script>
+      window.onerror = function (msg, src, line, col, err) {
+        const s = "JS ERROR: " + msg + "\n" + (src||"") + ":" + line + ":" + col;
+        try { document.getElementById("status").textContent = s; } catch(e) {}
+        return false;
+      };
+    </script>
+
+    <script>
+      // ✅ FIX: _ms_ must exist before any catch uses it
+      function _ms_(t0){ return Math.round((performance.now() - t0)); }
+
+      let uiState = "idle";
+      let stream = null;
+
+      // ✅ holds captured OCR result until SUBMIT is clicked
+      let pendingCapture = null; // { memberId, itemName, weight, dataUrl, ocrMemberName, ocrItemName }
+
+      // ===============================
+      // OFFLINE QUEUE (IndexedDB)
+      // ===============================
+      const OFFLINE_DB = "anymech_offline_db";
+      const OFFLINE_STORE = "queue";
+
+      function idbOpen(){
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(OFFLINE_DB, 1);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(OFFLINE_STORE)) {
+              db.createObjectStore(OFFLINE_STORE, { keyPath: "id" });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function offlineEnqueue(item){
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(OFFLINE_STORE, "readwrite");
+          tx.objectStore(OFFLINE_STORE).put(item);
+          tx.oncomplete = () => { db.close(); resolve(true); };
+          tx.onerror = () => { db.close(); reject(tx.error); };
+        });
+      }
+
+      async function offlineList(){
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(OFFLINE_STORE, "readonly");
+          const req = tx.objectStore(OFFLINE_STORE).getAll();
+          req.onsuccess = () => { const out = req.result || []; db.close(); resolve(out); };
+          req.onerror = () => { db.close(); reject(req.error); };
+        });
+      }
+
+      async function offlineRemove(id){
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(OFFLINE_STORE, "readwrite");
+          tx.objectStore(OFFLINE_STORE).delete(id);
+          tx.oncomplete = () => { db.close(); resolve(true); };
+          tx.onerror = () => { db.close(); reject(tx.error); };
+        });
+      }
+
+      function isOnline(){
+        return navigator.onLine === true;
+      }
+
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const camWrap = document.getElementById("camWrap");
+      const btnFixedWrap = document.getElementById("btnFixedWrap");
+      const btnCaptureFixed = document.getElementById("btnCaptureFixed");
+
+      // submit & reset refs
+      const btnSubmit = document.getElementById("btnSubmit");
+      const btnReset  = document.getElementById("btnReset");
+      const btnSaveOffline = document.getElementById("btnSaveOffline");
+
+      function setStatus(t){ document.getElementById("status").textContent = t; }
+      function setBtn(t){ document.getElementById("btnCapture").textContent = t; btnCaptureFixed.textContent = t; }
+      function setText(id, t){ document.getElementById(id).textContent = (t ?? "-"); }
+
+      function setStageText(t, completed){
+        const el = document.getElementById("stage");
+        el.textContent = t ?? "-";
+        el.className = completed ? "ok" : "";
+      }
+
+      function setShortMaterial(v){
+        const el = document.getElementById("shortMat");
+        el.className = "";
+        if (v === null || v === undefined || v === "" || Number.isNaN(v)){
+          el.textContent = "-";
+          return;
+        }
+        const n = Number(v);
+        el.textContent = n.toFixed(3);
+        if (n < -0.200) el.className = "hlRed";
+        else if (n > 0.200) el.className = "hlGreen";
+      }
+
+      function tickSound(){
+        try{
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = "square";
+          o.frequency.value = 1200;
+          g.gain.value = 0.06;
+          o.connect(g); g.connect(ctx.destination);
+          o.start();
+          setTimeout(()=>{ o.stop(); ctx.close(); }, 90);
+        }catch(e){}
+      }
+
+      function showLoggedOverlay(){
+        const el = document.getElementById("overlayDone");
+        if (!el) return;
+        el.style.display = "flex";
+        setTimeout(()=>{ el.style.display = "none"; }, 1000);
+      }
+
+      function resetDisplay(){
+        setText("memberId","-");
+        setText("memberName","-");
+        setText("itemName","-");
+        setText("outW","-");
+        setText("inW","-");
+        setText("readyW","-");
+        setShortMaterial(null);
+        setStageText("-", false);
+        setText("capW","-");
+      }
+
+      // ===============================
+      // SERVER CALL (FETCH)  ✅ FIXED header
+      // ===============================
+      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwJr73l_9BJfiRAEpIz-x90zhOX78ny4kH53X_RifEqFN7WFcgnnAUpwbeMisMVvtFQcA/exec";
+
+      async function callServer(fnName, args){
+        let payload = {};
+
+        if (fnName === "visionExtract") {
+          payload = { action: "visionExtract", imageDataUrl: args[0] };
+        } else if (fnName === "captureFromOcr") {
+          payload = {
+            action: "captureFromOcr",
+            memberId: args[0],
+            itemName: args[1],
+            weight: args[2],
+            imageDataUrl: args[3]
+          };
+        } else if (fnName === "postFailTasks") {
+          payload = {
+            action: "postFailTasks",
+            imageDataUrl: args[0],
+            failMessage: args[1],
+            rawText: args[2]
+          };
+        } else {
+          payload = { action: "unknown" };
+        }
+
+       const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+  method: "POST",
+  body: JSON.stringify(payload)
+});
+
+        const text = await res.text();
+        return JSON.parse(text);
+      }
+
+      function callServerNoWait(fnName, args){
+        callServer(fnName, args).catch(err=>{
+          setStatus("Background fail: " + (err && err.message ? err.message : String(err)));
+        });
+      }
+
+      // =========================
+      // button sequencing helpers
+      // =========================
+     function showCaptureButtons(){
+  document.getElementById("btnCapture").style.display =
+    (camWrap.style.display === "block") ? "none" : "block";
+
+  btnFixedWrap.style.display =
+    (camWrap.style.display === "block") ? "block" : "none";
+
+  btnSubmit.style.display = "none";
+  btnReset.style.display = "none";
+  btnSaveOffline.style.display = "none"; // ADD THIS
+}
+
+      function showSubmitButtonOnly(){
+        btnSaveOffline.style.display = "none";
+        btnFixedWrap.style.display = "none";
+        document.getElementById("btnCapture").style.display = "none";
+        btnSubmit.style.display = "block";
+        btnReset.style.display = "block";
+      }
+function showSaveOfflineOnly(){
+  btnFixedWrap.style.display = "none";
+  document.getElementById("btnCapture").style.display = "none";
+  btnSubmit.style.display = "none";
+  btnReset.style.display = "block";
+  btnSaveOffline.style.display = "block";
+}
+      function showCameraUI(on){
+        camWrap.style.display = on ? "block" : "none";
+        btnFixedWrap.style.display = on ? "block" : "none";
+        document.getElementById("btnCapture").style.display = on ? "none" : "block";
+
+        if (uiState === "await_submit") {
+          btnFixedWrap.style.display = "none";
+          document.getElementById("btnCapture").style.display = "none";
+          btnSubmit.style.display = "block";
+          btnReset.style.display = "block";
+        } else {
+          btnSubmit.style.display = "none";
+          btnReset.style.display = "none";
+        }
+      }
+
+      window.startLiveCamera = async function startLiveCamera(){
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+          throw new Error("Camera API not available in this browser/webview.");
+        }
+        if (!window.isSecureContext){
+          throw new Error("Camera blocked: page is not HTTPS (secure). Open using https:// (or localhost).");
+        }
+
+        try { video.muted = true; } catch(e) {}
+
+        try{
+          if (navigator.permissions && navigator.permissions.query){
+            const st = await navigator.permissions.query({ name: "camera" });
+            if (st && st.state === "denied"){
+              throw new Error("Camera permission is DENIED in browser settings. Allow camera for this site and reload.");
+            }
+          }
+        }catch(e){}
+
+        const preferred = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            aspectRatio: { ideal: 16/9 }
+          },
+          audio: false
+        };
+
+        try{
+          stream = await navigator.mediaDevices.getUserMedia(preferred);
+        }catch(e1){
+          try{
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: { ideal: "environment" },
+                aspectRatio: { ideal: 16/9 }
+              },
+              audio: false
+            });
+          }catch(e2){
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          }
+        }
+
+        video.srcObject = stream;
+
+        await new Promise(r => {
+          if (video.videoWidth && video.videoHeight) return r();
+          video.onloadedmetadata = () => r();
+        });
+
+        await video.play();
+        await new Promise(r => requestAnimationFrame(r));
+        await new Promise(r => requestAnimationFrame(r));
+
+        showCameraUI(true);
+      }
+
+      window.stopLiveCamera = function stopLiveCamera(){
+        try{
+          if (stream){
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+          }
+        }catch(e){}
+        video.srcObject = null;
+        showCameraUI(false);
+      }
+
+      function captureDataUrlFull(){
+        const vw = video.videoWidth || 1920;
+        const vh = video.videoHeight || 1080;
+
+        const sy = 0;
+        const sh = vh;
+        const sx = 0;
+        const sw = vw;
+
+        const maxW = 1280;
+
+        const isPortraitFrame = vh > vw;
+        const baseW = isPortraitFrame ? vh : sw;
+        const baseH = isPortraitFrame ? vw : sh;
+
+        const scale = Math.min(1, maxW / baseW);
+
+        const outW = Math.round(baseW * scale);
+        const outH = Math.round(baseH * scale);
+
+        canvas.width = outW;
+        canvas.height = outH;
+
+        const ctx = canvas.getContext("2d", { willReadFrequently:true });
+        ctx.save();
+
+        if (isPortraitFrame){
+          ctx.translate(outW, 0);
+          ctx.rotate(Math.PI / 2);
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outH, outW);
+        } else {
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+        }
+
+        ctx.restore();
+
+        return canvas.toDataURL("image/jpeg", 0.75);
+      }
+
+      // Reset handler
+      window.resetClick = async function resetClick(){
+        pendingCapture = null;
+        btnSubmit.textContent = "SUBMIT";
+
+        resetDisplay();
+
+        setBtn("CAPTURE FRAME");
+        setStatus("RESET ✅\nStarting camera again...");
+        try{
+          await startLiveCamera();
+          uiState = "camera_on";
+          setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
+          showCaptureButtons();
+        }catch(err){
+          uiState = "idle";
+          setBtn("CAPTURE");
+          setStatus("RESET ✅\nCamera failed: " + (err && err.name ? (err.name + " - " + (err.message || "")) : String(err)));
+          showCaptureButtons();
+        }
+      }
+// SAVE OFFLINE handler (must be outside submitClick)
+window.saveOfflineClick = async function saveOfflineClick(){
+  if (!pendingCapture){
+    setStatus("Nothing to save. Please CAPTURE first.");
+    return;
+  }
+
+  await offlineEnqueue({
+    id: Date.now(),
+    payload: {
+      memberId: pendingCapture.memberId || "",
+      itemName: pendingCapture.itemName || "",
+      weight: pendingCapture.weight,
+      imageDataUrl: pendingCapture.dataUrl
+    }
   });
 
-  const txt = await res.text();
-  let json;
-  try { json = JSON.parse(txt); }
-  catch(e){
-    throw new Error("Server returned non-JSON: " + txt.slice(0, 180));
-  }
-  return json;
-}
+  setStatus("📴 Saved OFFLINE ✅\nWill auto sync when online.");
+  pendingCapture = null;
+  uiState = "idle";
+  setBtn("CAPTURE");
+  btnSaveOffline.style.display = "none";
+  showCaptureButtons();
+};
+      // ===============================
+      // SUBMIT CLICK ✅ UPDATED (offline save + auto sync)
+      // ===============================
+      window.submitClick = async function submitClick(){
+        if (uiState !== "await_submit" || !pendingCapture){
+          setStatus("No captured data pending. Please CAPTURE first.");
+          uiState = "idle";
+          pendingCapture = null;
+          setBtn("CAPTURE");
+          showCaptureButtons();
+          return;
+        }
+        const tSub0 = performance.now();
+        setStatus("Submitting...");
+        btnSubmit.textContent = "SUBMITTING...";
 
-async function startCamera(){
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    throw new Error("Camera API not available in this browser.");
-  }
-  // GitHub Pages is HTTPS; if opened as file:// it will fail
-  if (!window.isSecureContext){
-    throw new Error("Camera blocked: open via HTTPS (GitHub Pages link), not file://");
-  }
+        // ✅ OFFLINE — store locally
+        if (!isOnline()) {
+          await offlineEnqueue({
+            id: Date.now(),
+            payload: {
+              memberId: pendingCapture.memberId,
+              itemName: pendingCapture.itemName,
+              weight: pendingCapture.weight,
+              imageDataUrl: pendingCapture.dataUrl
+            }
+          });
 
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: "environment" } },
-    audio: false
-  });
-  video.srcObject = stream;
-
-  await new Promise(r=>{
-    if (video.readyState >= 2) return r();
-    video.onloadedmetadata = ()=>r();
-  });
-
-  await video.play();
-}
-
-function stopCamera(){
-  try{
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-  }catch(e){}
-  stream = null;
-  video.srcObject = null;
-}
-
-function captureImage(){
-  const w = video.videoWidth || 1280;
-  const h = video.videoHeight || 720;
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0, w, h);
-  return canvas.toDataURL("image/jpeg", 0.8);
-}
-
-// -------------------------------
-// CAPTURE FLOW (2-tap)
-// 1st tap: start camera
-// 2nd tap: capture frame + OCR
-// -------------------------------
-btnCapture.onclick = async ()=>{
-  try{
-    setStatus("Starting camera...");
-    await startCamera();
-    setStatus("Camera ready ✅ Tap CAPTURE again to freeze frame.");
-    btnCapture.textContent = "CAPTURE FRAME";
-
-    // second tap handler
-    btnCapture.onclick = async ()=>{
-      try{
-        setStatus("Capturing...");
-        const img = captureImage();
-        stopCamera();
-
-        setStatus("Running OCR...");
-        const resp = await callServer({ action:"visionExtract", imageDataUrl: img });
-
-        if(!resp || !resp.ok){
-          setStatus("OCR FAILED: " + (resp && resp.message ? resp.message : "Unknown error"));
-          btnCapture.textContent="CAPTURE";
-          // restore first tap handler
-          btnCapture.onclick = arguments.callee.caller; // not reliable in strict mode, so we rebind below
-          bindFirstTap();
+          setStatus("📴 No internet.\nSaved offline.\nWill auto sync when online.");
+          btnSubmit.textContent = "SUBMIT";
+          uiState = "idle";
+          setBtn("CAPTURE");
+          showCaptureButtons();
+          pendingCapture = null;
           return;
         }
 
-        setText("memberId", resp.memberId);
-        setText("memberName", resp.memberName);
-        setText("itemName", resp.itemName);
-        setText("capW", resp.weight);
-
-        pendingCapture = {
-          memberId: resp.memberId,
-          itemName: resp.itemName,
-          weight: resp.weight,
-          imageDataUrl: img
-        };
-
-        setStatus("OCR DONE ✅ Press SUBMIT.");
-        btnSubmit.style.display="block";
-        btnCapture.style.display="none";
-      }catch(e){
-        setStatus("Capture/OCR error: " + (e && e.message ? e.message : String(e)));
-        stopCamera();
-        btnCapture.textContent="CAPTURE";
-        bindFirstTap();
-      }
-    };
-
-  }catch(e){
-    setStatus("Camera error: " + (e && e.message ? e.message : String(e)));
-    stopCamera();
-    btnCapture.textContent="CAPTURE";
-    bindFirstTap();
-  }
-};
-
-// helper to restore first-tap binding cleanly
-function bindFirstTap(){
-  btnCapture.onclick = async ()=>{
-    try{
-      setStatus("Starting camera...");
-      await startCamera();
-      setStatus("Camera ready ✅ Tap CAPTURE again to freeze frame.");
-      btnCapture.textContent = "CAPTURE FRAME";
-
-      btnCapture.onclick = async ()=>{
+        let resp;
         try{
-          setStatus("Capturing...");
-          const img = captureImage();
-          stopCamera();
+          resp = await callServer("captureFromOcr", [
+            pendingCapture.memberId,
+            pendingCapture.itemName,
+            pendingCapture.weight,
+            pendingCapture.dataUrl
+          ]);
+        }catch(err){
+          // ✅ NETWORK ERROR — store offline
+          await offlineEnqueue({
+            id: Date.now(),
+            payload: {
+              memberId: pendingCapture.memberId,
+              itemName: pendingCapture.itemName,
+              weight: pendingCapture.weight,
+              imageDataUrl: pendingCapture.dataUrl
+            }
+          });
 
-          setStatus("Running OCR...");
-          const resp = await callServer({ action:"visionExtract", imageDataUrl: img });
+          setStatus("⚠️ Network error.\nSaved offline.\nWill auto sync.");
+          btnSubmit.textContent = "SUBMIT";
+          uiState = "idle";
+          setBtn("CAPTURE");
+          showCaptureButtons();
+          pendingCapture = null;
+          return;
+        }
 
-          if(!resp || !resp.ok){
-            setStatus("OCR FAILED: " + (resp && resp.message ? resp.message : "Unknown error"));
-            btnCapture.textContent="CAPTURE";
-            bindFirstTap();
-            return;
+        const msSub = _ms_(tSub0);
+
+        if (!resp || !resp.ok){
+          setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown submit error"));
+          btnSubmit.textContent = "SUBMIT";
+          return;
+        }
+
+        const d = (resp && resp.data) ? resp.data : {};
+
+        const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
+        const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
+        const rdW  = (d.readyWeight !== undefined && d.readyWeight !== null && String(d.readyWeight).trim() !== "") ? Number(d.readyWeight) : null;
+
+        setText("outW",   (outW !== null && !Number.isNaN(outW)) ? String(outW) : "-");
+        setText("inW",    (inW  !== null && !Number.isNaN(inW))  ? String(inW)  : "-");
+        setText("readyW", (rdW  !== null && !Number.isNaN(rdW))  ? String(rdW)  : "-");
+
+        if (resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
+
+        if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
+        else setShortMaterial(null);
+
+        setText("memberId",   d.memberId || pendingCapture.memberId || "-");
+        setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
+        setText("itemName",   d.itemName || pendingCapture.itemName || "-");
+
+        setText("capW","-");
+
+        let st = d.statusText || resp.stage || "-";
+        const completed = !!d.completed;
+
+        if (resp.stage === "OUT") {
+          st = "OUT ✅";
+          showLoggedOverlay();
+        } else if (resp.stage === "READY" || completed === true) {
+          st = "COMPLETED ✅";
+          showLoggedOverlay();
+        } else if (resp.stage === "IN") {
+          st = "IN ✅";
+        }
+
+        setStageText(st, completed || resp.stage === "READY");
+
+        pendingCapture = null;
+
+        setStatus(
+          "SUCCESS ✅ " + resp.message + " (" + st + ")" +
+          "\n\nTIMING:\nSubmit call: " + msSub + " ms"
+        );
+
+        if (resp.stage === "IN") {
+          uiState = "idle";
+          btnSubmit.textContent = "SUBMIT";
+          setBtn("CAPTURE READY");
+          setStatus("IN saved ✅\nNow capture READY WEIGHT (click CAPTURE READY).");
+          try{
+            await startLiveCamera();
+            uiState = "camera_on";
+            showCaptureButtons();
+        
+          }catch(err){
+            uiState = "idle";
+            setBtn("CAPTURE");
+            showCaptureButtons();
+            setStatus("IN saved ✅\nCamera failed for READY: " + (err && err.message ? err.message : String(err)));
           }
+          return;
+        }
 
-          setText("memberId", resp.memberId);
-          setText("memberName", resp.memberName);
-          setText("itemName", resp.itemName);
-          setText("capW", resp.weight);
+        uiState = "idle";
+        btnSubmit.textContent = "SUBMIT";
+        setBtn("CAPTURE");
+        showCaptureButtons();
+      }
+
+      window.captureClick = async function captureClick(){
+        if (uiState === "idle"){
+          pendingCapture = null;
+          btnSubmit.textContent = "SUBMIT";
+          btnSubmit.style.display = "none";
+          btnReset.style.display = "none";
+
+          resetDisplay();
+          setBtn("CAPTURE FRAME");
+          setStatus("Starting live camera...");
+          try{
+            await startLiveCamera();
+            uiState = "camera_on";
+            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
+            showCaptureButtons();
+          }catch(err){
+            uiState = "idle";
+            setBtn("CAPTURE");
+            setStatus("Camera failed: " + (err && err.name ? (err.name + " - " + (err.message || "")) : String(err)));
+            showCaptureButtons();
+          }
+          return;
+        }
+
+        if (uiState === "camera_on"){
+          setBtn("PROCESSING...");
+          setStatus("Capturing image (freezing frame)...");
+          const dataUrl = captureDataUrlFull();
+
+          stopLiveCamera();
+
+          const tAll0 = performance.now();
+
+          setStatus("Image captured ✅\nRunning OCR...");
+          const tOcr0 = performance.now();
+          let r;
+          try{
+            r = await callServer("visionExtract", [dataUrl]);
+          }catch(err){
+  const msOcr = _ms_(tOcr0);
+
+  // ✅ prepare offline save
+  pendingCapture = {
+    memberId: "",
+    itemName: "",
+    weight: null,
+    dataUrl: dataUrl,
+    ocrMemberName: "",
+    ocrItemName: ""
+  };
+
+  uiState = "await_save_offline";
+
+  setStatus(
+    "OCR failed (likely offline).\n\n" +
+    "You can SAVE OFFLINE now.\n" +
+    "When internet returns, OCR + Submit will auto-run.\n\n" +
+    "TIMING:\nOCR call: " + msOcr + " ms"
+  );
+
+  showSaveOfflineOnly();
+  return;
+}
+          const msOcr = _ms_(tOcr0);
+
+         if (!r || !r.ok){
+  // keep your existing logging + postFailTasks as-is above...
+
+  // ✅ allow offline save when OCR fails (most common: no internet)
+  pendingCapture = {
+    memberId: "",
+    itemName: "",
+    weight: null,
+    dataUrl: dataUrl,
+    ocrMemberName: "",
+    ocrItemName: ""
+  };
+
+  uiState = "await_save_offline";
+  setStatus(
+    "OCR failed (likely offline).\n" +
+    "You can SAVE OFFLINE now and it will auto-sync when online.\n\n" +
+    (r && r.message ? ("Reason: " + r.message) : "")
+  );
+
+  showSaveOfflineOnly();
+  return;
+}
+          setText("memberId", r.memberId || "-");
+          setText("memberName", r.memberName || "-");
+          setText("itemName", r.itemName || "-");
+          setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
 
           pendingCapture = {
-            memberId: resp.memberId,
-            itemName: resp.itemName,
-            weight: resp.weight,
-            imageDataUrl: img
+            memberId: r.memberId,
+            itemName: r.itemName,
+            weight: r.weight,
+            dataUrl: dataUrl,
+            ocrMemberName: r.memberName || "",
+            ocrItemName: r.itemName || ""
           };
 
-          setStatus("OCR DONE ✅ Press SUBMIT.");
-          btnSubmit.style.display="block";
-          btnCapture.style.display="none";
-        }catch(e){
-          setStatus("Capture/OCR error: " + (e && e.message ? e.message : String(e)));
-          stopCamera();
-          btnCapture.textContent="CAPTURE";
-          bindFirstTap();
+          uiState = "await_submit";
+          setBtn("CAPTURE");
+          setStatus(
+            "OCR DONE ✅\n" +
+            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
+            "TIMING:\nOCR call: " + msOcr + " ms"
+          );
+
+          showSubmitButtonOnly();
+          return;
         }
-      };
+      }
 
-    }catch(e){
-      setStatus("Camera error: " + (e && e.message ? e.message : String(e)));
-      stopCamera();
-      btnCapture.textContent="CAPTURE";
-      bindFirstTap();
-    }
-  };
-}
-// ensure correct first binding
-bindFirstTap();
+      // ===============================
+      // AUTO SYNC WHEN ONLINE ✅ FIXED (listeners outside)
+      // ===============================
+      async function syncOfflineQueue(){
+        if (!isOnline()) return;
 
-// -------------------------------
-// SUBMIT
-// -------------------------------
-btnSubmit.onclick = async ()=>{
-  try{
-    if(!pendingCapture){
-      setStatus("Nothing to submit.");
-      return;
-    }
-    setStatus("Submitting...");
-    const resp = await callServer({
-      action:"captureFromOcr",
-      memberId: pendingCapture.memberId,
-      itemName: pendingCapture.itemName,
-      weight: pendingCapture.weight,
-      imageDataUrl: pendingCapture.imageDataUrl
-    });
+        const items = await offlineList();
+        if (!items.length) return;
 
-    if(!resp || !resp.ok){
-      setStatus("Submit failed: " + (resp && resp.message ? resp.message : "Unknown error"));
-      return;
-    }
+        setStatus("🔄 Syncing offline data...");
 
-    setStatus("SUCCESS ✅ " + resp.message);
-    setText("stage", resp.stage || "DONE");
+        for (const item of items){
+          try{
+            await callServer("captureFromOcr", [
+              item.payload.memberId,
+              item.payload.itemName,
+              item.payload.weight,
+              item.payload.imageDataUrl
+            ]);
 
-    pendingCapture = null;
-    btnSubmit.style.display="none";
-    btnCapture.style.display="block";
-    btnCapture.textContent="CAPTURE";
-    bindFirstTap();
-  }catch(e){
-    setStatus("Submit error: " + (e && e.message ? e.message : String(e)));
-  }
-};
-</script>
+            await offlineRemove(item.id);
+
+          }catch(e){
+            console.log("Sync failed, will retry later.");
+            return;
+          }
+        }
+
+        setStatus("✅ Offline data synced successfully.");
+      }
+
+      // listeners OUTSIDE (very important)
+      window.addEventListener("online", syncOfflineQueue);
+      setInterval(syncOfflineQueue, 30000);
+
+      // init
+      resetDisplay();
+      setBtn("CAPTURE");
+      setStatus("Press CAPTURE to start live camera.");
+
+      document.getElementById("btnCapture").addEventListener("click", captureClick);
+      btnCaptureFixed.addEventListener("click", captureClick);
+
+      btnSubmit.addEventListener("click", submitClick);
+      btnReset.addEventListener("click", resetClick);
+      btnSaveOffline.style.display = "none";
+btnSaveOffline.addEventListener("click", saveOfflineClick);
+      showCaptureButtons();
+
+      // try sync on load (optional but safe)
+      syncOfflineQueue();
+    </script>
+  </div>
+
+  <div class="overlayDone" id="overlayDone">
+    <div class="overlayCard">
+      <div class="overlayTick">✅</div>
+      <div class="overlayText">LOGGED COMPLETED</div>
+    </div>
+  </div>
 </body>
 </html>
