@@ -595,6 +595,10 @@
         btnReset.style.display = "block";
       }
 function showSaveOfflineOnly(){
+  if (isOnline()){
+    btnSaveOffline.style.display = "none";
+    return;
+  }
   btnFixedWrap.style.display = "none";
   document.getElementById("btnCapture").style.display = "none";
   btnSubmit.style.display = "none";
@@ -757,14 +761,11 @@ window.saveOfflineClick = async function saveOfflineClick(){
   await offlineEnqueue({
     id: Date.now(),
     payload: {
-      memberId: pendingCapture.memberId || "",
-      itemName: pendingCapture.itemName || "",
-      weight: pendingCapture.weight,
-      imageDataUrl: pendingCapture.dataUrl
+      imageDataUrl: pendingCapture.dataUrl   // ✅ only image needed
     }
   });
 
-  setStatus("📴 Saved OFFLINE ✅\nWill auto sync when online.");
+  setStatus("📴 Saved OFFLINE ✅\nWill auto sync when internet returns.");
   pendingCapture = null;
   uiState = "idle";
   setBtn("CAPTURE");
@@ -943,6 +944,22 @@ window.saveOfflineClick = async function saveOfflineClick(){
           const dataUrl = captureDataUrlFull();
 
           stopLiveCamera();
+         // ✅ OFFLINE MODE: skip OCR, allow Save Offline
+if (!isOnline()){
+  pendingCapture = {
+    memberId: "",
+    itemName: "",
+    weight: null,
+    dataUrl: dataUrl,
+    ocrMemberName: "",
+    ocrItemName: ""
+  };
+
+  uiState = "await_save_offline";
+  setStatus("📴 Internet not working.\nImage captured ✅\nClick SAVE OFFLINE.");
+  showSaveOfflineOnly();
+  return;
+}
 
           const tAll0 = performance.now();
 
@@ -1021,34 +1038,63 @@ window.saveOfflineClick = async function saveOfflineClick(){
       // ===============================
       // AUTO SYNC WHEN ONLINE ✅ FIXED (listeners outside)
       // ===============================
-      async function syncOfflineQueue(){
-        if (!isOnline()) return;
+      // ✅ ADD this lock variable once (above syncOfflineQueue)
+let isSyncingOffline = false;
 
-        const items = await offlineList();
-        if (!items.length) return;
+// ✅ REPLACE your entire syncOfflineQueue() with this
+async function syncOfflineQueue(){
+  if (!isOnline()) return;
+  if (isSyncingOffline) return;
 
-        setStatus("🔄 Syncing offline data...");
+  const items = await offlineList();
+  if (!items || items.length === 0) return;
 
-        for (const item of items){
-          try{
-            await callServer("captureFromOcr", [
-              item.payload.memberId,
-              item.payload.itemName,
-              item.payload.weight,
-              item.payload.imageDataUrl
-            ]);
+  isSyncingOffline = true;
+  setStatus("🔄 Internet restored.\nSyncing offline queued data...");
 
-            await offlineRemove(item.id);
-
-          }catch(e){
-            console.log("Sync failed, will retry later.");
-            return;
-          }
-        }
-
-        setStatus("✅ Offline data synced successfully.");
+  for (const item of items){
+    try{
+      const img = item?.payload?.imageDataUrl;
+      if (!img){
+        await offlineRemove(item.id);
+        continue;
       }
 
+      // 1) OCR Extract now that internet is back
+      const r = await callServer("visionExtract", [img]);
+      if (!r || !r.ok){
+        console.log("OCR failed during sync. Will retry later.");
+        isSyncingOffline = false;
+        return;
+      }
+
+      // 2) Submit to Google Sheet using extracted details
+      const resp = await callServer("captureFromOcr", [
+        r.memberId || "",
+        r.itemName || "",
+        (r.weight !== undefined ? r.weight : null),
+        img
+      ]);
+
+      if (!resp || !resp.ok){
+        console.log("Submit failed during sync. Will retry later.");
+        isSyncingOffline = false;
+        return;
+      }
+
+      // 3) Remove only after successful submit
+      await offlineRemove(item.id);
+
+    }catch(e){
+      console.log("Sync error, will retry later.");
+      isSyncingOffline = false;
+      return;
+    }
+  }
+
+  isSyncingOffline = false;
+  setStatus("✅ Offline queued data synced successfully.");
+}
       // listeners OUTSIDE (very important)
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
