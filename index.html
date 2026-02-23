@@ -559,11 +559,10 @@
           payload = { action: "unknown" };
         }
 
-        const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },  // ✅ FIXED
-          body: JSON.stringify(payload)
-        });
+       const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+  method: "POST",
+  body: JSON.stringify(payload)
+});
 
         const text = await res.text();
         return JSON.parse(text);
