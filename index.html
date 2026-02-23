@@ -410,7 +410,59 @@
 
       // ✅ ADDED: holds captured OCR result until SUBMIT is clicked
       let pendingCapture = null; // { memberId, itemName, weight, dataUrl, ocrMemberName, ocrItemName }
+// ===============================
+// OFFLINE QUEUE (IndexedDB)
+// ===============================
+const OFFLINE_DB = "anymech_offline_db";
+const OFFLINE_STORE = "queue";
 
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(OFFLINE_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(OFFLINE_STORE)) {
+        db.createObjectStore(OFFLINE_STORE, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function offlineEnqueue(item){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE, "readwrite");
+    tx.objectStore(OFFLINE_STORE).put(item);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+async function offlineList(){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE, "readonly");
+    const req = tx.objectStore(OFFLINE_STORE).getAll();
+    req.onsuccess = () => { const out = req.result || []; db.close(); resolve(out); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+
+async function offlineRemove(id){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE, "readwrite");
+    tx.objectStore(OFFLINE_STORE).delete(id);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+function isOnline(){
+  return navigator.onLine === true;
+}
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const camWrap = document.getElementById("camWrap");
