@@ -504,37 +504,47 @@
       }
 
       function captureDataUrlFull(){
-        const vw = video.videoWidth || 1920;
-        const vh = video.videoHeight || 1080;
+  const vw = video.videoWidth || 1920;
+  const vh = video.videoHeight || 1080;
 
-        const sy = 0, sh = vh, sx = 0, sw = vw;
-        const maxW = 1280;
-        const isPortraitFrame = vh > vw;
+  // ✅ REVERT: crop 15% from top + 15% from bottom (keep middle 70%)
+  const sx = 0;
+  const sw = vw;
+  const sy = Math.round(vh * 0.15);
+  const sh = Math.round(vh * 0.70);
 
-        const baseW = isPortraitFrame ? vh : sw;
-        const baseH = isPortraitFrame ? vw : sh;
+  // ✅ keep output reasonable but sharp
+  const maxW = 960;
 
-        const scale = Math.min(1, maxW / baseW);
-        const outW = Math.round(baseW * scale);
-        const outH = Math.round(baseH * scale);
+  const isPortraitFrame = vh > vw;
 
-        canvas.width = outW;
-        canvas.height = outH;
+  const baseW = sw;
+  const baseH = sh;
 
-        const ctx = canvas.getContext("2d", { willReadFrequently:true });
-        ctx.save();
+  const scale = Math.min(1, maxW / baseW);
+  const outW = Math.round(baseW * scale);
+  const outH = Math.round(baseH * scale);
 
-        if (isPortraitFrame){
-          ctx.translate(outW, 0);
-          ctx.rotate(Math.PI / 2);
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outH, outW);
-        } else {
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
-        }
+  const ctx = canvas.getContext("2d", { willReadFrequently:true });
+  ctx.save();
 
-        ctx.restore();
-        return canvas.toDataURL("image/jpeg", 0.75);
-      }
+  if (isPortraitFrame){
+    canvas.width = outH;
+    canvas.height = outW;
+    ctx.translate(canvas.width, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+  } else {
+    canvas.width = outW;
+    canvas.height = outH;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+  }
+
+  ctx.restore();
+
+  // ✅ REVERT: slightly higher quality for OCR
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
 
       window.resetClick = async function resetClick(){
         pendingCapture = null;
