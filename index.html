@@ -407,11 +407,12 @@
       let uiState = "idle";
       let stream = null;
       let pendingCapture = null;
+      let isSubmitting = false;
 
       const OFFLINE_DB = "anymech_offline_db";
       const OFFLINE_STORE = "queue";
 
-      // ✅ Device ID (moved to single place; removed duplicate inside captureClick)
+      // ✅ Device ID
       function getDeviceId(){
         try{
           let id = localStorage.getItem("ANYMECH_DEVICE_ID");
@@ -440,7 +441,7 @@
         });
       }
 
-      // ✅ MISSING IN YOUR PASTE: offlineEnqueue() (required by enqueueCapture)
+      // ✅ offlineEnqueue exists (required by enqueueCapture)
       async function offlineEnqueue(item){
         const db = await idbOpen();
         return new Promise((resolve, reject) => {
@@ -451,7 +452,7 @@
         });
       }
 
-      // ✅ Consistent queue item format (minimal change)
+      // ✅ Consistent queue item format
       async function enqueueCapture(dataUrl, reason){
         const item = {
           id: "Q-" + Date.now() + "-" + Math.random().toString(16).slice(2),
@@ -619,8 +620,11 @@
         }
       }
 
+      // ✅ Silent background call (no UI interruptions)
       function callServerNoWait(fnName, args){
-        callServer(fnName, args).catch(_err=>{ /* keep silent to not affect online mode */ });
+        callServer(fnName, args).catch(err=>{
+          console.log("Background fail:", err && err.message ? err.message : String(err));
+        });
       }
 
       // =========================
@@ -793,7 +797,7 @@
         }
       }
 
-      // ✅ SAVE OFFLINE uses enqueueCapture (minimal change; online unaffected)
+      // SAVE OFFLINE (kept)
       window.saveOfflineClick = async function saveOfflineClick(){
         if (!pendingCapture){
           setStatus("Nothing to save. Please CAPTURE first.");
@@ -801,17 +805,6 @@
         }
 
         await enqueueCapture(pendingCapture.dataUrl, "MANUAL_SAVE_OFFLINE");
-
-        // optional sheet update (won't affect online if not supported)
-        try{
-          if (isOnline()){
-            callServerNoWait("queueUpsert", [{
-              id: "last-local", createdAt: new Date().toISOString(), deviceId: DEVICE_ID,
-              page: (location && location.href) ? location.href : "",
-              status: "QUEUED", reason: "MANUAL_SAVE_OFFLINE"
-            }]);
-          }
-        }catch(e){}
 
         setStatus("📴 Saved OFFLINE ✅\nWill auto sync when internet returns.");
         pendingCapture = null;
@@ -821,124 +814,131 @@
       };
 
       window.submitClick = async function submitClick(){
+        // ✅ ensure lock never stays ON accidentally
         if (uiState !== "await_submit" || !pendingCapture){
           setStatus("No captured data pending. Please CAPTURE first.");
           uiState = "idle";
           pendingCapture = null;
           setBtn("CAPTURE");
           showCaptureButtons();
+          isSubmitting = false;
           return;
         }
 
         const tSub0 = performance.now();
         setStatus("Submitting...");
         btnSubmit.textContent = "SUBMITTING...";
+        isSubmitting = true;
 
-        // ✅ offline submit -> queue only image (online mode unchanged)
-        if (!isOnline()) {
-          await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_OFFLINE");
-          setStatus("📴 No internet.\nSaved offline.\nWill auto sync when online.");
-          btnSubmit.textContent = "SUBMIT";
-          uiState = "idle";
-          setBtn("CAPTURE");
-          showCaptureButtons();
-          pendingCapture = null;
-          return;
-        }
-
-        let resp;
         try{
-          resp = await callServer("captureFromOcr", [
-            pendingCapture.memberId,
-            pendingCapture.itemName,
-            pendingCapture.weight,
-            pendingCapture.dataUrl
-          ]);
-        }catch(err){
-          // ✅ network error -> queue only image
-          await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_NETWORK_ERROR");
-          setStatus("⚠️ Network error.\nSaved offline.\nWill auto sync.");
-          btnSubmit.textContent = "SUBMIT";
-          uiState = "idle";
-          setBtn("CAPTURE");
-          showCaptureButtons();
-          pendingCapture = null;
-          return;
-        }
-
-        const msSub = _ms_(tSub0);
-
-        if (!resp || !resp.ok){
-          setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown submit error"));
-          btnSubmit.textContent = "SUBMIT";
-          return;
-        }
-
-        const d = (resp && resp.data) ? resp.data : {};
-
-        const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
-        const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
-        const rdW  = (d.readyWeight !== undefined && d.readyWeight !== null && String(d.readyWeight).trim() !== "") ? Number(d.readyWeight) : null;
-
-        setText("outW",   (outW !== null && !Number.isNaN(outW)) ? String(outW) : "-");
-        setText("inW",    (inW  !== null && !Number.isNaN(inW))  ? String(inW)  : "-");
-        setText("readyW", (rdW  !== null && !Number.isNaN(rdW))  ? String(rdW)  : "-");
-
-        if (resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
-
-        if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
-        else setShortMaterial(null);
-
-        setText("memberId",   d.memberId || pendingCapture.memberId || "-");
-        setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
-        setText("itemName",   d.itemName || pendingCapture.itemName || "-");
-
-        setText("capW","-");
-
-        let st = d.statusText || resp.stage || "-";
-        const completed = !!d.completed;
-
-        if (resp.stage === "OUT") {
-          st = "OUT ✅";
-          showLoggedOverlay();
-        } else if (resp.stage === "READY" || completed === true) {
-          st = "COMPLETED ✅";
-          showLoggedOverlay();
-        } else if (resp.stage === "IN") {
-          st = "IN ✅";
-        }
-
-        setStageText(st, completed || resp.stage === "READY");
-
-        pendingCapture = null;
-
-        setStatus(
-          "SUCCESS ✅ " + resp.message + " (" + st + ")" +
-          "\n\nTIMING:\nSubmit call: " + msSub + " ms"
-        );
-
-        if (resp.stage === "IN") {
-          uiState = "idle";
-          btnSubmit.textContent = "SUBMIT";
-          setBtn("CAPTURE READY");
-          setStatus("IN saved ✅\nNow capture READY WEIGHT (click CAPTURE READY).");
-          try{
-            await startLiveCamera();
-            uiState = "camera_on";
-            showCaptureButtons();
-          }catch(err){
+          // OFFLINE -> queue only image
+          if (!isOnline()) {
+            await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_OFFLINE");
+            setStatus("📴 No internet.\nSaved offline.\nWill auto sync when online.");
+            btnSubmit.textContent = "SUBMIT";
             uiState = "idle";
             setBtn("CAPTURE");
             showCaptureButtons();
-            setStatus("IN saved ✅\nCamera failed for READY: " + (err && err.message ? err.message : String(err)));
+            pendingCapture = null;
+            return;
           }
-          return;
-        }
 
-        uiState = "idle";
-        btnSubmit.textContent = "SUBMIT";
-        setBtn("CAPTURE");
-        showCaptureButtons();
+          let resp;
+          try{
+            resp = await callServer("captureFromOcr", [
+              pendingCapture.memberId,
+              pendingCapture.itemName,
+              pendingCapture.weight,
+              pendingCapture.dataUrl
+            ]);
+          }catch(err){
+            await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_NETWORK_ERROR");
+            setStatus("⚠️ Network error.\nSaved offline.\nWill auto sync.");
+            btnSubmit.textContent = "SUBMIT";
+            uiState = "idle";
+            setBtn("CAPTURE");
+            showCaptureButtons();
+            pendingCapture = null;
+            return;
+          }
+
+          const msSub = _ms_(tSub0);
+
+          if (!resp || !resp.ok){
+            setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown submit error"));
+            btnSubmit.textContent = "SUBMIT";
+            return;
+          }
+
+          const d = (resp && resp.data) ? resp.data : {};
+
+          const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
+          const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
+          const rdW  = (d.readyWeight !== undefined && d.readyWeight !== null && String(d.readyWeight).trim() !== "") ? Number(d.readyWeight) : null;
+
+          setText("outW",   (outW !== null && !Number.isNaN(outW)) ? String(outW) : "-");
+          setText("inW",    (inW  !== null && !Number.isNaN(inW))  ? String(inW)  : "-");
+          setText("readyW", (rdW  !== null && !Number.isNaN(rdW))  ? String(rdW)  : "-");
+
+          if (resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
+
+          if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
+          else setShortMaterial(null);
+
+          setText("memberId",   d.memberId || pendingCapture.memberId || "-");
+          setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
+          setText("itemName",   d.itemName || pendingCapture.itemName || "-");
+
+          setText("capW","-");
+
+          let st = d.statusText || resp.stage || "-";
+          const completed = !!d.completed;
+
+          if (resp.stage === "OUT") {
+            st = "OUT ✅";
+            showLoggedOverlay();
+          } else if (resp.stage === "READY" || completed === true) {
+            st = "COMPLETED ✅";
+            showLoggedOverlay();
+          } else if (resp.stage === "IN") {
+            st = "IN ✅";
+          }
+
+          setStageText(st, completed || resp.stage === "READY");
+
+          pendingCapture = null;
+
+          setStatus(
+            "SUCCESS ✅ " + resp.message + " (" + st + ")" +
+            "\n\nTIMING:\nSubmit call: " + msSub + " ms"
+          );
+
+          if (resp.stage === "IN") {
+            uiState = "idle";
+            btnSubmit.textContent = "SUBMIT";
+            setBtn("CAPTURE READY");
+            setStatus("IN saved ✅\nNow capture READY WEIGHT (click CAPTURE READY).");
+            try{
+              await startLiveCamera();
+              uiState = "camera_on";
+              showCaptureButtons();
+            }catch(err){
+              uiState = "idle";
+              setBtn("CAPTURE");
+              showCaptureButtons();
+              setStatus("IN saved ✅\nCamera failed for READY: " + (err && err.message ? err.message : String(err)));
+            }
+            return;
+          }
+
+          uiState = "idle";
+          btnSubmit.textContent = "SUBMIT";
+          setBtn("CAPTURE");
+          showCaptureButtons();
+        } finally {
+          // ✅ always release submit lock (no matter what)
+          isSubmitting = false;
+        }
       }
 
       window.captureClick = async function captureClick(){
@@ -974,19 +974,14 @@
 
           stopLiveCamera();
 
+          // ✅ OFFLINE: queue instantly and return to normal capture (online flow untouched)
           if (!isOnline()){
-            pendingCapture = {
-              memberId: "",
-              itemName: "",
-              weight: null,
-              dataUrl: dataUrl,
-              ocrMemberName: "",
-              ocrItemName: ""
-            };
-
-            uiState = "await_save_offline";
-            setStatus("📴 Internet not working.\nImage captured ✅\nClick SAVE OFFLINE.");
-            showSaveOfflineOnly();
+            await enqueueCapture(dataUrl, "AUTO_OFFLINE_CAPTURE");
+            pendingCapture = null;
+            uiState = "idle";
+            setBtn("CAPTURE");
+            showCaptureButtons();
+            setStatus("📴 Offline: captured & queued ✅");
             return;
           }
 
@@ -1067,15 +1062,14 @@
         }
       }
 
-      // ✅ FIXED: sync should NEVER stop on first failure (your old code returned early)
+      // ✅ Background sync: silent + never interrupts online
       let isSyncingOffline = false;
 
       async function syncOfflineQueue(){
         if (!isOnline()) return;
         if (isSyncingOffline) return;
-
-        // ✅ do not interrupt camera or pending submit
-        if (uiState === "camera_on" || uiState === "await_submit") return;
+        if (uiState !== "idle") return;   // don't sync while using camera/OCR
+        if (isSubmitting) return;         // don't sync while submit is running
 
         const items = await offlineList();
         if (!items || items.length === 0) return;
@@ -1083,7 +1077,7 @@
         isSyncingOffline = true;
 
         try{
-          setStatus("🔄 Internet restored.\nSyncing offline queued data... (" + items.length + ")");
+          console.log("Syncing offline queue:", items.length);
 
           for (const item of items){
             try{
@@ -1093,15 +1087,16 @@
                 continue;
               }
 
-              // optional queue display in sheet (won't affect if server doesn't support)
+              // optional: show in UPLOAD_QUEUE sheet (if server supports)
               try{
                 item.status = "PROCESSING";
                 callServerNoWait("queueUpsert", [item]);
               }catch(e){}
 
+              // 1) OCR now that internet is back
               const r = await callServer("visionExtract", [img]);
               if (!r || !r.ok){
-                // log to FAILED OCR (optional)
+                // log to FAILED OCR sheet (if server supports)
                 try{
                   callServerNoWait("failedOcr", [
                     item.id,
@@ -1114,10 +1109,10 @@
                   item.reason = (r && r.message ? r.message : "OCR_FAILED");
                   callServerNoWait("queueUpsert", [item]);
                 }catch(e){}
-                // ✅ keep item for retry later (do NOT stop whole queue)
-                continue;
+                continue; // keep for retry later
               }
 
+              // 2) Upload to main sheet
               const resp = await callServer("captureFromOcr", [
                 r.memberId || "",
                 r.itemName || "",
@@ -1131,11 +1126,10 @@
                   item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
                   callServerNoWait("queueUpsert", [item]);
                 }catch(e){}
-                // ✅ keep for retry; do NOT stop
-                continue;
+                continue; // keep for retry later
               }
 
-              // optional mark uploaded in sheet
+              // 3) Mark uploaded and remove
               try{
                 item.status = "UPLOADED";
                 item.reason = "";
@@ -1145,10 +1139,11 @@
 
               await offlineRemove(item.id);
 
-              await new Promise(r => setTimeout(r, 250));
+              // small pause to avoid blocking
+              await new Promise(r => setTimeout(r, 150));
 
             }catch(e){
-              // ✅ keep syncing next items; never return
+              // keep syncing next items
               try{
                 const img = item?.payload?.imageDataUrl || "";
                 callServerNoWait("failedOcr", [
@@ -1163,8 +1158,7 @@
             }
           }
 
-          setStatus("✅ Offline queued data sync cycle completed.");
-
+          console.log("Offline sync cycle complete.");
         } finally {
           isSyncingOffline = false;
         }
@@ -1173,6 +1167,7 @@
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
 
+      // init
       resetDisplay();
       setBtn("CAPTURE");
       setStatus("Press CAPTURE to start live camera.");
@@ -1186,6 +1181,7 @@
       btnSaveOffline.addEventListener("click", saveOfflineClick);
       showCaptureButtons();
 
+      // try sync on load (safe, silent)
       syncOfflineQueue();
     </script>
   </div>
