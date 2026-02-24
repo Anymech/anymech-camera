@@ -29,7 +29,7 @@
       border-radius:22px;
       padding:18px;
       box-shadow:0 14px 40px var(--shadow);
-      background: var(--card);
+      background: var(--card); /* ✅ app frame stays white */
     }
 
     .camWrap{
@@ -191,8 +191,7 @@
 
     #btnCapture,
     #btnSubmit,
-    #btnReset,
-    #btnSaveOffline{
+    #btnReset{
       display:block;
       margin:32px auto 12px auto;
       width:min(94%, 460px);
@@ -202,7 +201,6 @@
       border-radius:22px;
     }
     #btnReset{ margin:12px auto 12px auto; }
-    #btnSaveOffline{ margin:12px auto 12px auto; }
 
     @media (max-width: 520px){
       body{margin:10px;max-width:100%}
@@ -227,7 +225,7 @@
         font-size:18px; font-weight:700;
       }
 
-      #btnCapture,#btnSubmit,#btnReset,#btnSaveOffline{
+      #btnCapture,#btnSubmit,#btnReset{
         width:96%;
         padding:36px;
         font-size:30px;
@@ -278,9 +276,6 @@
     <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
     <button class="btn" id="btnReset" style="display:none;">RESET</button>
 
-    <!-- ✅ Hidden always, ONLY shown when OFFLINE after capture (manual save) -->
-    <button class="btn" id="btnSaveOffline" style="display:none;">SAVE OFFLINE</button>
-
     <script>
       window.onerror = function (msg, src, line, col, err) {
         const s = "JS ERROR: " + msg + "\n" + (src||"") + ":" + line + ":" + col;
@@ -297,83 +292,6 @@
       let pendingCapture = null;
       let isSubmitting = false;
 
-      const OFFLINE_DB = "anymech_offline_db";
-      const OFFLINE_STORE = "queue";
-
-      function getDeviceId(){
-        try{
-          let id = localStorage.getItem("ANYMECH_DEVICE_ID");
-          if (!id){
-            id = "DEV-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-            localStorage.setItem("ANYMECH_DEVICE_ID", id);
-          }
-          return id;
-        }catch(e){
-          return "DEV-UNKNOWN";
-        }
-      }
-      const DEVICE_ID = getDeviceId();
-
-      function idbOpen(){
-        return new Promise((resolve, reject) => {
-          const req = indexedDB.open(OFFLINE_DB, 1);
-          req.onupgradeneeded = () => {
-            const db = req.result;
-            if (!db.objectStoreNames.contains(OFFLINE_STORE)) {
-              db.createObjectStore(OFFLINE_STORE, { keyPath: "id" });
-            }
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        });
-      }
-
-      async function offlineEnqueue(item){
-        const db = await idbOpen();
-        return new Promise((resolve, reject) => {
-          const tx = db.transaction(OFFLINE_STORE, "readwrite");
-          tx.objectStore(OFFLINE_STORE).put(item);
-          tx.oncomplete = () => { db.close(); resolve(true); };
-          tx.onerror = () => { db.close(); reject(tx.error); };
-        });
-      }
-
-      async function enqueueCapture(dataUrl, reason){
-        const item = {
-          id: "Q-" + Date.now() + "-" + Math.random().toString(16).slice(2),
-          createdAt: new Date().toISOString(),
-          deviceId: DEVICE_ID,
-          page: (location && location.href) ? location.href : "",
-          status: "QUEUED",
-          reason: reason || "",
-          payload: {
-            imageDataUrl: dataUrl
-          }
-        };
-        await offlineEnqueue(item);
-        return item;
-      }
-
-      async function offlineList(){
-        const db = await idbOpen();
-        return new Promise((resolve, reject) => {
-          const tx = db.transaction(OFFLINE_STORE, "readonly");
-          const req = tx.objectStore(OFFLINE_STORE).getAll();
-          req.onsuccess = () => { const out = req.result || []; db.close(); resolve(out); };
-          req.onerror = () => { db.close(); reject(tx.error); };
-        });
-      }
-
-      async function offlineRemove(id){
-        const db = await idbOpen();
-        return new Promise((resolve, reject) => {
-          const tx = db.transaction(OFFLINE_STORE, "readwrite");
-          tx.objectStore(OFFLINE_STORE).delete(id);
-          tx.oncomplete = () => { db.close(); resolve(true); };
-          tx.onerror = () => { db.close(); reject(tx.error); };
-        });
-      }
-
       function isOnline(){
         return navigator.onLine === true;
       }
@@ -386,7 +304,6 @@
 
       const btnSubmit = document.getElementById("btnSubmit");
       const btnReset  = document.getElementById("btnReset");
-      const btnSaveOffline = document.getElementById("btnSaveOffline");
 
       function setStatus(t){ document.getElementById("status").textContent = t; }
       function setBtn(t){ document.getElementById("btnCapture").textContent = t; btnCaptureFixed.textContent = t; }
@@ -462,18 +379,12 @@
             weight: args[2],
             imageDataUrl: args[3]
           };
-        } else if (fnName === "queueUpsert") {
-          payload = { action: "queueUpsert", item: args[0] };
-        } else if (fnName === "queueRemove") {
-          payload = { action: "queueRemove", id: args[0], deviceId: args[1] };
-        } else if (fnName === "failedOcr") {
-          payload = { action: "failedOcr", id: args[0], deviceId: args[1], page: args[2], reason: args[3], imageDataUrl: args[4] };
         } else {
           payload = { action: "unknown" };
         }
 
         const ctrl = new AbortController();
-        const timeoutMs = (payload && payload.action === "visionExtract") ? 60000 : 25000;  // ✅ increased OCR timeout only
+        const timeoutMs = (payload && payload.action === "visionExtract") ? 60000 : 25000;
         const to = setTimeout(() => ctrl.abort(), timeoutMs);
 
         let res, text;
@@ -499,25 +410,6 @@
         }
       }
 
-      function callServerNoWait(fnName, args){
-        callServer(fnName, args).catch(err=>{
-          console.log("Background fail:", err && err.message ? err.message : String(err));
-        });
-      }
-
-      // ✅ retry OCR once in ONLINE mode (prevents unnecessary queue)
-      async function visionExtractOnlineRetry(dataUrl){
-        // try #1
-        let r = await callServer("visionExtract", [dataUrl]);
-        if (r && r.ok) return r;
-
-        // try #2 (only if online)
-        if (isOnline()){
-          r = await callServer("visionExtract", [dataUrl]);
-        }
-        return r;
-      }
-
       // =========================
       // UI helpers
       // =========================
@@ -526,16 +418,6 @@
         btnFixedWrap.style.display = (camWrap.style.display === "block") ? "block" : "none";
         btnSubmit.style.display = "none";
         btnReset.style.display = "none";
-        btnSaveOffline.style.display = "none"; // hidden by default
-      }
-
-      // ✅ show Save Offline ONLY when OFFLINE + captured frame waiting to save
-      function showSaveOfflineOnly(){
-        btnFixedWrap.style.display = "none";
-        document.getElementById("btnCapture").style.display = "none";
-        btnSubmit.style.display = "none";
-        btnReset.style.display = "block";
-        btnSaveOffline.style.display = (!isOnline()) ? "block" : "none";
       }
 
       function showCameraUI(on){
@@ -548,18 +430,9 @@
           document.getElementById("btnCapture").style.display = "none";
           btnSubmit.style.display = "block";
           btnReset.style.display = "block";
-          btnSaveOffline.style.display = "none";
-        } else if (uiState === "await_save_offline") {
-          // ✅ offline manual save mode
-          btnFixedWrap.style.display = "none";
-          document.getElementById("btnCapture").style.display = "none";
-          btnSubmit.style.display = "none";
-          btnReset.style.display = "block";
-          btnSaveOffline.style.display = (!isOnline()) ? "block" : "none";
         } else {
           btnSubmit.style.display = "none";
           btnReset.style.display = "none";
-          btnSaveOffline.style.display = "none";
         }
       }
 
@@ -689,28 +562,7 @@
         }
       }
 
-      // ✅ SAVE OFFLINE now works (manual)
-      window.saveOfflineClick = async function saveOfflineClick(){
-        if (!pendingCapture || !pendingCapture.dataUrl){
-          setStatus("Nothing to save. Please CAPTURE first.");
-          return;
-        }
-        if (isOnline()){
-          // keep hidden normally; if somehow clicked online, ignore
-          setStatus("Online mode: SAVE OFFLINE is not required.");
-          btnSaveOffline.style.display = "none";
-          return;
-        }
-
-        await enqueueCapture(pendingCapture.dataUrl, "MANUAL_SAVE_OFFLINE");
-        pendingCapture = null;
-        uiState = "idle";
-        setBtn("CAPTURE");
-        showCaptureButtons();
-        setStatus("📴 Saved OFFLINE ✅\nWill auto sync when internet returns.");
-      };
-
-      // ✅ ONLINE submit flow unchanged
+      // ✅ ONLINE submit flow unchanged (no offline fallback)
       window.submitClick = async function submitClick(){
         if (uiState !== "await_submit" || !pendingCapture){
           setStatus("No captured data pending. Please CAPTURE first.");
@@ -729,13 +581,8 @@
 
         try{
           if (!isOnline()) {
-            await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_OFFLINE");
-            setStatus("📴 No internet.\nSaved offline.\nWill auto sync when online.");
+            setStatus("📴 No internet.\nPlease connect internet and try again.");
             btnSubmit.textContent = "SUBMIT";
-            uiState = "idle";
-            setBtn("CAPTURE");
-            showCaptureButtons();
-            pendingCapture = null;
             return;
           }
 
@@ -748,13 +595,8 @@
               pendingCapture.dataUrl
             ]);
           }catch(err){
-            await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_NETWORK_ERROR");
-            setStatus("⚠️ Network error.\nSaved offline.\nWill auto sync.");
+            setStatus("⚠️ Network error.\nPlease try again.\n\nMessage: " + (err && err.message ? err.message : String(err)));
             btnSubmit.textContent = "SUBMIT";
-            uiState = "idle";
-            setBtn("CAPTURE");
-            showCaptureButtons();
-            pendingCapture = null;
             return;
           }
 
@@ -833,7 +675,6 @@
           btnSubmit.textContent = "SUBMIT";
           btnSubmit.style.display = "none";
           btnReset.style.display = "none";
-          btnSaveOffline.style.display = "none";
 
           resetDisplay();
           setBtn("CAPTURE FRAME");
@@ -859,31 +700,24 @@
 
           stopLiveCamera();
 
-          // ✅ OFFLINE: show SAVE OFFLINE button (manual)
           if (!isOnline()){
-            pendingCapture = { dataUrl: dataUrl };
-            uiState = "await_save_offline";
             setBtn("CAPTURE");
-            setStatus(
-              "📴 Offline capture ready ✅\n" +
-              "Press SAVE OFFLINE to store this image in queue.\n" +
-              "Then it will auto sync when internet returns."
-            );
-            showSaveOfflineOnly();
+            uiState = "idle";
+            showCaptureButtons();
+            setStatus("📴 No internet.\nPlease connect internet and try again.");
+            btnReset.style.display = "block";
             return;
           }
 
-          // ✅ Online OCR flow continues (unchanged success)
+          // ✅ Online OCR flow continues
           setStatus("Image captured ✅\nRunning OCR...");
           const tOcr0 = performance.now();
           let r;
 
           try{
-            // ✅ retry once ONLINE (prevents unnecessary auto-queue)
-            r = await visionExtractOnlineRetry(dataUrl);
+            r = await callServer("visionExtract", [dataUrl]);
           }catch(err){
             const msOcr = _ms_(tOcr0);
-            // ✅ ONLINE: DO NOT auto-save to queue on OCR call error
             setBtn("CAPTURE");
             uiState = "idle";
             showCaptureButtons();
@@ -898,7 +732,6 @@
 
           const msOcr = _ms_(tOcr0);
 
-          // ✅ If OCR fails online: DO NOT auto queue
           if (!r || !r.ok){
             uiState = "idle";
             pendingCapture = null;
@@ -937,102 +770,9 @@
 
           btnSubmit.style.display = "block";
           btnReset.style.display = "block";
-          btnSaveOffline.style.display = "none";
           btnFixedWrap.style.display = "none";
           document.getElementById("btnCapture").style.display = "none";
           return;
-        }
-      }
-
-      // ✅ Background sync: silent + never interrupts online
-      let isSyncingOffline = false;
-
-      // ✅ NEW RULE: If OCR fails 1 time -> move to FAILED OCR and clear local item
-      async function syncOfflineQueue(){
-        if (!isOnline()) return;
-        if (isSyncingOffline) return;
-        if (isSubmitting) return;
-        if (uiState === "camera_on" || uiState === "await_submit" || uiState === "await_save_offline") return;
-
-        const items = await offlineList();
-        if (!items || items.length === 0) return;
-
-        isSyncingOffline = true;
-
-        try{
-          const item = items[0];
-          const img = item?.payload?.imageDataUrl;
-
-          if (!img){
-            await offlineRemove(item.id);
-            return;
-          }
-
-          try{
-            item.status = "PROCESSING";
-            callServerNoWait("queueUpsert", [item]);
-          }catch(e){}
-
-          // 1 try only
-          let r = null;
-          let failMsg = "";
-
-          try{
-            r = await callServer("visionExtract", [img]);
-            if (!r || !r.ok){
-              failMsg = (r && r.message) ? r.message : "OCR_FAILED";
-            }
-          }catch(err){
-            failMsg = (err && err.message) ? err.message : "OCR_CALL_ERROR";
-          }
-
-          if (!r || !r.ok){
-            try{
-              callServerNoWait("failedOcr", [
-                item.id,
-                item.deviceId || DEVICE_ID,
-                item.page || (location && location.href ? location.href : ""),
-                "OCR_FAILED_1_TRY: " + (failMsg || "OCR_FAILED"),
-                img
-              ]);
-              item.status = "FAILED_OCR";
-              item.reason = failMsg || "OCR_FAILED";
-              callServerNoWait("queueUpsert", [item]);
-              callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
-            }catch(e){}
-
-            await offlineRemove(item.id); // clear local cache
-            return;
-          }
-
-          // OCR ok -> upload
-          const resp = await callServer("captureFromOcr", [
-            r.memberId || "",
-            r.itemName || "",
-            (r.weight !== undefined ? r.weight : null),
-            img
-          ]);
-
-          if (!resp || !resp.ok){
-            try{
-              item.status = "FAILED_UPLOAD";
-              item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
-              callServerNoWait("queueUpsert", [item]);
-            }catch(e){}
-            return;
-          }
-
-          try{
-            item.status = "UPLOADED";
-            item.reason = "";
-            callServerNoWait("queueUpsert", [item]);
-            callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
-          }catch(e){}
-
-          await offlineRemove(item.id);
-
-        } finally {
-          isSyncingOffline = false;
         }
       }
 
@@ -1046,14 +786,8 @@
 
       btnSubmit.addEventListener("click", submitClick);
       btnReset.addEventListener("click", resetClick);
-      btnSaveOffline.addEventListener("click", saveOfflineClick);
 
       showCaptureButtons();
-
-      window.addEventListener("online", syncOfflineQueue);
-      setInterval(syncOfflineQueue, 30000);
-
-      syncOfflineQueue();
     </script>
   </div>
 
