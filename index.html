@@ -537,44 +537,55 @@
       // ===============================
       const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwJr73l_9BJfiRAEpIz-x90zhOX78ny4kH53X_RifEqFN7WFcgnnAUpwbeMisMVvtFQcA/exec";
 
-      async function callServer(fnName, args){
-        let payload = {};
+     <script>
+  async function callServer(fnName, args){
+    let payload = {};
 
-        if (fnName === "visionExtract") {
-          payload = { action: "visionExtract", imageDataUrl: args[0] };
-        } else if (fnName === "captureFromOcr") {
-          payload = {
-            action: "captureFromOcr",
-            memberId: args[0],
-            itemName: args[1],
-            weight: args[2],
-            imageDataUrl: args[3]
-          };
-        } else if (fnName === "postFailTasks") {
-          payload = {
-            action: "postFailTasks",
-            imageDataUrl: args[0],
-            failMessage: args[1],
-            rawText: args[2]
-          };
-        } else {
-          payload = { action: "unknown" };
-        }
+    if (fnName === "visionExtract") {
+      payload = { action: "visionExtract", imageDataUrl: args[0] };
+    } else if (fnName === "captureFromOcr") {
+      payload = {
+        action: "captureFromOcr",
+        memberId: args[0],
+        itemName: args[1],
+        weight: args[2],
+        imageDataUrl: args[3]
+      };
+    } else if (fnName === "postFailTasks") {
+      payload = { action: "postFailTasks", imageDataUrl: args[0], failMessage: args[1], rawText: args[2] };
+    } else {
+      payload = { action: "unknown" };
+    }
 
-       const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-  method: "POST",
-  body: JSON.stringify(payload)
-});
+    const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-store",
+      redirect: "follow",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-        const text = await res.text();
-        return JSON.parse(text);
-      }
+    const text = await res.text();
 
-      function callServerNoWait(fnName, args){
-        callServer(fnName, args).catch(err=>{
-          setStatus("Background fail: " + (err && err.message ? err.message : String(err)));
-        });
-      }
+    // ✅ If Apps Script returned HTML/login/error, show it clearly
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status + " " + res.statusText + "\n\n" + text.slice(0, 600));
+    }
+
+    // If server didn't return JSON, surface the first chars instead of JSON.parse crash
+    if (!ct.includes("application/json") && !text.trim().startsWith("{") && !text.trim().startsWith("[")) {
+      throw new Error("Non-JSON response from server.\nLikely permissions/login/CORS.\n\n" + text.slice(0, 600));
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("JSON parse failed. Server returned:\n\n" + text.slice(0, 600));
+    }
+  }
+</script>
 
       // =========================
       // button sequencing helpers
@@ -943,6 +954,7 @@ window.saveOfflineClick = async function saveOfflineClick(){
           setBtn("PROCESSING...");
           setStatus("Capturing image (freezing frame)...");
           const dataUrl = captureDataUrlFull();
+    setStatus("Captured ✅\nImage size: " + Math.round(dataUrl.length/1024) + " KB\nRunning OCR...");
 
           stopLiveCamera();
          // ✅ OFFLINE MODE: skip OCR, allow Save Offline
