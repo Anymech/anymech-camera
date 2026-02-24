@@ -992,20 +992,23 @@
           let r;
           try{
             r = await callServer("visionExtract", [dataUrl]);
-          }catch(err){
-            const msOcr = _ms_(tOcr0);
+          } catch(err){
+  const msOcr = _ms_(tOcr0);
 
-            setStatus(
-              "ERROR: OCR call failed\n" +
-              (err && err.message ? err.message : String(err)) +
-              "\n\nTIMING:\nOCR call: " + msOcr + " ms"
-            );
+  setStatus(
+    "ERROR: OCR call failed\n" +
+    "Name: " + (err && err.name ? err.name : "-") + "\n" +
+    "Message: " + (err && err.message ? err.message : String(err)) + "\n" +
+    "Online: " + (navigator.onLine ? "YES" : "NO") + "\n" +
+    "Page: " + (location && location.href ? location.href : "-") + "\n" +
+    "\nTIMING:\nOCR call: " + msOcr + " ms"
+  );
 
-            setBtn("CAPTURE");
-            uiState = "idle";
-            showCaptureButtons();
-            return;
-          }
+  setBtn("CAPTURE");
+  uiState = "idle";
+  showCaptureButtons();
+  return;
+}
 
           const msOcr = _ms_(tOcr0);
 
