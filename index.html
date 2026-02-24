@@ -421,7 +421,9 @@
           status: "QUEUED",
           reason: reason || "",
           payload: {
-            imageDataUrl: dataUrl
+            imageDataUrl: dataUrl,
+            attempts: 0,       // ✅ ADDED: retry counter for OCR fail
+            lastError: ""      // ✅ ADDED: last OCR fail reason
           }
         };
         await offlineEnqueue(item);
@@ -696,43 +698,54 @@
         showCameraUI(false);
       }
 
+      // ✅ UPDATED: crop 20% top + 20% bottom, smaller max width, more compression
+      // (Camera full-screen UI remains unchanged)
       function captureDataUrlFull(){
         const vw = video.videoWidth || 1920;
         const vh = video.videoHeight || 1080;
 
-        const sy = 0;
-        const sh = vh;
+        // ✅ remove 20% top and 20% bottom => keep middle 60%
         const sx = 0;
         const sw = vw;
+        const sy = Math.round(vh * 0.20);
+        const sh = Math.round(vh * 0.60);
 
-        const maxW = 1280;
+        // ✅ reduce output size for faster OCR/upload
+        const maxW = 960;
 
         const isPortraitFrame = vh > vw;
-        const baseW = isPortraitFrame ? vh : sw;
-        const baseH = isPortraitFrame ? vw : sh;
+
+        const baseW = sw;
+        const baseH = sh;
 
         const scale = Math.min(1, maxW / baseW);
-
         const outW = Math.round(baseW * scale);
         const outH = Math.round(baseH * scale);
-
-        canvas.width = outW;
-        canvas.height = outH;
 
         const ctx = canvas.getContext("2d", { willReadFrequently:true });
         ctx.save();
 
         if (isPortraitFrame){
-          ctx.translate(outW, 0);
+          // rotate to landscape like your original code (no UI change)
+          canvas.width = outH;
+          canvas.height = outW;
+
+          ctx.translate(canvas.width, 0);
           ctx.rotate(Math.PI / 2);
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outH, outW);
+
+          // draw cropped region into rotated canvas
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
         } else {
+          canvas.width = outW;
+          canvas.height = outH;
+
           ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
         }
 
         ctx.restore();
 
-        return canvas.toDataURL("image/jpeg", 0.75);
+        // ✅ more compression for speed
+        return canvas.toDataURL("image/jpeg", 0.60);
       }
 
       window.resetClick = async function resetClick(){
@@ -1024,84 +1037,128 @@
       // ✅ Background sync: silent + never interrupts online
       let isSyncingOffline = false;
 
+      // ✅ UPDATED: offline queue OCR retry 3 times; after 3 fails -> move to FAILED OCR sheet + clear local cache
       async function syncOfflineQueue(){
-  if (!isOnline()) return;
-  if (isSyncingOffline) return;
-  if (isSubmitting) return; // ✅ submit lock
-  if (uiState === "camera_on" || uiState === "await_submit") return; // ✅ only block on active camera/submit UI
+        if (!isOnline()) return;
+        if (isSyncingOffline) return;
+        if (isSubmitting) return; // ✅ submit lock
+        if (uiState === "camera_on" || uiState === "await_submit") return; // ✅ don't interrupt active camera/submit UI
 
-  const items = await offlineList();
-  if (!items || items.length === 0) return;
+        const items = await offlineList();
+        if (!items || items.length === 0) return;
 
-  isSyncingOffline = true;
+        isSyncingOffline = true;
 
-  try{
-    console.log("SYNC: offline queue count =", items.length);
+        try{
+          console.log("SYNC: offline queue count =", items.length);
 
-    // ✅ process ONLY 1 item per cycle (fast + no interruption)
-    const item = items[0];
+          // ✅ process ONLY 1 item per cycle (fast + no interruption)
+          const item = items[0];
 
-    const img = item?.payload?.imageDataUrl;
-    if (!img){
-      await offlineRemove(item.id);
-      return;
-    }
+          const img = item?.payload?.imageDataUrl;
+          if (!img){
+            await offlineRemove(item.id);
+            return;
+          }
 
-    // optional: show in UPLOAD_QUEUE sheet (if server supports)
-    try{
-      item.status = "PROCESSING";
-      callServerNoWait("queueUpsert", [item]);
-    }catch(e){}
+          // Ensure fields exist (for older cached items)
+          if (!item.payload) item.payload = { imageDataUrl: img };
+          if (typeof item.payload.attempts !== "number") item.payload.attempts = 0;
+          if (typeof item.payload.lastError !== "string") item.payload.lastError = "";
 
-    const r = await callServer("visionExtract", [img]);
-    if (!r || !r.ok){
-      try{
-        callServerNoWait("failedOcr", [
-          item.id,
-          item.deviceId || DEVICE_ID,
-          item.page || (location && location.href ? location.href : ""),
-          (r && r.message ? r.message : "OCR_FAILED"),
-          img
-        ]);
-        item.status = "FAILED_OCR";
-        item.reason = (r && r.message ? r.message : "OCR_FAILED");
-        callServerNoWait("queueUpsert", [item]);
-      }catch(e){}
-      console.log("SYNC: OCR failed for", item.id);
-      return; // keep for retry later
-    }
+          // optional: show in UPLOAD_QUEUE sheet (if server supports)
+          try{
+            item.status = "PROCESSING";
+            callServerNoWait("queueUpsert", [item]);
+          }catch(e){}
 
-    const resp = await callServer("captureFromOcr", [
-      r.memberId || "",
-      r.itemName || "",
-      (r.weight !== undefined ? r.weight : null),
-      img
-    ]);
+          // ✅ OCR retry loop (3 tries in this sync cycle)
+          let r = null;
+          let lastMsg = "";
+          const MAX_TRIES = 3;
 
-    if (!resp || !resp.ok){
-      try{
-        item.status = "FAILED_UPLOAD";
-        item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
-        callServerNoWait("queueUpsert", [item]);
-      }catch(e){}
-      console.log("SYNC: upload failed for", item.id);
-      return; // keep for retry later
-    }
+          for (let i = 0; i < MAX_TRIES; i++){
+            try{
+              r = await callServer("visionExtract", [img]);
+              if (r && r.ok) break;
+              lastMsg = (r && r.message) ? r.message : "OCR_FAILED";
+            }catch(err){
+              lastMsg = (err && err.message) ? err.message : "OCR_CALL_ERROR";
+            }
+          }
 
-    try{
-      item.status = "UPLOADED";
-      item.reason = "";
-      callServerNoWait("queueUpsert", [item]);
-      callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
-    }catch(e){}
+          // If OCR still fails after retries
+          if (!r || !r.ok){
+            item.payload.attempts += 1;
+            item.payload.lastError = lastMsg || "OCR_FAILED";
 
-    await offlineRemove(item.id);
-    console.log("SYNC: uploaded & removed", item.id);
+            // ✅ If attempts reached 3 -> move to FAILED OCR sheet + clear local queue
+            if (item.payload.attempts >= 3){
+              try{
+                callServerNoWait("failedOcr", [
+                  item.id,
+                  item.deviceId || DEVICE_ID,
+                  item.page || (location && location.href ? location.href : ""),
+                  "OCR_FAILED_AFTER_3_TRIES: " + item.payload.lastError,
+                  img
+                ]);
+                item.status = "FAILED_OCR";
+                item.reason = item.payload.lastError;
+                callServerNoWait("queueUpsert", [item]);
+                callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
+              }catch(e){}
 
-  } finally {
-    isSyncingOffline = false;
-  }
-}
+              // ✅ CLEAR CACHE: remove from IndexedDB to avoid duplicates/new entry conflicts
+              await offlineRemove(item.id);
+              console.log("SYNC: moved to FAILED OCR + removed locally", item.id);
+              return;
+            }
+
+            // ✅ Not yet 3 -> keep item for later retry, save updated attempts back to IndexedDB
+            try{
+              item.status = "RETRY_OCR";
+              item.reason = item.payload.lastError;
+              callServerNoWait("queueUpsert", [item]);
+            }catch(e){}
+
+            await offlineEnqueue(item);
+            console.log("SYNC: OCR failed, will retry later", item.id, "attempt:", item.payload.attempts);
+            return;
+          }
+
+          // ✅ OCR success -> upload
+          const resp = await callServer("captureFromOcr", [
+            r.memberId || "",
+            r.itemName || "",
+            (r.weight !== undefined ? r.weight : null),
+            img
+          ]);
+
+          if (!resp || !resp.ok){
+            try{
+              item.status = "FAILED_UPLOAD";
+              item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
+              callServerNoWait("queueUpsert", [item]);
+            }catch(e){}
+            console.log("SYNC: upload failed for", item.id);
+            return; // keep for retry later
+          }
+
+          try{
+            item.status = "UPLOADED";
+            item.reason = "";
+            callServerNoWait("queueUpsert", [item]);
+            callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
+          }catch(e){}
+
+          await offlineRemove(item.id);
+          console.log("SYNC: uploaded & removed", item.id);
+
+        } finally {
+          isSyncingOffline = false;
+        }
+      }
+
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
 
