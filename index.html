@@ -473,7 +473,8 @@
         }
 
         const ctrl = new AbortController();
-        const to = setTimeout(() => ctrl.abort(), 25000);
+        const timeoutMs = (payload && payload.action === "visionExtract") ? 60000 : 25000;  // ✅ increased OCR timeout only
+        const to = setTimeout(() => ctrl.abort(), timeoutMs);
 
         let res, text;
         try{
@@ -502,6 +503,19 @@
         callServer(fnName, args).catch(err=>{
           console.log("Background fail:", err && err.message ? err.message : String(err));
         });
+      }
+
+      // ✅ retry OCR once in ONLINE mode (prevents unnecessary queue)
+      async function visionExtractOnlineRetry(dataUrl){
+        // try #1
+        let r = await callServer("visionExtract", [dataUrl]);
+        if (r && r.ok) return r;
+
+        // try #2 (only if online)
+        if (isOnline()){
+          r = await callServer("visionExtract", [dataUrl]);
+        }
+        return r;
       }
 
       // =========================
@@ -616,7 +630,7 @@
         showCameraUI(false);
       }
 
-      // ✅ crop 20% top + 20% bottom (middle 60%), smaller output
+      // ✅ crop 15% top + 15% bottom (middle 70%), smaller output
       function captureDataUrlFull(){
         const vw = video.videoWidth || 1920;
         const vh = video.videoHeight || 1080;
@@ -865,15 +879,16 @@
           let r;
 
           try{
-            r = await callServer("visionExtract", [dataUrl]);
+            // ✅ retry once ONLINE (prevents unnecessary auto-queue)
+            r = await visionExtractOnlineRetry(dataUrl);
           }catch(err){
             const msOcr = _ms_(tOcr0);
-            await enqueueCapture(dataUrl, "ONLINE_OCR_CALL_ERROR");
+            // ✅ ONLINE: DO NOT auto-save to queue on OCR call error
             setBtn("CAPTURE");
             uiState = "idle";
             showCaptureButtons();
             setStatus(
-              "⚠️ OCR call failed (saved offline automatically).\nWill auto sync.\n\n" +
+              "⚠️ OCR call failed (ONLINE).\nPlease press RESET and try again.\n\n" +
               "Message: " + (err && err.message ? err.message : String(err)) + "\n" +
               "TIMING:\nOCR call: " + msOcr + " ms"
             );
@@ -883,16 +898,14 @@
 
           const msOcr = _ms_(tOcr0);
 
-          // ✅ If OCR fails online, auto queue (silent)
+          // ✅ If OCR fails online: DO NOT auto queue
           if (!r || !r.ok){
-            await enqueueCapture(dataUrl, "ONLINE_OCR_FAILED_AUTOQUEUE");
             uiState = "idle";
             pendingCapture = null;
             setBtn("CAPTURE");
             showCaptureButtons();
             setStatus(
-              "⚠️ OCR failed (saved automatically).\n" +
-              "Background rules:\n- 1 try only\n- If fail -> FAILED OCR sheet\n- cache cleared\n\n" +
+              "⚠️ OCR failed (ONLINE).\nPlease press RESET and try again.\n\n" +
               (r && r.message ? ("Reason: " + r.message + "\n") : "") +
               "TIMING:\nOCR call: " + msOcr + " ms"
             );
