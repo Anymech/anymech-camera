@@ -29,7 +29,7 @@
       border-radius:22px;
       padding:18px;
       box-shadow:0 14px 40px var(--shadow);
-      background: var(--card); /* ✅ app frame stays white */
+      background: var(--card);
     }
 
     .camWrap{
@@ -410,6 +410,42 @@
         }
       }
 
+      // ✅ NEW: short-timeout submit call that runs in background (non-blocking UI)
+      function callServerWithTimeout(fnName, args, timeoutMs){
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), timeoutMs);
+
+        let payload = {};
+        if (fnName === "visionExtract") {
+          payload = { action: "visionExtract", imageDataUrl: args[0] };
+        } else if (fnName === "captureFromOcr") {
+          payload = {
+            action: "captureFromOcr",
+            memberId: args[0],
+            itemName: args[1],
+            weight: args[2],
+            imageDataUrl: args[3]
+          };
+        } else {
+          payload = { action: "unknown" };
+        }
+
+        return fetch(APPS_SCRIPT_WEBAPP_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          signal: ctrl.signal
+        })
+        .then(async (res) => {
+          const text = await res.text();
+          if (!res.ok){
+            throw new Error("HTTP " + res.status + " " + res.statusText + "\n\n" + (text ? text.slice(0, 600) : ""));
+          }
+          try { return JSON.parse(text); }
+          catch(e){ throw new Error("JSON parse failed. Server returned:\n\n" + (text ? text.slice(0, 600) : "")); }
+        })
+        .finally(() => clearTimeout(to));
+      }
+
       // =========================
       // UI helpers
       // =========================
@@ -562,7 +598,7 @@
         }
       }
 
-      // ✅ ONLINE submit flow unchanged (no offline fallback)
+      // ✅ UPDATED: SUBMIT is now NON-BLOCKING (sync in background, no "SUBMITTING..." freeze)
       window.submitClick = async function submitClick(){
         if (uiState !== "await_submit" || !pendingCapture){
           setStatus("No captured data pending. Please CAPTURE first.");
@@ -574,40 +610,45 @@
           return;
         }
 
-        const tSub0 = performance.now();
-        setStatus("Submitting...");
-        btnSubmit.textContent = "SUBMITTING...";
-        isSubmitting = true;
+        if (!isOnline()) {
+          setStatus("📴 No internet.\nPlease connect internet and try again.");
+          return;
+        }
 
-        try{
-          if (!isOnline()) {
-            setStatus("📴 No internet.\nPlease connect internet and try again.");
-            btnSubmit.textContent = "SUBMIT";
-            return;
-          }
+        // ✅ Immediately release UI and allow next capture
+        const localCopy = { ...pendingCapture };
+        pendingCapture = null;
+        uiState = "idle";
+        setBtn("CAPTURE");
+        showCaptureButtons();
 
-          let resp;
-          try{
-            resp = await callServer("captureFromOcr", [
-              pendingCapture.memberId,
-              pendingCapture.itemName,
-              pendingCapture.weight,
-              pendingCapture.dataUrl
-            ]);
-          }catch(err){
-            setStatus("⚠️ Network error.\nPlease try again.\n\nMessage: " + (err && err.message ? err.message : String(err)));
-            btnSubmit.textContent = "SUBMIT";
-            return;
-          }
+        btnSubmit.textContent = "SUBMIT"; // no blocking
+        isSubmitting = false;
 
-          const msSub = _ms_(tSub0);
+        // immediate feedback
+        setStatus("Submitted ✅ (Syncing in background...)");
+
+        // background submit with short timeout (UI continues)
+        callServerWithTimeout("captureFromOcr", [
+          localCopy.memberId,
+          localCopy.itemName,
+          localCopy.weight,
+          localCopy.dataUrl
+        ], 9000).then((resp) => {
 
           if (!resp || !resp.ok){
-            setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown submit error"));
-            btnSubmit.textContent = "SUBMIT";
+            setStatus("⚠️ Submit failed.\nReason: " + (resp && resp.message ? resp.message : "Unknown") + "\nPress RESET and try again.");
+            btnReset.style.display = "block";
             return;
           }
 
+          // If server returns fast QUEUED response (Apps Script background worker), show it
+          if (resp.mode === "QUEUED"){
+            setStatus("Submitted ✅ (Queued)\nSync will complete in background.");
+            return;
+          }
+
+          // Otherwise, keep existing success UI updates (unchanged)
           const d = (resp && resp.data) ? resp.data : {};
           const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
           const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
@@ -621,9 +662,9 @@
           if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
           else setShortMaterial(null);
 
-          setText("memberId",   d.memberId || pendingCapture.memberId || "-");
-          setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
-          setText("itemName",   d.itemName || pendingCapture.itemName || "-");
+          setText("memberId",   d.memberId || localCopy.memberId || "-");
+          setText("memberName", d.memberName || localCopy.ocrMemberName || "-");
+          setText("itemName",   d.itemName || localCopy.itemName || "-");
           setText("capW","-");
 
           let st = d.statusText || resp.stage || "-";
@@ -634,39 +675,17 @@
           else if (resp.stage === "IN") { st = "IN ✅"; }
 
           setStageText(st, completed || resp.stage === "READY");
-          pendingCapture = null;
 
+          setStatus("SUCCESS ✅ " + resp.message + " (" + st + ")");
+
+        }).catch((err) => {
+          // timeout / slow / network: keep flow non-blocking
           setStatus(
-            "SUCCESS ✅ " + resp.message + " (" + st + ")" +
-            "\n\nTIMING:\nSubmit call: " + msSub + " ms"
+            "Submitted ✅ (Sync pending)\nIf not updated in sheet, press RESET and try again.\n\n" +
+            "Note: " + (err && err.message ? err.message : String(err))
           );
-
-          if (resp.stage === "IN") {
-            uiState = "idle";
-            btnSubmit.textContent = "SUBMIT";
-            setBtn("CAPTURE READY");
-            setStatus("IN saved ✅\nNow capture READY WEIGHT (click CAPTURE READY).");
-            try{
-              await startLiveCamera();
-              uiState = "camera_on";
-              showCaptureButtons();
-            }catch(err){
-              uiState = "idle";
-              setBtn("CAPTURE");
-              showCaptureButtons();
-              setStatus("IN saved ✅\nCamera failed for READY: " + (err && err.message ? err.message : String(err)));
-            }
-            return;
-          }
-
-          uiState = "idle";
-          btnSubmit.textContent = "SUBMIT";
-          setBtn("CAPTURE");
-          showCaptureButtons();
-
-        } finally {
-          isSubmitting = false;
-        }
+          btnReset.style.display = "block";
+        });
       }
 
       window.captureClick = async function captureClick(){
@@ -709,7 +728,7 @@
             return;
           }
 
-          // ✅ Online OCR flow continues
+          // ✅ Online OCR flow continues (unchanged)
           setStatus("Image captured ✅\nRunning OCR...");
           const tOcr0 = performance.now();
           let r;
