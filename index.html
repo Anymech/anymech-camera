@@ -4,234 +4,285 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Anymech Live Capture</title>
-  <style>
-    body{font-family:system-ui,Arial;margin:16px;max-width:900px}
+ <style>
+  :root{
+    --bg: #eaf3ff;           /* ✅ light blue background */
+    --card: #ffffff;
+    --border: #e6e6e6;
+    --shadow: rgba(0,0,0,0.10);
+    --btn-border: #cfd9e6;   /* ✅ light border */
+    --btn-top: #ffffff;
+    --btn-bottom: #eef3fb;
+    --btn-shadow: #c7d4e6;   /* ✅ 3D base shadow */
+  }
+
+  body{
+    font-family:system-ui,Arial;
+    margin:16px;
+    max-width:900px;
+    background: var(--bg);
+  }
+
+  .appFrame{
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 14px 40px var(--shadow);
+    background: var(--card);
+  }
+
+  .brandTitle{
+    font-size:22px;
+    font-weight:900;
+    color:#0b5ed7;
+    letter-spacing:0.6px;
+    margin:0 0 10px 0;
+    text-align:center;
+  }
+
+  /* ✅ FULL SCREEN CAMERA PREVIEW */
+  .camWrap{
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    position: fixed;
+    inset: 0;
+    padding-top: 0;
+    background: #000;
+    border-radius: 0;
+    overflow: hidden;
+    z-index: 9990;
+    display: none; /* only show when camera is ON */
+  }
+
+  .camWrap video{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card{
+    border:1px solid #ddd;
+    border-radius:14px;
+    padding:14px;
+    margin:12px 0;
+    background:#fff;
+  }
+
+  .status{
+    background:#f6f6f6;
+    padding:12px;
+    border-radius:10px;
+    margin-top:10px;
+    white-space:pre-wrap;
+  }
+
+  .kv{
+    display:grid;
+    grid-template-columns:180px 1fr;
+    gap:10px;
+  }
+  .kv div{
+    padding:8px 0;
+    border-bottom:1px dashed #eee;
+  }
+  .label{font-weight:700}
+  .kv div:nth-child(2n){font-weight:800}
+
+  video{
+    width:100%;
+    aspect-ratio:1/1;
+    object-fit:cover;
+    background:#000;
+    border-radius:12px;
+  }
+
+  canvas{display:none}
+  .ok{color:#0a7a0a;font-weight:800}
+
+  .guideLine{
+    position:absolute;
+    left:0; right:0;
+    height:2px;
+    background:rgba(255,0,0,0.85);
+    top:50%;
+    pointer-events:none;
+  }
+  .guideLabel{
+    position:absolute;
+    left:10px;
+    top:calc(50% - 22px);
+    background:rgba(0,0,0,0.55);
+    color:#fff;
+    font-size:12px;
+    padding:4px 8px;
+    border-radius:8px;
+    pointer-events:none;
+  }
+
+  /* ✅ 3D BUTTONS (light border + 3D base) */
+  .btn{
+    width:100%;
+    padding:22px;
+    border-radius:16px;
+    font-size:22px;
+    font-weight:900;
+    border:1px solid var(--btn-border);
+    cursor:pointer;
+    background:linear-gradient(var(--btn-top), var(--btn-bottom));
+    box-shadow:
+      0 10px 0 var(--btn-shadow),
+      0 18px 28px rgba(0,0,0,0.12);
+    transition:transform 0.08s ease, box-shadow 0.08s ease;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:active{
+    transform:translateY(6px);
+    box-shadow:
+      0 4px 0 var(--btn-shadow),
+      0 10px 18px rgba(0,0,0,0.12);
+  }
+
+  /* ✅ button fixed bottom-center while camera full screen */
+  .btnFixed{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 22px;
+    z-index: 9992;
+    width: min(92vw, 420px);
+    display: none; /* show only when camera is ON */
+  }
+
+  .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
+  .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
+
+  /* ✅ overlay for "LOGGED COMPLETED" */
+  .overlayDone{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.18);
+    z-index:9999;
+  }
+  .overlayCard{
+    background:#fff;
+    border-radius:20px;
+    padding:22px 18px;
+    box-shadow:0 18px 50px rgba(0,0,0,0.20);
+    text-align:center;
+    width:min(320px, 88vw);
+  }
+  .overlayTick{
+    font-size:64px;
+    line-height:1;
+    color:#0a7a0a;
+    font-weight:900;
+    margin-bottom:10px;
+  }
+  .overlayText{
+    font-size:18px;
+    font-weight:900;
+    color:#0a7a0a;
+    letter-spacing:0.4px;
+  }
+
+  /* ✅ Titles */
+  .appTitle{
+    text-align:center;
+    font-size:38px;
+    font-weight:900;
+    color:#0b4fd6;
+    letter-spacing:1.2px;
+    margin:6px 0 18px 0;
+  }
+
+  /* ✅ Desktop button sizing for bottom controls */
+  #btnCapture,
+  #btnSubmit,
+  #btnReset{
+    display:block;
+    margin:32px auto 12px auto;
+    width:min(94%, 460px);
+    padding:32px;
+    font-size:28px;
+    font-weight:900;
+    border-radius:22px;
+  }
+  #btnReset{
+    margin:12px auto 12px auto;
+  }
+
+  /* ✅ Small phones */
+  @media (max-width: 520px){
+    body{margin:10px;max-width:100%}
+    .appFrame{padding:12px;border-radius:18px}
+    .card{margin:10px 0;padding:12px}
+    .kv{grid-template-columns:140px 1fr}
+    .btn{padding:24px;font-size:22px;border-radius:18px}
+    .brandTitle{font-size:22px}
+  }
+
+  /* ✅ Mobile enhancement (single block, no nesting, no duplicates) */
+  @media (max-width: 768px){
+    body{
+      margin:8px;
+      font-size:20px;
+    }
 
     .appFrame{
-      border:1px solid #e6e6e6;
-      border-radius:22px;
+      padding:20px;
+      border-radius:26px;
+    }
+
+    h2{
+      font-size:26px;
+      text-align:center;
+    }
+
+    .card{
       padding:18px;
-      box-shadow:0 14px 40px rgba(0,0,0,0.10);
-      background:#fff;
     }
 
-    .brandTitle{
-      font-size:22px;
-      font-weight:900;
-      color:#0b5ed7;
-      letter-spacing:0.6px;
-      margin:0 0 10px 0;
-      text-align:center;
+    .kv{
+      grid-template-columns: 140px 1fr;
+      gap:14px;
     }
 
-    /* ✅ FULL SCREEN CAMERA PREVIEW */
-    .camWrap{
-      width: 100vw;
-      height: 100vh;
-      margin: 0;
-      position: fixed;
-      inset: 0;
-      padding-top: 0;
-      background: #000;
-      border-radius: 0;
-      overflow: hidden;
-      z-index: 9990;
-      display: none; /* only show when camera is ON */
-    }
-
-    .camWrap video{
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
-    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
-
-    .kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
-    .kv div{padding:8px 0;border-bottom:1px dashed #eee}
-    .label{font-weight:700}
-    .kv div:nth-child(2n){font-weight:800}
-
-    video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
-    canvas{display:none}
-    .ok{color:#0a7a0a;font-weight:800}
-
-    .guideLine{
-      position:absolute;
-      left:0; right:0;
-      height:2px;
-      background:rgba(255,0,0,0.85);
-      top:50%;
-      pointer-events:none;
-    }
-    .guideLabel{
-      position:absolute;
-      left:10px;
-      top:calc(50% - 22px);
-      background:rgba(0,0,0,0.55);
-      color:#fff;
-      font-size:12px;
-      padding:4px 8px;
-      border-radius:8px;
-      pointer-events:none;
-    }
-
-    /* ✅ CAPTURE BUTTON ON TOP OF FULL SCREEN CAMERA */
-    .btn{
-      width:100%;
-      padding:22px;
-      border-radius:16px;
-      font-size:22px;
-      font-weight:900;
-      border:1px solid #b9b9b9;
-      cursor:pointer;
-      background:linear-gradient(#ffffff,#f1f1f1);
-      box-shadow:
-        0 10px 0 #d0d0d0,
-        0 18px 28px rgba(0,0,0,0.12);
-      transition:transform 0.08s ease, box-shadow 0.08s ease;
-      user-select:none;
-      -webkit-tap-highlight-color:transparent;
-    }
-    .btn:active{
-      transform:translateY(6px);
-      box-shadow:
-        0 4px 0 #d0d0d0,
-        0 10px 18px rgba(0,0,0,0.12);
-    }
-
-    /* ✅ button fixed bottom-center while camera full screen */
-    .btnFixed{
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 22px;
-      z-index: 9992;
-      width: min(92vw, 420px);
-      display: none; /* show only when camera is ON */
-    }
-
-    .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
-    .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
-
-    /* ✅ ADDED: mobile view (no logic change) */
-    @media (max-width: 520px){
-      body{margin:10px;max-width:100%}
-      .appFrame{padding:12px;border-radius:18px}
-      .card{margin:10px 0;padding:12px}
-      .kv{grid-template-columns:140px 1fr}
-      .btn{padding:24px;font-size:22px;border-radius:18px}
-      .brandTitle{font-size:22px}
-    }
-
-    /* ✅ ADDED: overlay for "LOGGED COMPLETED" */
-    .overlayDone{
-      position:fixed;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      background:rgba(0,0,0,0.18);
-      z-index:9999;
-    }
-    .overlayCard{
-      background:#fff;
-      border-radius:20px;
-      padding:22px 18px;
-      box-shadow:0 18px 50px rgba(0,0,0,0.20);
-      text-align:center;
-      width:min(320px, 88vw);
-    }
-    .overlayTick{
-      font-size:64px;
-      line-height:1;
-      color:#0a7a0a;
-      font-weight:900;
-      margin-bottom:10px;
-    }
-    .overlayText{
-      font-size:18px;
-      font-weight:900;
-      color:#0a7a0a;
-      letter-spacing:0.4px;
-    }
-
-    /* ✅ MOBILE VIEW ENHANCEMENT – DO NOT AFFECT DESKTOP */
-    @media (max-width: 768px) {
-
-      body{
-        margin:8px;
-        font-size:20px;
-      }
-
-      .appFrame{
-        padding:20px;
-        border-radius:26px;
-      }
-
-      h2{
-        font-size:26px;
-        text-align:center;
-      }
-
-      .card{
-        padding:18px;
-      }
-
-      .kv{
-        grid-template-columns: 140px 1fr;
-        gap:14px;
-      }
-
-      .kv div{
-        font-size:18px;
-        padding:12px 0;
-      }
-
-      .label{
-        font-size:18px;
-        font-weight:800;
-      }
-
-      video{
-        border-radius:16px;
-      }
-
-      .btn{
-        font-size:22px;
-        padding:26px;
-        border-radius:18px;
-      }
-
-      .status{
-        font-size:16px;
-        padding:16px;
-      }
-
-    }
-    .appTitle{
-      text-align:center;
-      font-size:38px;
-      font-weight:900;
-      color:#0b4fd6;
-      letter-spacing:1.2px;
-      margin:6px 0 18px 0;
-    }
-    /* 🔥 Bigger capture details for mobile */
     .kv div{
-      font-size:24px;
+      font-size:26px;        /* ✅ big readable on mobile only */
       padding:16px 0;
     }
 
     .label{
-      font-size:20px;
+      font-size:24px;
       font-weight:800;
     }
 
-    /* Values on right side */
+    video{
+      border-radius:16px;
+    }
+
+    .btn{
+      font-size:22px;
+      padding:26px;
+      border-radius:18px;
+    }
+
+    .status{
+      font-size:16px;
+      padding:16px;
+    }
+
+    .appTitle{
+      font-size:42px;
+    }
+
     #memberId,
     #memberName,
     #itemName,
@@ -242,110 +293,18 @@
       font-size:18px;
       font-weight:700;
     }
-    @media (max-width: 768px){
-      .appTitle{
-        font-size:42px;
-      }
 
-      .kv div{
-        font-size:26px;
-      }
-
-      .label{
-        font-size:24px;
-      }
-
-      #memberId,
-      #memberName,
-      #itemName,
-      #outW,
-      #inW,
-      #readyW,
-      #stage{
-        font-size:18px;
-      }
-
-      /* ✅ Centered bottom CAPTURE button (layout only) */
-      #btnCapture{
-        display: block;
-        margin: 28px auto 6px auto; /* center + push to bottom of layout */
-        width: min(92%, 420px);
-        padding: 30px;
-        font-size: 26px;
-        font-weight: 900;
-        border-radius: 20px;
-      }
-
-      /* 📱 Bigger & thumb-friendly on mobile */
-      @media (max-width: 768px){
-        #btnCapture{
-          width: 94%;
-          padding: 34px;
-          font-size: 28px;
-          border-radius: 22px;
-        }
-      }
-      /* ✅ CAPTURE button at very bottom after all details */
-      #btnCapture{
-        display: block;
-        margin: 32px auto 12px auto; /* pushes it BELOW details */
-        width: min(94%, 460px);
-        padding: 32px;
-        font-size: 28px;
-        font-weight: 900;
-        border-radius: 22px;
-      }
-
-      /* 📱 Mobile emphasis */
-      @media (max-width: 768px){
-        #btnCapture{
-          width: 96%;
-          padding: 36px;
-          font-size: 30px;
-          border-radius: 24px;
-        }
-      }
-
-    }
-
-    /* ✅ ADDED: match SUBMIT bottom styling (no logic change) */
-    #btnSubmit{
-      display: block;
-      margin: 32px auto 12px auto;
-      width: min(94%, 460px);
-      padding: 32px;
-      font-size: 28px;
-      font-weight: 900;
-      border-radius: 22px;
-    }
-    @media (max-width: 768px){
-      #btnSubmit{
-        width: 96%;
-        padding: 36px;
-        font-size: 30px;
-        border-radius: 24px;
-      }
-    }
-
-    /* ✅ ADDED: match RESET bottom styling (no logic change) */
+    /* ✅ Bottom buttons (thumb friendly) */
+    #btnCapture,
+    #btnSubmit,
     #btnReset{
-      display: block;
-      margin: 12px auto 12px auto;
-      width: min(94%, 460px);
-      padding: 32px;
-      font-size: 28px;
-      font-weight: 900;
-      border-radius: 22px;
+      width:96%;
+      padding:36px;
+      font-size:30px;
+      border-radius:24px;
     }
-    @media (max-width: 768px){
-      #btnReset{
-        width: 96%;
-        padding: 36px;
-        font-size: 30px;
-        border-radius: 24px;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 
 <body>
@@ -1065,7 +1024,7 @@
       // ✅ Background sync: silent + never interrupts online
       let isSyncingOffline = false;
 
-      aasync function syncOfflineQueue(){
+      async function syncOfflineQueue(){
   if (!isOnline()) return;
   if (isSyncingOffline) return;
   if (isSubmitting) return; // ✅ submit lock
