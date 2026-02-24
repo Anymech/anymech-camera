@@ -1065,105 +1065,84 @@
       // ✅ Background sync: silent + never interrupts online
       let isSyncingOffline = false;
 
-      async function syncOfflineQueue(){
-        if (!isOnline()) return;
-        if (isSyncingOffline) return;
-        if (uiState !== "idle") return;   // don't sync while using camera/OCR
-        if (isSubmitting) return;         // don't sync while submit is running
+      aasync function syncOfflineQueue(){
+  if (!isOnline()) return;
+  if (isSyncingOffline) return;
+  if (isSubmitting) return; // ✅ submit lock
+  if (uiState === "camera_on" || uiState === "await_submit") return; // ✅ only block on active camera/submit UI
 
-        const items = await offlineList();
-        if (!items || items.length === 0) return;
+  const items = await offlineList();
+  if (!items || items.length === 0) return;
 
-        isSyncingOffline = true;
+  isSyncingOffline = true;
 
-        try{
-          console.log("Syncing offline queue:", items.length);
+  try{
+    console.log("SYNC: offline queue count =", items.length);
 
-          for (const item of items){
-            try{
-              const img = item?.payload?.imageDataUrl;
-              if (!img){
-                await offlineRemove(item.id);
-                continue;
-              }
+    // ✅ process ONLY 1 item per cycle (fast + no interruption)
+    const item = items[0];
 
-              // optional: show in UPLOAD_QUEUE sheet (if server supports)
-              try{
-                item.status = "PROCESSING";
-                callServerNoWait("queueUpsert", [item]);
-              }catch(e){}
+    const img = item?.payload?.imageDataUrl;
+    if (!img){
+      await offlineRemove(item.id);
+      return;
+    }
 
-              // 1) OCR now that internet is back
-              const r = await callServer("visionExtract", [img]);
-              if (!r || !r.ok){
-                // log to FAILED OCR sheet (if server supports)
-                try{
-                  callServerNoWait("failedOcr", [
-                    item.id,
-                    item.deviceId || DEVICE_ID,
-                    item.page || (location && location.href ? location.href : ""),
-                    (r && r.message ? r.message : "OCR_FAILED"),
-                    img
-                  ]);
-                  item.status = "FAILED_OCR";
-                  item.reason = (r && r.message ? r.message : "OCR_FAILED");
-                  callServerNoWait("queueUpsert", [item]);
-                }catch(e){}
-                continue; // keep for retry later
-              }
+    // optional: show in UPLOAD_QUEUE sheet (if server supports)
+    try{
+      item.status = "PROCESSING";
+      callServerNoWait("queueUpsert", [item]);
+    }catch(e){}
 
-              // 2) Upload to main sheet
-              const resp = await callServer("captureFromOcr", [
-                r.memberId || "",
-                r.itemName || "",
-                (r.weight !== undefined ? r.weight : null),
-                img
-              ]);
+    const r = await callServer("visionExtract", [img]);
+    if (!r || !r.ok){
+      try{
+        callServerNoWait("failedOcr", [
+          item.id,
+          item.deviceId || DEVICE_ID,
+          item.page || (location && location.href ? location.href : ""),
+          (r && r.message ? r.message : "OCR_FAILED"),
+          img
+        ]);
+        item.status = "FAILED_OCR";
+        item.reason = (r && r.message ? r.message : "OCR_FAILED");
+        callServerNoWait("queueUpsert", [item]);
+      }catch(e){}
+      console.log("SYNC: OCR failed for", item.id);
+      return; // keep for retry later
+    }
 
-              if (!resp || !resp.ok){
-                try{
-                  item.status = "FAILED_UPLOAD";
-                  item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
-                  callServerNoWait("queueUpsert", [item]);
-                }catch(e){}
-                continue; // keep for retry later
-              }
+    const resp = await callServer("captureFromOcr", [
+      r.memberId || "",
+      r.itemName || "",
+      (r.weight !== undefined ? r.weight : null),
+      img
+    ]);
 
-              // 3) Mark uploaded and remove
-              try{
-                item.status = "UPLOADED";
-                item.reason = "";
-                callServerNoWait("queueUpsert", [item]);
-                callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
-              }catch(e){}
+    if (!resp || !resp.ok){
+      try{
+        item.status = "FAILED_UPLOAD";
+        item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
+        callServerNoWait("queueUpsert", [item]);
+      }catch(e){}
+      console.log("SYNC: upload failed for", item.id);
+      return; // keep for retry later
+    }
 
-              await offlineRemove(item.id);
+    try{
+      item.status = "UPLOADED";
+      item.reason = "";
+      callServerNoWait("queueUpsert", [item]);
+      callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
+    }catch(e){}
 
-              // small pause to avoid blocking
-              await new Promise(r => setTimeout(r, 150));
+    await offlineRemove(item.id);
+    console.log("SYNC: uploaded & removed", item.id);
 
-            }catch(e){
-              // keep syncing next items
-              try{
-                const img = item?.payload?.imageDataUrl || "";
-                callServerNoWait("failedOcr", [
-                  item.id,
-                  item.deviceId || DEVICE_ID,
-                  item.page || (location && location.href ? location.href : ""),
-                  (e && e.message ? e.message : "SYNC_ERROR"),
-                  img
-                ]);
-              }catch(_e){}
-              continue;
-            }
-          }
-
-          console.log("Offline sync cycle complete.");
-        } finally {
-          isSyncingOffline = false;
-        }
-      }
-
+  } finally {
+    isSyncingOffline = false;
+  }
+}
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
 
