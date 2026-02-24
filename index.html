@@ -623,8 +623,8 @@
 
         const sx = 0;
         const sw = vw;
-        const sy = Math.round(vh * 0.20);
-        const sh = Math.round(vh * 0.60);
+        const sy = Math.round(vh * 0.15);
+        const sh = Math.round(vh * 0.70);
 
         const maxW = 960;
         const isPortraitFrame = vh > vw;
@@ -652,7 +652,7 @@
         }
 
         ctx.restore();
-        return canvas.toDataURL("image/jpeg", 0.60);
+        return canvas.toDataURL("image/jpeg", 0.85);
       }
 
       window.resetClick = async function resetClick(){
