@@ -1039,125 +1039,113 @@
 
       // ✅ UPDATED: offline queue OCR retry 3 times; after 3 fails -> move to FAILED OCR sheet + clear local cache
       async function syncOfflineQueue(){
-        if (!isOnline()) return;
-        if (isSyncingOffline) return;
-        if (isSubmitting) return; // ✅ submit lock
-        if (uiState === "camera_on" || uiState === "await_submit") return; // ✅ don't interrupt active camera/submit UI
+  if (!isOnline()) return;
+  if (isSyncingOffline) return;
+  if (isSubmitting) return;
+  if (uiState === "camera_on" || uiState === "await_submit") return;
 
-        const items = await offlineList();
-        if (!items || items.length === 0) return;
+  const items = await offlineList();
+  if (!items || items.length === 0) return;
 
-        isSyncingOffline = true;
+  isSyncingOffline = true;
 
-        try{
-          console.log("SYNC: offline queue count =", items.length);
+  try{
+    const item = items[0];
+    const img = item?.payload?.imageDataUrl;
 
-          // ✅ process ONLY 1 item per cycle (fast + no interruption)
-          const item = items[0];
+    if (!img){
+      await offlineRemove(item.id);
+      return;
+    }
 
-          const img = item?.payload?.imageDataUrl;
-          if (!img){
-            await offlineRemove(item.id);
-            return;
-          }
+    // For old cached items
+    if (!item.payload) item.payload = { imageDataUrl: img };
+    if (typeof item.payload.attempts !== "number") item.payload.attempts = 0;
+    if (typeof item.payload.lastError !== "string") item.payload.lastError = "";
 
-          // Ensure fields exist (for older cached items)
-          if (!item.payload) item.payload = { imageDataUrl: img };
-          if (typeof item.payload.attempts !== "number") item.payload.attempts = 0;
-          if (typeof item.payload.lastError !== "string") item.payload.lastError = "";
+    // optional server queue status
+    try{
+      item.status = "PROCESSING";
+      callServerNoWait("queueUpsert", [item]);
+    }catch(e){}
 
-          // optional: show in UPLOAD_QUEUE sheet (if server supports)
-          try{
-            item.status = "PROCESSING";
-            callServerNoWait("queueUpsert", [item]);
-          }catch(e){}
+    // ✅ OCR tries TOTAL = 3 (count per attempt, not per cycle)
+    let r = null;
+    let lastMsg = "";
 
-          // ✅ OCR retry loop (3 tries in this sync cycle)
-          let r = null;
-          let lastMsg = "";
-          const MAX_TRIES = 3;
+    while (item.payload.attempts < 3){
+      item.payload.attempts += 1;                 // ✅ increment per try
+      await offlineEnqueue(item);                 // ✅ persist immediately
 
-          for (let i = 0; i < MAX_TRIES; i++){
-            try{
-              r = await callServer("visionExtract", [img]);
-              if (r && r.ok) break;
-              lastMsg = (r && r.message) ? r.message : "OCR_FAILED";
-            }catch(err){
-              lastMsg = (err && err.message) ? err.message : "OCR_CALL_ERROR";
-            }
-          }
+      try{
+        r = await callServer("visionExtract", [img]);
+        if (r && r.ok) break;
 
-          // If OCR still fails after retries
-          if (!r || !r.ok){
-            item.payload.attempts += 1;
-            item.payload.lastError = lastMsg || "OCR_FAILED";
-
-            // ✅ If attempts reached 3 -> move to FAILED OCR sheet + clear local queue
-            if (item.payload.attempts >= 3){
-              try{
-                callServerNoWait("failedOcr", [
-                  item.id,
-                  item.deviceId || DEVICE_ID,
-                  item.page || (location && location.href ? location.href : ""),
-                  "OCR_FAILED_AFTER_3_TRIES: " + item.payload.lastError,
-                  img
-                ]);
-                item.status = "FAILED_OCR";
-                item.reason = item.payload.lastError;
-                callServerNoWait("queueUpsert", [item]);
-                callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
-              }catch(e){}
-
-              // ✅ CLEAR CACHE: remove from IndexedDB to avoid duplicates/new entry conflicts
-              await offlineRemove(item.id);
-              console.log("SYNC: moved to FAILED OCR + removed locally", item.id);
-              return;
-            }
-
-            // ✅ Not yet 3 -> keep item for later retry, save updated attempts back to IndexedDB
-            try{
-              item.status = "RETRY_OCR";
-              item.reason = item.payload.lastError;
-              callServerNoWait("queueUpsert", [item]);
-            }catch(e){}
-
-            await offlineEnqueue(item);
-            console.log("SYNC: OCR failed, will retry later", item.id, "attempt:", item.payload.attempts);
-            return;
-          }
-
-          // ✅ OCR success -> upload
-          const resp = await callServer("captureFromOcr", [
-            r.memberId || "",
-            r.itemName || "",
-            (r.weight !== undefined ? r.weight : null),
-            img
-          ]);
-
-          if (!resp || !resp.ok){
-            try{
-              item.status = "FAILED_UPLOAD";
-              item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
-              callServerNoWait("queueUpsert", [item]);
-            }catch(e){}
-            console.log("SYNC: upload failed for", item.id);
-            return; // keep for retry later
-          }
-
-          try{
-            item.status = "UPLOADED";
-            item.reason = "";
-            callServerNoWait("queueUpsert", [item]);
-            callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
-          }catch(e){}
-
-          await offlineRemove(item.id);
-          console.log("SYNC: uploaded & removed", item.id);
-
-        } finally {
-          isSyncingOffline = false;
-        }
+        lastMsg = (r && r.message) ? r.message : "OCR_FAILED";
+      }catch(err){
+        lastMsg = (err && err.message) ? err.message : "OCR_CALL_ERROR";
       }
+
+      item.payload.lastError = lastMsg || "OCR_FAILED";
+    }
+
+    // ✅ After 3 tries: move to FAILED OCR + clear local cache
+    if (!r || !r.ok){
+      try{
+        callServerNoWait("failedOcr", [
+          item.id,
+          item.deviceId || DEVICE_ID,
+          item.page || (location && location.href ? location.href : ""),
+          "OCR_FAILED_AFTER_3_TRIES: " + (item.payload.lastError || "OCR_FAILED"),
+          img
+        ]);
+
+        item.status = "FAILED_OCR";
+        item.reason = item.payload.lastError || "OCR_FAILED";
+        callServerNoWait("queueUpsert", [item]);
+        callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
+      }catch(e){}
+
+      // ✅ THIS is the real cache clear:
+      await offlineRemove(item.id);
+
+      console.log("SYNC: FAILED OCR -> moved + removed locally", item.id);
+      return;
+    }
+
+    // ✅ OCR success -> upload
+    const resp = await callServer("captureFromOcr", [
+      r.memberId || "",
+      r.itemName || "",
+      (r.weight !== undefined ? r.weight : null),
+      img
+    ]);
+
+    if (!resp || !resp.ok){
+      try{
+        item.status = "FAILED_UPLOAD";
+        item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
+        callServerNoWait("queueUpsert", [item]);
+      }catch(e){}
+      console.log("SYNC: upload failed for", item.id);
+      return; // keep for retry later
+    }
+
+    // ✅ Uploaded -> clear locally
+    try{
+      item.status = "UPLOADED";
+      item.reason = "";
+      callServerNoWait("queueUpsert", [item]);
+      callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
+    }catch(e){}
+
+    await offlineRemove(item.id);
+    console.log("SYNC: uploaded & removed", item.id);
+
+  } finally {
+    isSyncingOffline = false;
+  }
+}
 
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
