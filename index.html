@@ -192,7 +192,7 @@
       }
 
       .label{
-        font-size:18px;
+        font-size:20px;
         font-weight:800;
       }
 
@@ -252,7 +252,7 @@
       }
 
       .label{
-        font-size:24px;
+        font-size:28px;
       }
 
       #memberId,
@@ -537,55 +537,62 @@
       // ===============================
       const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwJr73l_9BJfiRAEpIz-x90zhOX78ny4kH53X_RifEqFN7WFcgnnAUpwbeMisMVvtFQcA/exec";
 
-     <script>
-  async function callServer(fnName, args){
-    let payload = {};
+      async function callServer(fnName, args){
+        let payload = {};
 
-    if (fnName === "visionExtract") {
-      payload = { action: "visionExtract", imageDataUrl: args[0] };
-    } else if (fnName === "captureFromOcr") {
-      payload = {
-        action: "captureFromOcr",
-        memberId: args[0],
-        itemName: args[1],
-        weight: args[2],
-        imageDataUrl: args[3]
-      };
-    } else if (fnName === "postFailTasks") {
-      payload = { action: "postFailTasks", imageDataUrl: args[0], failMessage: args[1], rawText: args[2] };
-    } else {
-      payload = { action: "unknown" };
-    }
+        if (fnName === "visionExtract") {
+          payload = { action: "visionExtract", imageDataUrl: args[0] };
+        } else if (fnName === "captureFromOcr") {
+          payload = {
+            action: "captureFromOcr",
+            memberId: args[0],
+            itemName: args[1],
+            weight: args[2],
+            imageDataUrl: args[3]
+          };
+        } else if (fnName === "postFailTasks") {
+          payload = {
+            action: "postFailTasks",
+            imageDataUrl: args[0],
+            failMessage: args[1],
+            rawText: args[2]
+          };
+        } else {
+          payload = { action: "unknown" };
+        }
 
-    const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-      method: "POST",
-      mode: "cors",
-      cache: "no-store",
-      redirect: "follow",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+        const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+          method: "POST",
+          mode: "cors",
+          cache: "no-store",
+          redirect: "follow",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-    const text = await res.text();
+        const text = await res.text();
 
-    // ✅ If Apps Script returned HTML/login/error, show it clearly
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    if (!res.ok) {
-      throw new Error("HTTP " + res.status + " " + res.statusText + "\n\n" + text.slice(0, 600));
-    }
+        const ct = (res.headers.get("content-type") || "").toLowerCase();
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status + " " + res.statusText + "\n\n" + text.slice(0, 600));
+        }
 
-    // If server didn't return JSON, surface the first chars instead of JSON.parse crash
-    if (!ct.includes("application/json") && !text.trim().startsWith("{") && !text.trim().startsWith("[")) {
-      throw new Error("Non-JSON response from server.\nLikely permissions/login/CORS.\n\n" + text.slice(0, 600));
-    }
+        if (!ct.includes("application/json") && !text.trim().startsWith("{") && !text.trim().startsWith("[")) {
+          throw new Error("Non-JSON response from server.\nLikely permissions/login/CORS.\n\n" + text.slice(0, 600));
+        }
 
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      throw new Error("JSON parse failed. Server returned:\n\n" + text.slice(0, 600));
-    }
-  }
-</script>
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("JSON parse failed. Server returned:\n\n" + text.slice(0, 600));
+        }
+      }
+
+      function callServerNoWait(fnName, args){
+        callServer(fnName, args).catch(err=>{
+          setStatus("Background fail: " + (err && err.message ? err.message : String(err)));
+        });
+      }
 
       // =========================
       // button sequencing helpers
@@ -605,18 +612,20 @@
         btnSubmit.style.display = "block";
         btnReset.style.display = "block";
       }
-function showSaveOfflineOnly(){
-  if (isOnline()){
-    btnSaveOffline.style.display = "none";
-    return;
-  }
 
-  btnFixedWrap.style.display = "none";
-  document.getElementById("btnCapture").style.display = "none";
-  btnSubmit.style.display = "none";
-  btnReset.style.display = "block";
-  btnSaveOffline.style.display = "block";
-}
+      function showSaveOfflineOnly(){
+        if (isOnline()){
+          btnSaveOffline.style.display = "none";
+          return;
+        }
+
+        btnFixedWrap.style.display = "none";
+        document.getElementById("btnCapture").style.display = "none";
+        btnSubmit.style.display = "none";
+        btnReset.style.display = "block";
+        btnSaveOffline.style.display = "block";
+      }
+
       function showCameraUI(on){
         camWrap.style.display = on ? "block" : "none";
         btnFixedWrap.style.display = on ? "block" : "none";
@@ -763,26 +772,28 @@ function showSaveOfflineOnly(){
           showCaptureButtons();
         }
       }
-// SAVE OFFLINE handler (must be outside submitClick)
-window.saveOfflineClick = async function saveOfflineClick(){
-  if (!pendingCapture){
-    setStatus("Nothing to save. Please CAPTURE first.");
-    return;
-  }
 
-  await offlineEnqueue({
-    id: Date.now(),
-    payload: {
-      imageDataUrl: pendingCapture.dataUrl   // ✅ only image needed
-    }
-  });
+      // SAVE OFFLINE handler (must be outside submitClick)
+      window.saveOfflineClick = async function saveOfflineClick(){
+        if (!pendingCapture){
+          setStatus("Nothing to save. Please CAPTURE first.");
+          return;
+        }
 
-  setStatus("📴 Saved OFFLINE ✅\nWill auto sync when internet returns.");
-  pendingCapture = null;
-  uiState = "idle";
-  setBtn("CAPTURE");
-  showCaptureButtons();
-};
+        await offlineEnqueue({
+          id: Date.now(),
+          payload: {
+            imageDataUrl: pendingCapture.dataUrl   // ✅ only image needed
+          }
+        });
+
+        setStatus("📴 Saved OFFLINE ✅\nWill auto sync when internet returns.");
+        pendingCapture = null;
+        uiState = "idle";
+        setBtn("CAPTURE");
+        showCaptureButtons();
+      };
+
       // ===============================
       // SUBMIT CLICK ✅ UPDATED (offline save + auto sync)
       // ===============================
@@ -910,7 +921,7 @@ window.saveOfflineClick = async function saveOfflineClick(){
             await startLiveCamera();
             uiState = "camera_on";
             showCaptureButtons();
-        
+
           }catch(err){
             uiState = "idle";
             setBtn("CAPTURE");
@@ -954,27 +965,27 @@ window.saveOfflineClick = async function saveOfflineClick(){
           setBtn("PROCESSING...");
           setStatus("Capturing image (freezing frame)...");
           const dataUrl = captureDataUrlFull();
-    setStatus("Captured ✅\nImage size: " + Math.round(dataUrl.length/1024) + " KB\nRunning OCR...");
+
+          setStatus("Captured ✅\nImage size: " + Math.round(dataUrl.length/1024) + " KB\nRunning OCR...");
 
           stopLiveCamera();
-         // ✅ OFFLINE MODE: skip OCR, allow Save Offline
-if (!isOnline()){
-  pendingCapture = {
-    memberId: "",
-    itemName: "",
-    weight: null,
-    dataUrl: dataUrl,
-    ocrMemberName: "",
-    ocrItemName: ""
-  };
 
-  uiState = "await_save_offline";
-  setStatus("📴 Internet not working.\nImage captured ✅\nClick SAVE OFFLINE.");
-  showSaveOfflineOnly();
-  return;
-}
+          // ✅ OFFLINE MODE: skip OCR, allow Save Offline
+          if (!isOnline()){
+            pendingCapture = {
+              memberId: "",
+              itemName: "",
+              weight: null,
+              dataUrl: dataUrl,
+              ocrMemberName: "",
+              ocrItemName: ""
+            };
 
-          const tAll0 = performance.now();
+            uiState = "await_save_offline";
+            setStatus("📴 Internet not working.\nImage captured ✅\nClick SAVE OFFLINE.");
+            showSaveOfflineOnly();
+            return;
+          }
 
           setStatus("Image captured ✅\nRunning OCR...");
           const tOcr0 = performance.now();
@@ -998,29 +1009,27 @@ if (!isOnline()){
 
           const msOcr = _ms_(tOcr0);
 
-         if (!r || !r.ok){
-  // keep your existing logging + postFailTasks as-is above...
+          if (!r || !r.ok){
+            pendingCapture = {
+              memberId: "",
+              itemName: "",
+              weight: null,
+              dataUrl: dataUrl,
+              ocrMemberName: "",
+              ocrItemName: ""
+            };
 
-  // ✅ allow offline save when OCR fails (most common: no internet)
-  pendingCapture = {
-    memberId: "",
-    itemName: "",
-    weight: null,
-    dataUrl: dataUrl,
-    ocrMemberName: "",
-    ocrItemName: ""
-  };
+            uiState = "await_save_offline";
+            setStatus(
+              "OCR failed (likely offline).\n" +
+              "You can SAVE OFFLINE now and it will auto-sync when online.\n\n" +
+              (r && r.message ? ("Reason: " + r.message) : "")
+            );
 
-  uiState = "await_save_offline";
-  setStatus(
-    "OCR failed (likely offline).\n" +
-    "You can SAVE OFFLINE now and it will auto-sync when online.\n\n" +
-    (r && r.message ? ("Reason: " + r.message) : "")
-  );
+            showSaveOfflineOnly();
+            return;
+          }
 
-  showSaveOfflineOnly();
-  return;
-}
           setText("memberId", r.memberId || "-");
           setText("memberName", r.memberName || "-");
           setText("itemName", r.itemName || "-");
@@ -1037,18 +1046,18 @@ if (!isOnline()){
 
           uiState = "await_submit";
 
-setStatus(
-  "OCR DONE ✅\n" +
-  "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
-  "TIMING:\nOCR call: " + msOcr + " ms"
-);
+          setStatus(
+            "OCR DONE ✅\n" +
+            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
+            "TIMING:\nOCR call: " + msOcr + " ms"
+          );
 
-// 🔥 THIS IS IMPORTANT
-btnSubmit.style.display = "block";
-btnReset.style.display = "block";
-btnSaveOffline.style.display = "none";
-btnFixedWrap.style.display = "none";
-document.getElementById("btnCapture").style.display = "none";
+          // 🔥 THIS IS IMPORTANT
+          btnSubmit.style.display = "block";
+          btnReset.style.display = "block";
+          btnSaveOffline.style.display = "none";
+          btnFixedWrap.style.display = "none";
+          document.getElementById("btnCapture").style.display = "none";
           return;
         }
       }
@@ -1056,63 +1065,62 @@ document.getElementById("btnCapture").style.display = "none";
       // ===============================
       // AUTO SYNC WHEN ONLINE ✅ FIXED (listeners outside)
       // ===============================
-      // ✅ ADD this lock variable once (above syncOfflineQueue)
-let isSyncingOffline = false;
+      let isSyncingOffline = false;
 
-// ✅ REPLACE your entire syncOfflineQueue() with this
-async function syncOfflineQueue(){
-  if (!isOnline()) return;
-  if (isSyncingOffline) return;
+      async function syncOfflineQueue(){
+        if (!isOnline()) return;
+        if (isSyncingOffline) return;
 
-  const items = await offlineList();
-  if (!items || items.length === 0) return;
+        const items = await offlineList();
+        if (!items || items.length === 0) return;
 
-  isSyncingOffline = true;
-  setStatus("🔄 Internet restored.\nSyncing offline queued data...");
+        isSyncingOffline = true;
+        setStatus("🔄 Internet restored.\nSyncing offline queued data...");
 
-  for (const item of items){
-    try{
-      const img = item?.payload?.imageDataUrl;
-      if (!img){
-        await offlineRemove(item.id);
-        continue;
-      }
+        for (const item of items){
+          try{
+            const img = item?.payload?.imageDataUrl;
+            if (!img){
+              await offlineRemove(item.id);
+              continue;
+            }
 
-      // 1) OCR Extract now that internet is back
-      const r = await callServer("visionExtract", [img]);
-      if (!r || !r.ok){
-        console.log("OCR failed during sync. Will retry later.");
+            // 1) OCR Extract now that internet is back
+            const r = await callServer("visionExtract", [img]);
+            if (!r || !r.ok){
+              console.log("OCR failed during sync. Will retry later.");
+              isSyncingOffline = false;
+              return;
+            }
+
+            // 2) Submit to Google Sheet using extracted details
+            const resp = await callServer("captureFromOcr", [
+              r.memberId || "",
+              r.itemName || "",
+              (r.weight !== undefined ? r.weight : null),
+              img
+            ]);
+
+            if (!resp || !resp.ok){
+              console.log("Submit failed during sync. Will retry later.");
+              isSyncingOffline = false;
+              return;
+            }
+
+            // 3) Remove only after successful submit
+            await offlineRemove(item.id);
+
+          }catch(e){
+            console.log("Sync error, will retry later.");
+            isSyncingOffline = false;
+            return;
+          }
+        }
+
         isSyncingOffline = false;
-        return;
+        setStatus("✅ Offline queued data synced successfully.");
       }
 
-      // 2) Submit to Google Sheet using extracted details
-      const resp = await callServer("captureFromOcr", [
-        r.memberId || "",
-        r.itemName || "",
-        (r.weight !== undefined ? r.weight : null),
-        img
-      ]);
-
-      if (!resp || !resp.ok){
-        console.log("Submit failed during sync. Will retry later.");
-        isSyncingOffline = false;
-        return;
-      }
-
-      // 3) Remove only after successful submit
-      await offlineRemove(item.id);
-
-    }catch(e){
-      console.log("Sync error, will retry later.");
-      isSyncingOffline = false;
-      return;
-    }
-  }
-
-  isSyncingOffline = false;
-  setStatus("✅ Offline queued data synced successfully.");
-}
       // listeners OUTSIDE (very important)
       window.addEventListener("online", syncOfflineQueue);
       setInterval(syncOfflineQueue, 30000);
@@ -1127,8 +1135,10 @@ async function syncOfflineQueue(){
 
       btnSubmit.addEventListener("click", submitClick);
       btnReset.addEventListener("click", resetClick);
+
       btnSaveOffline.style.display = "none";
-btnSaveOffline.addEventListener("click", saveOfflineClick);
+      btnSaveOffline.addEventListener("click", saveOfflineClick);
+
       showCaptureButtons();
 
       // try sync on load (optional but safe)
