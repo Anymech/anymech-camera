@@ -406,11 +406,25 @@
 
       let uiState = "idle";
       let stream = null;
-
       let pendingCapture = null;
 
       const OFFLINE_DB = "anymech_offline_db";
       const OFFLINE_STORE = "queue";
+
+      // ✅ Device ID (moved to single place; removed duplicate inside captureClick)
+      function getDeviceId(){
+        try{
+          let id = localStorage.getItem("ANYMECH_DEVICE_ID");
+          if (!id){
+            id = "DEV-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+            localStorage.setItem("ANYMECH_DEVICE_ID", id);
+          }
+          return id;
+        }catch(e){
+          return "DEV-UNKNOWN";
+        }
+      }
+      const DEVICE_ID = getDeviceId();
 
       function idbOpen(){
         return new Promise((resolve, reject) => {
@@ -426,6 +440,7 @@
         });
       }
 
+      // ✅ MISSING IN YOUR PASTE: offlineEnqueue() (required by enqueueCapture)
       async function offlineEnqueue(item){
         const db = await idbOpen();
         return new Promise((resolve, reject) => {
@@ -434,6 +449,23 @@
           tx.oncomplete = () => { db.close(); resolve(true); };
           tx.onerror = () => { db.close(); reject(tx.error); };
         });
+      }
+
+      // ✅ Consistent queue item format (minimal change)
+      async function enqueueCapture(dataUrl, reason){
+        const item = {
+          id: "Q-" + Date.now() + "-" + Math.random().toString(16).slice(2),
+          createdAt: new Date().toISOString(),
+          deviceId: DEVICE_ID,
+          page: (location && location.href) ? location.href : "",
+          status: "QUEUED",
+          reason: reason || "",
+          payload: {
+            imageDataUrl: dataUrl
+          }
+        };
+        await offlineEnqueue(item);
+        return item;
       }
 
       async function offlineList(){
@@ -551,20 +583,24 @@
             failMessage: args[1],
             rawText: args[2]
           };
+        } else if (fnName === "queueUpsert") {
+          payload = { action: "queueUpsert", item: args[0] };
+        } else if (fnName === "queueRemove") {
+          payload = { action: "queueRemove", id: args[0], deviceId: args[1] };
+        } else if (fnName === "failedOcr") {
+          payload = { action: "failedOcr", id: args[0], deviceId: args[1], page: args[2], reason: args[3], imageDataUrl: args[4] };
         } else {
           payload = { action: "unknown" };
         }
 
-        // ✅ Timeout protection (does not change logic)
         const ctrl = new AbortController();
         const to = setTimeout(() => ctrl.abort(), 25000);
 
         let res, text;
         try{
-          // ✅ IMPORTANT: no custom headers => no CORS preflight
           res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
             method: "POST",
-            body: JSON.stringify(payload),  // sent as text/plain; charset=UTF-8
+            body: JSON.stringify(payload),
             signal: ctrl.signal
           });
           text = await res.text();
@@ -584,9 +620,7 @@
       }
 
       function callServerNoWait(fnName, args){
-        callServer(fnName, args).catch(err=>{
-          setStatus("Background fail: " + (err && err.message ? err.message : String(err)));
-        });
+        callServer(fnName, args).catch(_err=>{ /* keep silent to not affect online mode */ });
       }
 
       // =========================
@@ -598,14 +632,6 @@
         btnSubmit.style.display = "none";
         btnReset.style.display = "none";
         btnSaveOffline.style.display = "none";
-      }
-
-      function showSubmitButtonOnly(){
-        btnSaveOffline.style.display = "none";
-        btnFixedWrap.style.display = "none";
-        document.getElementById("btnCapture").style.display = "none";
-        btnSubmit.style.display = "block";
-        btnReset.style.display = "block";
       }
 
       function showSaveOfflineOnly(){
@@ -767,18 +793,25 @@
         }
       }
 
+      // ✅ SAVE OFFLINE uses enqueueCapture (minimal change; online unaffected)
       window.saveOfflineClick = async function saveOfflineClick(){
         if (!pendingCapture){
           setStatus("Nothing to save. Please CAPTURE first.");
           return;
         }
 
-        await offlineEnqueue({
-          id: Date.now(),
-          payload: {
-            imageDataUrl: pendingCapture.dataUrl
+        await enqueueCapture(pendingCapture.dataUrl, "MANUAL_SAVE_OFFLINE");
+
+        // optional sheet update (won't affect online if not supported)
+        try{
+          if (isOnline()){
+            callServerNoWait("queueUpsert", [{
+              id: "last-local", createdAt: new Date().toISOString(), deviceId: DEVICE_ID,
+              page: (location && location.href) ? location.href : "",
+              status: "QUEUED", reason: "MANUAL_SAVE_OFFLINE"
+            }]);
           }
-        });
+        }catch(e){}
 
         setStatus("📴 Saved OFFLINE ✅\nWill auto sync when internet returns.");
         pendingCapture = null;
@@ -801,17 +834,9 @@
         setStatus("Submitting...");
         btnSubmit.textContent = "SUBMITTING...";
 
+        // ✅ offline submit -> queue only image (online mode unchanged)
         if (!isOnline()) {
-          await offlineEnqueue({
-            id: Date.now(),
-            payload: {
-              memberId: pendingCapture.memberId,
-              itemName: pendingCapture.itemName,
-              weight: pendingCapture.weight,
-              imageDataUrl: pendingCapture.dataUrl
-            }
-          });
-
+          await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_OFFLINE");
           setStatus("📴 No internet.\nSaved offline.\nWill auto sync when online.");
           btnSubmit.textContent = "SUBMIT";
           uiState = "idle";
@@ -830,16 +855,8 @@
             pendingCapture.dataUrl
           ]);
         }catch(err){
-          await offlineEnqueue({
-            id: Date.now(),
-            payload: {
-              memberId: pendingCapture.memberId,
-              itemName: pendingCapture.itemName,
-              weight: pendingCapture.weight,
-              imageDataUrl: pendingCapture.dataUrl
-            }
-          });
-
+          // ✅ network error -> queue only image
+          await enqueueCapture(pendingCapture.dataUrl, "SUBMIT_NETWORK_ERROR");
           setStatus("⚠️ Network error.\nSaved offline.\nWill auto sync.");
           btnSubmit.textContent = "SUBMIT";
           uiState = "idle";
@@ -1010,7 +1027,7 @@
 
             uiState = "await_save_offline";
             setStatus(
-              "OCR failed (likely offline).\n" +
+              "OCR failed.\n" +
               "You can SAVE OFFLINE now and it will auto-sync when online.\n\n" +
               (r && r.message ? ("Reason: " + r.message) : "")
             );
@@ -1050,57 +1067,107 @@
         }
       }
 
+      // ✅ FIXED: sync should NEVER stop on first failure (your old code returned early)
       let isSyncingOffline = false;
 
       async function syncOfflineQueue(){
         if (!isOnline()) return;
         if (isSyncingOffline) return;
 
+        // ✅ do not interrupt camera or pending submit
+        if (uiState === "camera_on" || uiState === "await_submit") return;
+
         const items = await offlineList();
         if (!items || items.length === 0) return;
 
         isSyncingOffline = true;
-        setStatus("🔄 Internet restored.\nSyncing offline queued data...");
 
-        for (const item of items){
-          try{
-            const img = item?.payload?.imageDataUrl;
-            if (!img){
+        try{
+          setStatus("🔄 Internet restored.\nSyncing offline queued data... (" + items.length + ")");
+
+          for (const item of items){
+            try{
+              const img = item?.payload?.imageDataUrl;
+              if (!img){
+                await offlineRemove(item.id);
+                continue;
+              }
+
+              // optional queue display in sheet (won't affect if server doesn't support)
+              try{
+                item.status = "PROCESSING";
+                callServerNoWait("queueUpsert", [item]);
+              }catch(e){}
+
+              const r = await callServer("visionExtract", [img]);
+              if (!r || !r.ok){
+                // log to FAILED OCR (optional)
+                try{
+                  callServerNoWait("failedOcr", [
+                    item.id,
+                    item.deviceId || DEVICE_ID,
+                    item.page || (location && location.href ? location.href : ""),
+                    (r && r.message ? r.message : "OCR_FAILED"),
+                    img
+                  ]);
+                  item.status = "FAILED_OCR";
+                  item.reason = (r && r.message ? r.message : "OCR_FAILED");
+                  callServerNoWait("queueUpsert", [item]);
+                }catch(e){}
+                // ✅ keep item for retry later (do NOT stop whole queue)
+                continue;
+              }
+
+              const resp = await callServer("captureFromOcr", [
+                r.memberId || "",
+                r.itemName || "",
+                (r.weight !== undefined ? r.weight : null),
+                img
+              ]);
+
+              if (!resp || !resp.ok){
+                try{
+                  item.status = "FAILED_UPLOAD";
+                  item.reason = (resp && resp.message ? resp.message : "UPLOAD_FAILED");
+                  callServerNoWait("queueUpsert", [item]);
+                }catch(e){}
+                // ✅ keep for retry; do NOT stop
+                continue;
+              }
+
+              // optional mark uploaded in sheet
+              try{
+                item.status = "UPLOADED";
+                item.reason = "";
+                callServerNoWait("queueUpsert", [item]);
+                callServerNoWait("queueRemove", [item.id, item.deviceId || DEVICE_ID]);
+              }catch(e){}
+
               await offlineRemove(item.id);
+
+              await new Promise(r => setTimeout(r, 250));
+
+            }catch(e){
+              // ✅ keep syncing next items; never return
+              try{
+                const img = item?.payload?.imageDataUrl || "";
+                callServerNoWait("failedOcr", [
+                  item.id,
+                  item.deviceId || DEVICE_ID,
+                  item.page || (location && location.href ? location.href : ""),
+                  (e && e.message ? e.message : "SYNC_ERROR"),
+                  img
+                ]);
+              }catch(_e){}
               continue;
             }
-
-            const r = await callServer("visionExtract", [img]);
-            if (!r || !r.ok){
-              console.log("OCR failed during sync. Will retry later.");
-              isSyncingOffline = false;
-              return;
-            }
-
-            const resp = await callServer("captureFromOcr", [
-              r.memberId || "",
-              r.itemName || "",
-              (r.weight !== undefined ? r.weight : null),
-              img
-            ]);
-
-            if (!resp || !resp.ok){
-              console.log("Submit failed during sync. Will retry later.");
-              isSyncingOffline = false;
-              return;
-            }
-
-            await offlineRemove(item.id);
-
-          }catch(e){
-            console.log("Sync error, will retry later.");
-            isSyncingOffline = false;
-            return;
           }
-        }
 
-        isSyncingOffline = false;
-        setStatus("✅ Offline queued data synced successfully.");
+          setStatus("✅ Offline queued data sync cycle completed.");
+
+        } finally {
+          isSyncingOffline = false;
+        }
       }
 
       window.addEventListener("online", syncOfflineQueue);
