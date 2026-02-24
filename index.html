@@ -4,9 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Anymech Live Capture</title>
-
   <style>
-    body{font-family:system-ui,Arial;margin:16px;max-width:900px;background:#eaf3ff}
+    body{font-family:system-ui,Arial;margin:16px;max-width:900px}
 
     .appFrame{
       border:1px solid #e6e6e6;
@@ -16,16 +15,14 @@
       background:#fff;
     }
 
-    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
-    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
-
-    .kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
-    .kv div{padding:8px 0;border-bottom:1px dashed #eee}
-    .label{font-weight:700}
-    .kv div:nth-child(2n){font-weight:800}
-
-    canvas{display:none}
-    .ok{color:#0a7a0a;font-weight:800}
+    .brandTitle{
+      font-size:22px;
+      font-weight:900;
+      color:#0b5ed7;
+      letter-spacing:0.6px;
+      margin:0 0 10px 0;
+      text-align:center;
+    }
 
     /* ✅ FULL SCREEN CAMERA PREVIEW */
     .camWrap{
@@ -39,8 +36,9 @@
       border-radius: 0;
       overflow: hidden;
       z-index: 9990;
-      display: none;
+      display: none; /* only show when camera is ON */
     }
+
     .camWrap video{
       position: absolute;
       inset: 0;
@@ -49,19 +47,39 @@
       object-fit: cover;
     }
 
+    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
+    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
+
+    .kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
+    .kv div{padding:8px 0;border-bottom:1px dashed #eee}
+    .label{font-weight:700}
+    .kv div:nth-child(2n){font-weight:800}
+
+    video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
+    canvas{display:none}
+    .ok{color:#0a7a0a;font-weight:800}
+
     .guideLine{
-      position:absolute;left:0;right:0;height:2px;
+      position:absolute;
+      left:0; right:0;
+      height:2px;
       background:rgba(255,0,0,0.85);
-      top:50%;pointer-events:none;
+      top:50%;
+      pointer-events:none;
     }
     .guideLabel{
-      position:absolute;left:10px;top:calc(50% - 22px);
+      position:absolute;
+      left:10px;
+      top:calc(50% - 22px);
       background:rgba(0,0,0,0.55);
-      color:#fff;font-size:12px;
-      padding:4px 8px;border-radius:8px;
+      color:#fff;
+      font-size:12px;
+      padding:4px 8px;
+      border-radius:8px;
       pointer-events:none;
     }
 
+    /* ✅ CAPTURE BUTTON ON TOP OF FULL SCREEN CAMERA */
     .btn{
       width:100%;
       padding:22px;
@@ -71,16 +89,21 @@
       border:1px solid #b9b9b9;
       cursor:pointer;
       background:linear-gradient(#ffffff,#f1f1f1);
-      box-shadow:0 10px 0 #d0d0d0, 0 18px 28px rgba(0,0,0,0.12);
+      box-shadow:
+        0 10px 0 #d0d0d0,
+        0 18px 28px rgba(0,0,0,0.12);
       transition:transform 0.08s ease, box-shadow 0.08s ease;
       user-select:none;
       -webkit-tap-highlight-color:transparent;
     }
     .btn:active{
       transform:translateY(6px);
-      box-shadow:0 4px 0 #d0d0d0, 0 10px 18px rgba(0,0,0,0.12);
+      box-shadow:
+        0 4px 0 #d0d0d0,
+        0 10px 18px rgba(0,0,0,0.12);
     }
 
+    /* ✅ button fixed bottom-center while camera full screen */
     .btnFixed{
       position: fixed;
       left: 50%;
@@ -88,28 +111,65 @@
       bottom: 22px;
       z-index: 9992;
       width: min(92vw, 420px);
-      display: none;
+      display: none; /* show only when camera is ON */
     }
 
     .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
     .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
 
-    /* Overlay */
+    /* ✅ ADDED: mobile view (no logic change) */
+    @media (max-width: 520px){
+      body{margin:10px;max-width:100%}
+      .appFrame{padding:12px;border-radius:18px}
+      .card{margin:10px 0;padding:12px}
+      .kv{grid-template-columns:140px 1fr}
+      .btn{padding:24px;font-size:22px;border-radius:18px}
+      .brandTitle{font-size:22px}
+    }
+
+    /* ✅ ADDED: overlay for "LOGGED COMPLETED" */
     .overlayDone{
-      position:fixed;inset:0;display:none;
-      align-items:center;justify-content:center;
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
       background:rgba(0,0,0,0.18);
       z-index:9999;
     }
     .overlayCard{
-      background:#fff;border-radius:20px;
+      background:#fff;
+      border-radius:20px;
       padding:22px 18px;
       box-shadow:0 18px 50px rgba(0,0,0,0.20);
       text-align:center;
       width:min(320px, 88vw);
     }
-    .overlayTick{font-size:64px;line-height:1;color:#0a7a0a;font-weight:900;margin-bottom:10px}
-    .overlayText{font-size:18px;font-weight:900;color:#0a7a0a;letter-spacing:0.4px}
+    .overlayTick{
+      font-size:64px;
+      line-height:1;
+      color:#0a7a0a;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+    .overlayText{
+      font-size:18px;
+      font-weight:900;
+      color:#0a7a0a;
+      letter-spacing:0.4px;
+    }
+
+    @media (max-width: 768px) {
+      body{margin:8px;font-size:20px}
+      .appFrame{padding:20px;border-radius:26px}
+      .card{padding:18px}
+      .kv{grid-template-columns:140px 1fr;gap:14px}
+      .kv div{font-size:18px;padding:12px 0}
+      .label{font-size:18px;font-weight:800}
+      video{border-radius:16px}
+      .btn{font-size:22px;padding:26px;border-radius:18px}
+      .status{font-size:16px;padding:16px}
+    }
 
     .appTitle{
       text-align:center;
@@ -120,8 +180,22 @@
       margin:6px 0 18px 0;
     }
 
-    /* Button sizing */
-    #btnCapture,#btnSubmit,#btnReset{
+    .kv div{font-size:24px;padding:16px 0}
+    .label{font-size:24px;font-weight:900}
+
+    #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{
+      font-size:24px;
+      font-weight:800;
+    }
+
+    @media (max-width: 768px){
+      .appTitle{font-size:42px}
+      .kv div{font-size:26px}
+      .label{font-size:26px}
+      #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{font-size:26px}
+    }
+
+    #btnCapture{
       display:block;
       margin:32px auto 12px auto;
       width:min(94%, 460px);
@@ -130,30 +204,45 @@
       font-weight:900;
       border-radius:22px;
     }
-    #btnReset{ margin:12px auto 12px auto; }
-
-    /* Mobile */
-    @media (max-width: 520px){
-      body{margin:10px;max-width:100%}
-      .appFrame{padding:12px;border-radius:18px}
-      .card{margin:10px 0;padding:12px}
-      .kv{grid-template-columns:140px 1fr}
-      .btn{padding:24px;font-size:22px;border-radius:18px}
-    }
 
     @media (max-width: 768px){
-      body{ margin:8px; font-size:20px; }
-      .appFrame{ padding:20px; border-radius:26px; }
-      .card{ padding:18px; }
-      .kv{ grid-template-columns: 140px 1fr; gap:14px; }
-      .kv div{ font-size:26px; padding:16px 0; }
-      .label{ font-size:24px; font-weight:800; }
-      .status{ font-size:16px; padding:16px; }
-      .appTitle{ font-size:42px; }
+      #btnCapture{
+        width:96%;
+        padding:36px;
+        font-size:30px;
+        border-radius:24px;
+      }
+    }
 
-      #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{ font-size:26px; font-weight:800; }
+    #btnSubmit{
+      display:block;
+      margin:32px auto 12px auto;
+      width:min(94%, 460px);
+      padding:32px;
+      font-size:28px;
+      font-weight:900;
+      border-radius:22px;
+    }
+    @media (max-width: 768px){
+      #btnSubmit{
+        width:96%;
+        padding:36px;
+        font-size:30px;
+        border-radius:24px;
+      }
+    }
 
-      #btnCapture,#btnSubmit,#btnReset{
+    #btnReset{
+      display:block;
+      margin:12px auto 12px auto;
+      width:min(94%, 460px);
+      padding:32px;
+      font-size:28px;
+      font-weight:900;
+      border-radius:22px;
+    }
+    @media (max-width: 768px){
+      #btnReset{
         width:96%;
         padding:36px;
         font-size:30px;
@@ -284,28 +373,13 @@
       }
 
       // ===============================
-      // SERVER CALL (FETCH) — GitHub Pages compatible
+      // ✅ GitHub Pages → Apps Script WebApp (doPost) using fetch()
+      // IMPORTANT: do NOT send Content-Type header to avoid CORS preflight
       // ===============================
-      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzR9zM_WEJeKR8RYZI0GOHGGj3Jb2Znfjch3IBZgkfrObg_6M_Y3LRvDulGw_x3cyq60A/exec";
+      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwPDyF3fodo-T_M1gk8YvNxPtw-VCkHpQOLn6JCVY_4MorC7fhsR0QfQlZa5uDFOiE/exec";
 
-      async function callServer(fnName, args){
-        let payload = {};
-        if (fnName === "visionExtract") {
-          payload = { action: "visionExtract", imageDataUrl: args[0] };
-        } else if (fnName === "captureFromOcr") {
-          payload = {
-            action: "captureFromOcr",
-            memberId: args[0],
-            itemName: args[1],
-            weight: args[2],
-            imageDataUrl: args[3]
-          };
-        } else if (fnName === "postFailTasks") {
-          payload = { action: "postFailTasks", imageDataUrl: args[0], failMessage: args[1], rawText: args[2] };
-        } else {
-          payload = { action: "unknown" };
-        }
-
+      async function callServer(action, payload){
+        const body = Object.assign({ action }, payload || {});
         const ctrl = new AbortController();
         const to = setTimeout(() => ctrl.abort(), 25000);
 
@@ -313,7 +387,7 @@
         try{
           res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
             method: "POST",
-            body: JSON.stringify(payload),
+            body: JSON.stringify(body),
             signal: ctrl.signal
           });
           text = await res.text();
@@ -332,7 +406,6 @@
         }
       }
 
-      // UI helpers
       function showCaptureButtons(){
         document.getElementById("btnCapture").style.display = (camWrap.style.display === "block") ? "none" : "block";
         btnFixedWrap.style.display = (camWrap.style.display === "block") ? "block" : "none";
@@ -430,43 +503,37 @@
         showCameraUI(false);
       }
 
-      // ✅ crop 15% top + 15% bottom (middle 70%)
       function captureDataUrlFull(){
         const vw = video.videoWidth || 1920;
         const vh = video.videoHeight || 1080;
 
-        const sx = 0;
-        const sw = vw;
-        const sy = Math.round(vh * 0.15);
-        const sh = Math.round(vh * 0.70);
-
+        const sy = 0, sh = vh, sx = 0, sw = vw;
         const maxW = 1280;
         const isPortraitFrame = vh > vw;
 
-        const baseW = sw;
-        const baseH = sh;
+        const baseW = isPortraitFrame ? vh : sw;
+        const baseH = isPortraitFrame ? vw : sh;
 
         const scale = Math.min(1, maxW / baseW);
         const outW = Math.round(baseW * scale);
         const outH = Math.round(baseH * scale);
 
+        canvas.width = outW;
+        canvas.height = outH;
+
         const ctx = canvas.getContext("2d", { willReadFrequently:true });
         ctx.save();
 
         if (isPortraitFrame){
-          canvas.width = outH;
-          canvas.height = outW;
-          ctx.translate(canvas.width, 0);
+          ctx.translate(outW, 0);
           ctx.rotate(Math.PI / 2);
-          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outH, outW);
         } else {
-          canvas.width = outW;
-          canvas.height = outH;
           ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
         }
 
         ctx.restore();
-        return canvas.toDataURL("image/jpeg", 0.85);
+        return canvas.toDataURL("image/jpeg", 0.75);
       }
 
       window.resetClick = async function resetClick(){
@@ -505,12 +572,12 @@
 
         let resp;
         try{
-          resp = await callServer("captureFromOcr", [
-            pendingCapture.memberId,
-            pendingCapture.itemName,
-            pendingCapture.weight,
-            pendingCapture.dataUrl
-          ]);
+          resp = await callServer("captureFromOcr", {
+            memberId: pendingCapture.memberId,
+            itemName: pendingCapture.itemName,
+            weight: pendingCapture.weight,
+            imageDataUrl: pendingCapture.dataUrl
+          });
         }catch(err){
           const msSub = _ms_(tSub0);
           setStatus(
@@ -531,6 +598,7 @@
         }
 
         const d = (resp && resp.data) ? resp.data : {};
+
         const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
         const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
         const rdW  = (d.readyWeight !== undefined && d.readyWeight !== null && String(d.readyWeight).trim() !== "") ? Number(d.readyWeight) : null;
@@ -540,6 +608,7 @@
         setText("readyW", (rdW  !== null && !Number.isNaN(rdW))  ? String(rdW)  : "-");
 
         if (resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
+
         if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
         else setShortMaterial(null);
 
@@ -614,55 +683,55 @@
         if (uiState === "camera_on"){
           setBtn("PROCESSING...");
           setStatus("Capturing image (freezing frame)...");
-
-          // small settle for focus after tap
-          await new Promise(r => setTimeout(r, 180));
-
           const dataUrl = captureDataUrlFull();
           stopLiveCamera();
+
+          const tAll0 = performance.now();
 
           setStatus("Image captured ✅\nRunning OCR...");
           const tOcr0 = performance.now();
           let r;
 
           try{
-            r = await callServer("visionExtract", [dataUrl]);
+            r = await callServer("visionExtract", { imageDataUrl: dataUrl });
           }catch(err){
             const msOcr = _ms_(tOcr0);
-            setBtn("CAPTURE");
-            uiState = "idle";
-            showCaptureButtons();
             setStatus(
               "ERROR: OCR call failed\n" +
               (err && err.message ? err.message : String(err)) +
               "\n\nTIMING:\nOCR call: " + msOcr + " ms"
             );
-            btnReset.style.display = "block";
+            setBtn("CAPTURE");
+            uiState = "idle";
+            showCaptureButtons();
             return;
           }
 
           const msOcr = _ms_(tOcr0);
 
           if (!r || !r.ok){
-            // log fail to FAILED OCR (server-side) like your current flow intended
+            const msAll = _ms_(tAll0);
+
+            // log failed OCR in backend (your doPost supports postFailTasks)
             try{
-              await callServer("postFailTasks", [
-                dataUrl,
-                (r && r.message) ? r.message : "OCR failed",
-                (r && r.rawText) ? r.rawText : ""
-              ]);
+              await callServer("postFailTasks", {
+                imageDataUrl: dataUrl,
+                failMessage: (r && r.message) ? r.message : "OCR failed",
+                rawText: (r && r.rawText) ? r.rawText : ""
+              });
             }catch(e){}
 
-            uiState = "idle";
-            pendingCapture = null;
-            setBtn("CAPTURE");
-            showCaptureButtons();
             setStatus(
               "ERROR: OCR failed.\n" +
               (r && r.message ? r.message : "Unknown OCR error") +
-              "\n\nTIMING:\nOCR call: " + msOcr + " ms"
+              "\n\nERROR DETAIL:\n" + (r && r.error ? r.error : "") +
+              "\n\nRAW:\n" + (r && r.rawText ? r.rawText : "") +
+              "\n\nTIMING:\nOCR call: " + msOcr + " ms\nTOTAL: " + msAll + " ms"
             );
-            btnReset.style.display = "block";
+
+            setBtn("CAPTURE");
+            uiState = "idle";
+            showCaptureButtons();
             return;
           }
 
@@ -681,27 +750,24 @@
           };
 
           uiState = "await_submit";
+          setBtn("CAPTURE");
           setStatus(
-            "OCR DONE ✅\nPress SUBMIT to upload & sync to Google Sheet.\n\n" +
+            "OCR DONE ✅\n" +
+            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
             "TIMING:\nOCR call: " + msOcr + " ms"
           );
 
-          btnSubmit.style.display = "block";
-          btnReset.style.display = "block";
-          btnFixedWrap.style.display = "none";
-          document.getElementById("btnCapture").style.display = "none";
+          showSubmitButtonOnly();
           return;
         }
       }
 
-      // init
       resetDisplay();
       setBtn("CAPTURE");
       setStatus("Press CAPTURE to start live camera.");
 
       document.getElementById("btnCapture").addEventListener("click", captureClick);
       btnCaptureFixed.addEventListener("click", captureClick);
-
       btnSubmit.addEventListener("click", submitClick);
       btnReset.addEventListener("click", resetClick);
 
