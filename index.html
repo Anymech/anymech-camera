@@ -581,6 +581,24 @@
         }
 
         video.srcObject = stream;
+        // ✅ Apply 1.25x zoom (if supported by device)
+try{
+  const track = stream.getVideoTracks()[0];
+  const capabilities = track.getCapabilities ? track.getCapabilities() : null;
+
+  if (capabilities && capabilities.zoom){
+    const min = capabilities.zoom.min || 1;
+    const max = capabilities.zoom.max || 1;
+
+    const targetZoom = 1.25;
+
+    if (targetZoom >= min && targetZoom <= max){
+      await track.applyConstraints({
+        advanced: [{ zoom: targetZoom }]
+      });
+    }
+  }
+}catch(e){}
 
         await new Promise(r => {
           if (video.videoWidth && video.videoHeight) return r();
