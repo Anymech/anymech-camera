@@ -26,18 +26,23 @@
 
     /* ✅ FULL SCREEN CAMERA PREVIEW */
     .camWrap{
-      width: 100vw;
-      height: 100vh;
-      margin: 0;
-      position: fixed;
-      inset: 0;
-      padding-top: 0;
-      background: #000;
-      border-radius: 0;
-      overflow: hidden;
-      z-index: 9990;
-      display: none; /* only show when camera is ON */
-    }
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  position: fixed;
+  inset: 0;
+  padding-top: 0;
+  background: #000;
+  border-radius: 0;
+  overflow: hidden;
+  z-index: 9990;
+  display: none;
+
+  /* ✅ ADD THESE 3 LINES */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
     .camWrap video{
       position: absolute;
@@ -49,7 +54,7 @@
 
     /* ✅ ADDED: ROI viewport (rectangle) */
     .roiViewport{
-      width: min(92vw, 560px);
+      width: min(92vw, 680px);
       aspect-ratio: 1.65 / 1;
       margin: 14px auto;
       border-radius: 14px;
