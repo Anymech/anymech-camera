@@ -47,6 +47,34 @@
       object-fit: cover;
     }
 
+    /* ✅ ADDED: ROI viewport (rectangle) */
+    .roiViewport{
+      width: min(92vw, 520px);
+      aspect-ratio: 1.65 / 1;
+      margin: 14px auto;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      background:#000;
+      z-index: 9991;
+    }
+    .roiViewport video{
+      position: static;
+      inset: auto;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: none;
+    }
+    .roiBorder{
+      position:absolute;
+      inset:0;
+      border:3px solid rgba(255,255,255,0.85);
+      border-radius: 14px;
+      pointer-events:none;
+      z-index: 2;
+    }
+
     .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
     .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
 
@@ -66,6 +94,7 @@
       background:rgba(255,0,0,0.85);
       top:50%;
       pointer-events:none;
+      z-index: 3;
     }
     .guideLabel{
       position:absolute;
@@ -77,6 +106,7 @@
       padding:4px 8px;
       border-radius:8px;
       pointer-events:none;
+      z-index: 3;
     }
 
     /* ✅ CAPTURE BUTTON ON TOP OF FULL SCREEN CAMERA */
@@ -326,9 +356,13 @@
 
     <div class="card">
       <div class="camWrap" id="camWrap">
-        <video id="video" autoplay playsinline></video>
-        <div class="guideLine"></div>
-        <div class="guideLabel">Top: Card | Bottom: Scale</div>
+        <!-- ✅ ADDED: ROI viewport wrapper -->
+        <div class="roiViewport" id="roiViewport">
+          <video id="video" autoplay playsinline></video>
+          <div class="roiBorder"></div>
+          <div class="guideLine"></div>
+          <div class="guideLabel">Top: Card | Bottom: Scale</div>
+        </div>
       </div>
 
       <canvas id="canvas"></canvas>
@@ -571,45 +605,45 @@
         showCameraUI(false);
       }
 
+      /* ✅ UPDATED: capture EXACTLY what roiViewport shows (portrait, ROI-only) */
       function captureDataUrlFull(){
-  const vw = video.videoWidth || 1920;
-  const vh = video.videoHeight || 1080;
+        const roi = document.getElementById("roiViewport");
+        if (!roi) throw new Error("roiViewport not found");
 
-  // ✅ FULL frame (no crop)
-  const sx = 0, sy = 0, sw = vw, sh = vh;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (!vw || !vh) throw new Error("Video metadata not ready");
 
-  // ✅ BEST OCR + FAST (size control)
-  const maxW = 1280;
+        const vRect = video.getBoundingClientRect();
+        const rRect = roi.getBoundingClientRect();
 
-  const isPortraitFrame = vh > vw;
+        const scaleX = vw / vRect.width;
+        const scaleY = vh / vRect.height;
 
-  // After rotation, portrait becomes landscape (width = vh, height = vw)
-  const baseW = isPortraitFrame ? sh : sw;
-  const baseH = isPortraitFrame ? sw : sh;
+        let sx = (rRect.left - vRect.left) * scaleX;
+        let sy = (rRect.top  - vRect.top ) * scaleY;
+        let sw = rRect.width  * scaleX;
+        let sh = rRect.height * scaleY;
 
-  const scale = Math.min(1, maxW / baseW);
-  const outW = Math.round(baseW * scale);
-  const outH = Math.round(baseH * scale);
+        if (sx < 0) { sw += sx; sx = 0; }
+        if (sy < 0) { sh += sy; sy = 0; }
+        if (sx + sw > vw) sw = vw - sx;
+        if (sy + sh > vh) sh = vh - sy;
 
-  canvas.width = outW;
-  canvas.height = outH;
+        const maxW = 1280;
+        const outScale = Math.min(1, maxW / sw);
+        const outW = Math.round(sw * outScale);
+        const outH = Math.round(sh * outScale);
 
-  const ctx = canvas.getContext("2d", { willReadFrequently:true });
-  ctx.save();
+        canvas.width = outW;
+        canvas.height = outH;
 
-  if (isPortraitFrame){
-    ctx.translate(outW, 0);
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outH, outW);
-  } else {
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
-  }
+        const ctx = canvas.getContext("2d", { willReadFrequently:true });
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
 
-  ctx.restore();
+        return canvas.toDataURL("image/jpeg", 0.85);
+      }
 
-  // ✅ FAST upload, still OCR-friendly
-  return canvas.toDataURL("image/jpeg", 0.85);
-}
       window.resetClick = async function resetClick(){
         pendingCapture = null;
         btnSubmit.textContent = "SUBMIT";
