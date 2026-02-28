@@ -614,6 +614,24 @@ try{
         await new Promise(r => requestAnimationFrame(r));
 
         showCameraUI(true);
+        /* =========================
+   PATCH 1: Add stream-resolution logs (minimal)
+   Put this INSIDE startLiveCamera(), AFTER video metadata is ready
+   (right after the onloadedmetadata wait is fine)
+   ========================= */
+try{
+  const tracks = stream ? stream.getVideoTracks() : [];
+  const t0 = tracks && tracks[0] ? tracks[0] : null;
+
+  console.log("[CAM] video.videoWidth/video.videoHeight =", video.videoWidth, video.videoHeight);
+
+  if (t0 && t0.getSettings){
+    console.log("[CAM] track.getSettings() =", t0.getSettings());
+  } else {
+    console.log("[CAM] track.getSettings() = Not available");
+  }
+}catch(e){
+  console.log("[CAM] log error:", e);
       }
 
       window.stopLiveCamera = function stopLiveCamera(){
@@ -628,44 +646,104 @@ try{
       }
 
       /* ✅ UPDATED: capture EXACTLY what roiViewport shows (portrait, ROI-only) */
-      function captureDataUrlFull(){
-        const roi = document.getElementById("roiViewport");
-        if (!roi) throw new Error("roiViewport not found");
+     /* =========================
+   PATCH 2: Replace your captureDataUrlFull() with this
+   - Matches ROI preview 1:1 using object-fit: cover math
+   - No rotation, uses video frame only
+   - Adds console logs requested
+   - Clarity: increases output pixels (configurable)
+   ========================= */
+function captureDataUrlFull(opts){
+  opts = opts || {};
 
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        if (!vw || !vh) throw new Error("Video metadata not ready");
+  const roi = document.getElementById("roiViewport");
+  if (!roi) throw new Error("roiViewport not found");
 
-        const vRect = video.getBoundingClientRect();
-        const rRect = roi.getBoundingClientRect();
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) throw new Error("Video metadata not ready");
 
-        const scaleX = vw / vRect.width;
-        const scaleY = vh / vRect.height;
+  // Optional config (does not change workflow unless you set it)
+  const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.92; // 0.90–0.95 requested
+  const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 0; // 0 = do not cap by default
 
-        let sx = (rRect.left - vRect.left) * scaleX;
-        let sy = (rRect.top  - vRect.top ) * scaleY;
-        let sw = rRect.width  * scaleX;
-        let sh = rRect.height * scaleY;
+  // DOM rects
+  const vRect = video.getBoundingClientRect();
+  const rRect = roi.getBoundingClientRect();
 
-        if (sx < 0) { sw += sx; sx = 0; }
-        if (sy < 0) { sh += sy; sy = 0; }
-        if (sx + sw > vw) sw = vw - sx;
-        if (sy + sh > vh) sh = vh - sy;
+  console.log("[CAP] video DOM rect =", {
+    left: vRect.left, top: vRect.top, width: vRect.width, height: vRect.height
+  });
+  console.log("[CAP] ROI DOM rect =", {
+    left: rRect.left, top: rRect.top, width: rRect.width, height: rRect.height
+  });
 
-        const maxW = 2500;
-        const outScale = Math.min(1, maxW / sw);
-        const outW = Math.round(sw * outScale);
-        const outH = Math.round(sh * outScale);
+  // Ensure no transform/rotation is affecting capture (log only)
+  try{
+    const tr = getComputedStyle(video).transform;
+    console.log("[CAP] video computed transform =", tr);
+  }catch(e){
+    console.log("[CAP] computedStyle(transform) = Not available");
+  }
 
-        canvas.width = outW;
-        canvas.height = outH;
+  // ROI position relative to the VIDEO element in DOM pixels
+  const roiX = (rRect.left - vRect.left);
+  const roiY = (rRect.top  - vRect.top );
+  const roiW = rRect.width;
+  const roiH = rRect.height;
 
-        const ctx = canvas.getContext("2d", { willReadFrequently:true });
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+  // ---- object-fit: cover math ----
+  // Scale factor used to cover the element
+  const scale = Math.max(vRect.width / vw, vRect.height / vh);
 
-        return canvas.toDataURL("image/jpeg", 0.85);
-      }
+  // Size of the scaled camera frame as it would be drawn into the element
+  const drawnW = vw * scale;
+  const drawnH = vh * scale;
 
+  // Center-crop offsets (in DOM pixels) due to cover
+  const offX = (drawnW - vRect.width) / 2;
+  const offY = (drawnH - vRect.height) / 2;
+
+  console.log("[CAP] cover math =", { scale, drawnW, drawnH, offX, offY });
+
+  // Map ROI DOM pixels -> source video pixels
+  let sx = (roiX + offX) / scale;
+  let sy = (roiY + offY) / scale;
+  let sw = (roiW) / scale;
+  let sh = (roiH) / scale;
+
+  // Clamp to source bounds
+  if (sx < 0) { sw += sx; sx = 0; }
+  if (sy < 0) { sh += sy; sy = 0; }
+  if (sx + sw > vw) sw = vw - sx;
+  if (sy + sh > vh) sh = vh - sy;
+
+  console.log("[CAP] source crop sx/sy/sw/sh =", { sx, sy, sw, sh });
+
+  // Output size (avoid unnecessary downscaling)
+  // Default: keep full crop resolution (no cap) unless maxOutW provided
+  let outW = Math.round(sw);
+  let outH = Math.round(sh);
+
+  if (maxOutW > 0 && outW > maxOutW){
+    const outScale = maxOutW / outW;
+    outW = Math.round(outW * outScale);
+    outH = Math.round(outH * outScale);
+  }
+
+  canvas.width = outW;
+  canvas.height = outH;
+
+  console.log("[CAP] canvas output size =", { outW, outH });
+
+  const ctx = canvas.getContext("2d", { willReadFrequently:true });
+  ctx.imageSmoothingEnabled = true;
+
+  // Draw video frame only (overlays do not affect canvas drawImage)
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+
+  return canvas.toDataURL("image/jpeg", jpegQuality);
+}
       window.resetClick = async function resetClick(){
         pendingCapture = null;
         btnSubmit.textContent = "SUBMIT";
