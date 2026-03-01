@@ -683,8 +683,8 @@ function captureDataUrlFull(opts){
   if (!vw || !vh) throw new Error("Video metadata not ready");
 
   // Optional config (does not change workflow unless you set it)
-  const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.98; // 0.90–0.95 requested
-  const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 0; // 0 = do not cap by default
+  const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.86; // 0.90–0.95 requested
+  const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 1600; // 0 = do not cap by default
 
   // DOM rects
   const vRect = video.getBoundingClientRect();
