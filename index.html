@@ -589,7 +589,7 @@ justify-content: center;
         }
 
         video.srcObject = stream;
-        // ✅ Apply 1.25x zoom (if supported by device)
+// ✅ Apply 1.25x zoom (if supported by device)
 try{
   const track = stream.getVideoTracks()[0];
   const capabilities = track.getCapabilities ? track.getCapabilities() : null;
@@ -605,13 +605,16 @@ try{
         advanced: [{ zoom: targetZoom }]
       });
     }
-  
-  try{
+  }
+}catch(e){}
+
+// ✅ Apply autofocus mode (if supported by device)
+try{
   const track = stream.getVideoTracks()[0];
   const caps = track.getCapabilities ? track.getCapabilities() : null;
 
   if (caps && caps.focusMode){
-    const modes = caps.focusMode; // usually an array
+    const modes = caps.focusMode;
     if (Array.isArray(modes) && modes.includes("continuous")){
       await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
     } else if (Array.isArray(modes) && modes.includes("auto")){
@@ -619,7 +622,6 @@ try{
     }
   }
 }catch(e){}
-
         await new Promise(r => {
           if (video.videoWidth && video.videoHeight) return r();
           video.onloadedmetadata = () => r();
