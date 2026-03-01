@@ -669,7 +669,7 @@ function captureDataUrlFull(opts){
   if (!vw || !vh) throw new Error("Video metadata not ready");
 
   // Optional config (does not change workflow unless you set it)
-  const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.92; // 0.90–0.95 requested
+  const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.98; // 0.90–0.95 requested
   const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 0; // 0 = do not cap by default
 
   // DOM rects
@@ -742,7 +742,7 @@ function captureDataUrlFull(opts){
   console.log("[CAP] canvas output size =", { outW, outH });
 
   const ctx = canvas.getContext("2d", { willReadFrequently:true });
-  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingEnabled = false;
 
   // Draw video frame only (overlays do not affect canvas drawImage)
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
