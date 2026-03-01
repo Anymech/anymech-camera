@@ -606,6 +606,19 @@ try{
       });
     }
   }
+
+  try{
+  const track = stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : null;
+
+  if (caps && caps.focusMode){
+    const modes = caps.focusMode; // usually an array
+    if (Array.isArray(modes) && modes.includes("continuous")){
+      await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+    } else if (Array.isArray(modes) && modes.includes("auto")){
+      await track.applyConstraints({ advanced: [{ focusMode: "auto" }] });
+    }
+  }
 }catch(e){}
 
         await new Promise(r => {
