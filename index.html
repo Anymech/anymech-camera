@@ -83,52 +83,7 @@ justify-content: center;
       z-index: 2;
     }
 
-    /* ✅ SUNLIGHT FIX: Tap-to-expose zone (bottom half = scale display) */
-    .expZone{
-      position: absolute;
-      left: 0; right: 0;
-      bottom: 0;
-      height: 45%;
-      border: 2px dashed rgba(0, 255, 100, 0.7);
-      border-top: 2px dashed rgba(0, 255, 100, 0.7);
-      border-radius: 0 0 14px 14px;
-      background: rgba(0, 255, 100, 0.04);
-      cursor: pointer;
-      z-index: 4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-    .expZone:active{
-      background: rgba(0, 255, 100, 0.18);
-    }
-    .expZoneLabel{
-      color: rgba(0,255,100,0.95);
-      font-size: 13px;
-      font-weight: 900;
-      text-align: center;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-      letter-spacing: 0.4px;
-      pointer-events: none;
-      padding: 4px 10px;
-      background: rgba(0,0,0,0.35);
-      border-radius: 8px;
-    }
-    .expLockBadge{
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,200,80,0.92);
-      color: #fff;
-      font-size: 12px;
-      font-weight: 900;
-      padding: 5px 10px;
-      border-radius: 8px;
-      z-index: 5;
-      pointer-events: none;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-    }
+
 
     .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
     .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
@@ -469,12 +424,6 @@ justify-content: center;
           <div class="roiBorder"></div>
           <div class="guideLine"></div>
           <div class="guideLabel">Top: Card | Bottom: Scale</div>
-          <!-- TAP-TO-EXPOSE zone: lower half = scale display area -->
-          <div class="expZone" id="expZone" title="Tap here to lock exposure on scale digits">
-            <span class="expZoneLabel">TAP HERE to fix exposure on digits</span>
-          </div>
-          <!-- Exposure lock indicator -->
-          <div class="expLockBadge" id="expLockBadge" style="display:none;">🔒 EXPOSURE LOCKED</div>
         </div>
       </div>
 
@@ -788,96 +737,14 @@ try{
         showCameraUI(false);
       }
 
-      /* ✅ SUNLIGHT FIX 1: Tap-to-expose
-         When user taps the green zone (bottom half = scale display area),
-         we lock exposure/focus to that region so LED digits become visible.
-         This is the real fix: force the camera to expose FOR the dark display,
-         not for the bright background.
-      */
-      let exposureLocked = false;
-
-      document.getElementById("expZone").addEventListener("click", async function(){
-        exposureLocked = false;
-        const badge = document.getElementById("expLockBadge");
-        try{
-          if (!stream) return;
-          const track = stream.getVideoTracks()[0];
-          if (!track) return;
-          const caps = track.getCapabilities ? track.getCapabilities() : null;
-          if (!caps) return;
-
-          const adv = [];
-
-          // Lock focus to manual at close distance
-          if (caps.focusMode && caps.focusMode.includes("manual")){
-            adv.push({ focusMode: "manual" });
-            if (caps.focusDistance && typeof caps.focusDistance.min === "number"){
-              adv.push({ focusDistance: caps.focusDistance.min + (caps.focusDistance.max - caps.focusDistance.min) * 0.15 });
-            }
-          }
-
-          // KEY FIX: switch to manual exposure and set it DARKER
-          // This forces the camera to expose for the dark scale body,
-          // making the bright LED digits visible (like eyes see them).
-          if (caps.exposureMode && caps.exposureMode.includes("manual")){
-            adv.push({ exposureMode: "manual" });
-            if (caps.exposureTime && typeof caps.exposureTime.min === "number"){
-              // Short exposure time = darker image = LED digits pop out
-              const expMin = caps.exposureTime.min;
-              const expMax = caps.exposureTime.max;
-              // Target: 10-20% from min (very dark exposure, digits will glow)
-              const targetExp = expMin + (expMax - expMin) * 0.12;
-              adv.push({ exposureTime: targetExp });
-              console.log("[EXP] manual exposureTime =", targetExp, "range:", expMin, expMax);
-            }
-          } else if (caps.exposureMode && caps.exposureMode.includes("continuous")){
-            adv.push({ exposureMode: "continuous" });
-          }
-
-          // Negative exposure compensation = darker = LED digits more visible
-          if (caps.exposureCompensation && typeof caps.exposureCompensation.min === "number"){
-            const ecMin = caps.exposureCompensation.min;
-            const ecMax = caps.exposureCompensation.max;
-            // Push 40% toward minimum (significant underexposure)
-            const targetEc = ecMin + (ecMax - ecMin) * 0.60; // 60% from min = 40% below center
-            adv.push({ exposureCompensation: targetEc });
-            console.log("[EXP] exposureCompensation =", targetEc);
-          }
-
-          if (adv.length){
-            await track.applyConstraints({ advanced: adv });
-            console.log("[EXP] Tap-to-expose applied:", adv);
-            exposureLocked = true;
-            badge.style.display = "block";
-            // Flash the zone border green
-            const zone = document.getElementById("expZone");
-            zone.style.borderColor = "rgba(0,255,100,1)";
-            zone.style.background  = "rgba(0,255,100,0.15)";
-            setTimeout(() => {
-              zone.style.borderColor = "rgba(0,255,100,0.7)";
-              zone.style.background  = "rgba(0,255,100,0.04)";
-            }, 600);
-            setStatus("Exposure locked on scale display ✅\nNow press CAPTURE FRAME.");
-          } else {
-            badge.style.display = "none";
-            setStatus("Exposure lock not supported on this device.\nTry shading the scale with your hand, then capture.");
-          }
-        }catch(e){
-          console.log("[EXP] tap-to-expose error:", e);
-          badge.style.display = "none";
-        }
-      });
-
-      /* ✅ SUNLIGHT FIX 2: Multi-frame bracket capture
-         Capture 5 frames rapidly with different exposure compensations (if supported),
-         then pick the frame where the LED digit area has the best contrast.
-         Falls back to single capture if not supported.
+      /* ✅ ALL-CONDITIONS CAPTURE: Multi-frame bracket capture
+         Captures 6 frames over 600ms — camera auto-exposure shifts between frames.
+         Picks the frame with the highest luminance variance in the digit area
+         (works for bright sunlight, overcast, indoors, and night equally).
       */
       async function captureDataUrlBestExposure() {
-        // Try to grab multiple frames at different moments
-        // (camera exposure adjusts continuously, so frames differ)
-        const FRAMES = 5;
-        const DELAY_MS = 80; // ms between frames
+        const FRAMES = 6;
+        const DELAY_MS = 100;
 
         const frames = [];
         for (let i = 0; i < FRAMES; i++){
@@ -885,15 +752,12 @@ try{
           if (i < FRAMES - 1) await new Promise(r => setTimeout(r, DELAY_MS));
         }
 
-        // Score each frame by LED digit visibility:
-        // The bottom-center region of the image should have bright green pixels (LED digits).
-        // Best frame = highest green-channel variance in that region (digits present = high variance).
         let bestIdx = 0;
         let bestScore = -1;
 
         for (let fi = 0; fi < frames.length; fi++){
           const score = await scoreFrameForLed(frames[fi]);
-          console.log("[BRACKET] frame", fi, "LED score =", score);
+          console.log("[BRACKET] frame", fi, "score =", score);
           if (score > bestScore){ bestScore = score; bestIdx = fi; }
         }
 
@@ -901,50 +765,53 @@ try{
         return frames[bestIdx];
       }
 
+      /* Score frame by luminance variance in digit area — works for any LED color,
+         any time of day. High variance = digits are visible and readable. */
       function scoreFrameForLed(dataUrl){
         return new Promise((resolve) => {
           const img = new Image();
           img.onload = function(){
             const sc = document.createElement("canvas");
-            // Only score the bottom-center region (where scale digits are)
-            const sw = Math.round(img.width * 0.6);
-            const sh = Math.round(img.height * 0.35);
+            const sw = Math.round(img.width * 0.65);
+            const sh = Math.round(img.height * 0.40);
             const sx = Math.round((img.width - sw) / 2);
-            const sy = Math.round(img.height * 0.60);
+            const sy = Math.round(img.height * 0.55);
             sc.width = sw; sc.height = sh;
             const ctx = sc.getContext("2d", { willReadFrequently: true });
             ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
             const d = ctx.getImageData(0, 0, sw, sh).data;
+            const total = sw * sh;
 
-            // Measure green-dominant pixel count and variance
-            let greenCount = 0;
-            let totalPixels = sw * sh;
-            let sumG = 0;
-            for (let i = 0; i < d.length; i += 4){
-              const r = d[i], g = d[i+1], b = d[i+2];
-              sumG += g;
-              // Green LED pixel: green clearly dominant
-              if (g > r + 15 && g > b + 15 && g > 80) greenCount++;
+            let sumL = 0;
+            const lum = new Float32Array(total);
+            for (let i = 0, p = 0; i < d.length; i += 4, p++){
+              lum[p] = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+              sumL += lum[p];
             }
-            const avgG = sumG / totalPixels;
+            const avgL = sumL / total;
+
             let variance = 0;
-            for (let i = 1; i < d.length; i += 4){
-              variance += (d[i] - avgG) ** 2;
-            }
-            variance /= totalPixels;
+            for (let p = 0; p < total; p++) variance += (lum[p] - avgL) ** 2;
+            variance /= total;
 
-            // Score = combination of green pixel count + channel variance
-            const score = greenCount * 2 + Math.sqrt(variance);
-            resolve(score);
+            // Penalise blown-out or pitch-black frames
+            const exposureScore = (avgL > 15 && avgL < 235) ? 1.0 : 0.2;
+            resolve(Math.sqrt(variance) * exposureScore);
           };
           img.onerror = () => resolve(0);
           img.src = dataUrl;
         });
       }
 
-      /* ✅ SUNLIGHT FIX 3: Image enhancement for OCR
-         After best frame is chosen, enhance contrast and boost green channel
-         so the OCR model can reliably read the digits.
+      /* ✅ ALL-CONDITIONS IMAGE ENHANCEMENT
+         Measures the average brightness of the digit area first, then applies
+         the right contrast + brightness correction for that lighting condition:
+           >170 avg  → overexposed / bright sunlight  → darken strongly
+           110–170   → bright / hazy                  → darken mildly
+           70–110    → normal indoor / overcast        → gentle boost only
+           30–70     → dim / evening                  → brighten moderately
+           <30       → night / very dark               → brighten strongly
+         After correction, amplifies the LED digit channel (green / red / orange).
       */
       async function enhanceImageForOcr(dataUrl) {
         return new Promise((resolve) => {
@@ -958,9 +825,27 @@ try{
             const imageData = ctx.getImageData(0, 0, ec.width, ec.height);
             const data = imageData.data;
 
-            // Step 1: Strong contrast boost + darken to recover washed out digits
-            const contrast = 1.8;
-            const brightness = -40;
+            // --- Measure brightness of digit area (bottom-centre of frame) ---
+            const dx = Math.round(ec.width  * 0.15);
+            const dy = Math.round(ec.height * 0.55);
+            const dw = Math.round(ec.width  * 0.70);
+            const dh = Math.round(ec.height * 0.40);
+            const sample = ctx.getImageData(dx, dy, dw, dh).data;
+            let sumBright = 0;
+            for (let i = 0; i < sample.length; i += 4)
+              sumBright += 0.299 * sample[i] + 0.587 * sample[i+1] + 0.114 * sample[i+2];
+            const avgB = sumBright / (dw * dh);
+            console.log("[ENHANCE] digit area avgBrightness =", avgB.toFixed(1));
+
+            // --- Choose correction ---
+            let contrast, brightness;
+            if      (avgB > 170) { contrast = 2.0; brightness = -60;  console.log("[ENHANCE] OVEREXPOSED"); }
+            else if (avgB > 110) { contrast = 1.7; brightness = -25;  console.log("[ENHANCE] BRIGHT"); }
+            else if (avgB < 30)  { contrast = 2.2; brightness = +70;  console.log("[ENHANCE] NIGHT"); }
+            else if (avgB < 70)  { contrast = 1.9; brightness = +40;  console.log("[ENHANCE] DIM"); }
+            else                 { contrast = 1.5; brightness =   0;  console.log("[ENHANCE] NORMAL"); }
+
+            // --- Apply contrast + brightness ---
             const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
             for (let i = 0; i < data.length; i += 4) {
               data[i]   = Math.min(255, Math.max(0, factor * (data[i]   - 128) + 128 + brightness));
@@ -968,13 +853,27 @@ try{
               data[i+2] = Math.min(255, Math.max(0, factor * (data[i+2] - 128) + 128 + brightness));
             }
 
-            // Step 2: Green LED amplification
+            // --- Amplify dominant LED channel (green / red / orange) ---
             for (let i = 0; i < data.length; i += 4) {
               const r = data[i], g = data[i+1], b = data[i+2];
-              if (g > r + 18 && g > b + 18) {
-                data[i+1] = Math.min(255, g * 1.5);
-                data[i]   = Math.max(0, r * 0.6);
-                data[i+2] = Math.max(0, b * 0.6);
+              const maxC = Math.max(r, g, b);
+              if (maxC - Math.min(r, g, b) > 25 && maxC > 60) {
+                if (g === maxC && g > r + 15 && g > b + 15) {
+                  // Green LED
+                  data[i+1] = Math.min(255, g * 1.4);
+                  data[i]   = Math.max(0,   r * 0.65);
+                  data[i+2] = Math.max(0,   b * 0.65);
+                } else if (r === maxC && r > g + 15 && r > b + 15) {
+                  // Red LED
+                  data[i]   = Math.min(255, r * 1.4);
+                  data[i+1] = Math.max(0,   g * 0.65);
+                  data[i+2] = Math.max(0,   b * 0.65);
+                } else if (r === maxC && g > b + 10 && r > b + 20) {
+                  // Orange LED
+                  data[i]   = Math.min(255, r * 1.3);
+                  data[i+1] = Math.min(255, g * 1.2);
+                  data[i+2] = Math.max(0,   b * 0.5);
+                }
               }
             }
 
@@ -1099,7 +998,7 @@ function captureDataUrlFull(opts){
         try{
           await startLiveCamera();
           uiState = "camera_on";
-          setStatus("Camera ON ✅\n👆 TAP THE GREEN ZONE (bottom of preview) to lock exposure on scale digits.\nThen press CAPTURE FRAME.");
+          setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image, then OCR.");
           showCaptureButtons();
         }catch(err){
           uiState = "idle";
@@ -1222,7 +1121,7 @@ function captureDataUrlFull(opts){
           try{
             await startLiveCamera();
             uiState = "camera_on";
-            setStatus("Camera ON ✅\n👆 TAP THE GREEN ZONE (bottom of preview) to lock exposure on scale digits.\nThen press CAPTURE FRAME.");
+            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image, then OCR.");
             showCaptureButtons();
           }catch(err){
             uiState = "idle";
@@ -1240,7 +1139,6 @@ function captureDataUrlFull(opts){
           // ✅ SUNLIGHT FIX: grab best-exposed frame from multiple candidates
           const rawDataUrl = await captureDataUrlBestExposure();
           stopLiveCamera();
-          document.getElementById("expLockBadge").style.display = "none";
 
           // ✅ Enhance contrast + green channel before sending to OCR
           setStatus("Enhancing image for OCR...");
