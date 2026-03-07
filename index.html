@@ -1047,7 +1047,7 @@ function captureDataUrlFull(opts){
           setText("itemName", r.itemName || "-");
           setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
 
-          prevLbl.textContent = "✅ OCR Done — Review & Submit";
+          prevLbl.textContent = "";
 
           pendingCapture = {
             memberId: r.memberId,
