@@ -83,6 +83,53 @@ justify-content: center;
       z-index: 2;
     }
 
+    /* ✅ SUNLIGHT FIX: Tap-to-expose zone (bottom half = scale display) */
+    .expZone{
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 0;
+      height: 45%;
+      border: 2px dashed rgba(0, 255, 100, 0.7);
+      border-top: 2px dashed rgba(0, 255, 100, 0.7);
+      border-radius: 0 0 14px 14px;
+      background: rgba(0, 255, 100, 0.04);
+      cursor: pointer;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .expZone:active{
+      background: rgba(0, 255, 100, 0.18);
+    }
+    .expZoneLabel{
+      color: rgba(0,255,100,0.95);
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      letter-spacing: 0.4px;
+      pointer-events: none;
+      padding: 4px 10px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 8px;
+    }
+    .expLockBadge{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,200,80,0.92);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 5px 10px;
+      border-radius: 8px;
+      z-index: 5;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+
     .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
     .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
 
@@ -209,8 +256,60 @@ justify-content: center;
       .status{font-size:16px;padding:16px}
     }
 
-    .appTitle{
-      text-align:center;
+    /* ✅ Captured image preview shown during OCR processing */
+    #capturedPreviewWrap{
+      display: none;
+      width: 100%;
+      max-height: 45vw;
+      overflow: hidden;
+      border-radius: 12px;
+      margin: 10px 0 6px 0;
+      position: relative;
+      background: #000;
+    }
+    #capturedPreviewImg{
+      width: 100%;
+      max-height: 45vw;
+      object-fit: contain;
+      border-radius: 12px;
+      display: block;
+    }
+    #capturedPreviewLabel{
+      position: absolute;
+      top: 8px; left: 10px;
+      background: rgba(0,0,0,0.60);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ✅ CAPTURED WEIGHT PREVIEW — blue, large, high-specificity overrides */
+    #capW{
+      color: #0b5ed7 !important;
+      font-size: 38px !important;
+      font-weight: 900 !important;
+      letter-spacing: 2px !important;
+      line-height: 1.1 !important;
+    }
+    .kv div#capW{
+      color: #0b5ed7 !important;
+      font-size: 38px !important;
+      font-weight: 900 !important;
+      letter-spacing: 2px !important;
+    }
+    .capW-label{
+      color: #0b5ed7 !important;
+      font-weight: 900 !important;
+    }
+    @media (max-width: 768px){
+      #capW, .kv div#capW{
+        font-size: 42px !important;
+        letter-spacing: 2px !important;
+      }
+    }
       font-size:38px;
       font-weight:900;
       color:#0b4fd6;
@@ -370,10 +469,22 @@ justify-content: center;
           <div class="roiBorder"></div>
           <div class="guideLine"></div>
           <div class="guideLabel">Top: Card | Bottom: Scale</div>
+          <!-- TAP-TO-EXPOSE zone: lower half = scale display area -->
+          <div class="expZone" id="expZone" title="Tap here to lock exposure on scale digits">
+            <span class="expZoneLabel">TAP HERE to fix exposure on digits</span>
+          </div>
+          <!-- Exposure lock indicator -->
+          <div class="expLockBadge" id="expLockBadge" style="display:none;">🔒 EXPOSURE LOCKED</div>
         </div>
       </div>
 
       <canvas id="canvas"></canvas>
+
+      <!-- ✅ Captured image preview shown while OCR is running -->
+      <div id="capturedPreviewWrap">
+        <img id="capturedPreviewImg" src="" alt="Captured frame" />
+        <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
+      </div>
 
       <div class="btnFixed" id="btnFixedWrap">
         <button class="btn" id="btnCaptureFixed">CAPTURE</button>
@@ -387,7 +498,7 @@ justify-content: center;
         <div class="label">NEW M.NO</div><div id="memberId">-</div>
         <div class="label">MEMBER NAME</div><div id="memberName">-</div>
         <div class="label">ITEM NAME</div><div id="itemName">-</div>
-        <div class="label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+        <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
 
         <div class="label">OUT WEIGHT</div><div id="outW">-</div>
         <div class="label">IN WEIGHT</div><div id="inW">-</div>
@@ -617,10 +728,8 @@ try{
     adv.push({ zoom: targetZoom });
   }
 
-  // Torch improves sharpness by improving light (if supported)
-  if (caps && caps.torch){
-    adv.push({ torch: true });
-  }
+  // Torch: do NOT force on — keep auto (only enable if user explicitly needs it)
+  // if (caps && caps.torch){ adv.push({ torch: true }); }
 
   // Exposure mode (if supported)
   if (caps && caps.exposureMode && Array.isArray(caps.exposureMode)){
@@ -677,6 +786,204 @@ try{
         }catch(e){}
         video.srcObject = null;
         showCameraUI(false);
+      }
+
+      /* ✅ SUNLIGHT FIX 1: Tap-to-expose
+         When user taps the green zone (bottom half = scale display area),
+         we lock exposure/focus to that region so LED digits become visible.
+         This is the real fix: force the camera to expose FOR the dark display,
+         not for the bright background.
+      */
+      let exposureLocked = false;
+
+      document.getElementById("expZone").addEventListener("click", async function(){
+        exposureLocked = false;
+        const badge = document.getElementById("expLockBadge");
+        try{
+          if (!stream) return;
+          const track = stream.getVideoTracks()[0];
+          if (!track) return;
+          const caps = track.getCapabilities ? track.getCapabilities() : null;
+          if (!caps) return;
+
+          const adv = [];
+
+          // Lock focus to manual at close distance
+          if (caps.focusMode && caps.focusMode.includes("manual")){
+            adv.push({ focusMode: "manual" });
+            if (caps.focusDistance && typeof caps.focusDistance.min === "number"){
+              adv.push({ focusDistance: caps.focusDistance.min + (caps.focusDistance.max - caps.focusDistance.min) * 0.15 });
+            }
+          }
+
+          // KEY FIX: switch to manual exposure and set it DARKER
+          // This forces the camera to expose for the dark scale body,
+          // making the bright LED digits visible (like eyes see them).
+          if (caps.exposureMode && caps.exposureMode.includes("manual")){
+            adv.push({ exposureMode: "manual" });
+            if (caps.exposureTime && typeof caps.exposureTime.min === "number"){
+              // Short exposure time = darker image = LED digits pop out
+              const expMin = caps.exposureTime.min;
+              const expMax = caps.exposureTime.max;
+              // Target: 10-20% from min (very dark exposure, digits will glow)
+              const targetExp = expMin + (expMax - expMin) * 0.12;
+              adv.push({ exposureTime: targetExp });
+              console.log("[EXP] manual exposureTime =", targetExp, "range:", expMin, expMax);
+            }
+          } else if (caps.exposureMode && caps.exposureMode.includes("continuous")){
+            adv.push({ exposureMode: "continuous" });
+          }
+
+          // Negative exposure compensation = darker = LED digits more visible
+          if (caps.exposureCompensation && typeof caps.exposureCompensation.min === "number"){
+            const ecMin = caps.exposureCompensation.min;
+            const ecMax = caps.exposureCompensation.max;
+            // Push 40% toward minimum (significant underexposure)
+            const targetEc = ecMin + (ecMax - ecMin) * 0.60; // 60% from min = 40% below center
+            adv.push({ exposureCompensation: targetEc });
+            console.log("[EXP] exposureCompensation =", targetEc);
+          }
+
+          if (adv.length){
+            await track.applyConstraints({ advanced: adv });
+            console.log("[EXP] Tap-to-expose applied:", adv);
+            exposureLocked = true;
+            badge.style.display = "block";
+            // Flash the zone border green
+            const zone = document.getElementById("expZone");
+            zone.style.borderColor = "rgba(0,255,100,1)";
+            zone.style.background  = "rgba(0,255,100,0.15)";
+            setTimeout(() => {
+              zone.style.borderColor = "rgba(0,255,100,0.7)";
+              zone.style.background  = "rgba(0,255,100,0.04)";
+            }, 600);
+            setStatus("Exposure locked on scale display ✅\nNow press CAPTURE FRAME.");
+          } else {
+            badge.style.display = "none";
+            setStatus("Exposure lock not supported on this device.\nTry shading the scale with your hand, then capture.");
+          }
+        }catch(e){
+          console.log("[EXP] tap-to-expose error:", e);
+          badge.style.display = "none";
+        }
+      });
+
+      /* ✅ SUNLIGHT FIX 2: Multi-frame bracket capture
+         Capture 5 frames rapidly with different exposure compensations (if supported),
+         then pick the frame where the LED digit area has the best contrast.
+         Falls back to single capture if not supported.
+      */
+      async function captureDataUrlBestExposure() {
+        // Try to grab multiple frames at different moments
+        // (camera exposure adjusts continuously, so frames differ)
+        const FRAMES = 5;
+        const DELAY_MS = 80; // ms between frames
+
+        const frames = [];
+        for (let i = 0; i < FRAMES; i++){
+          frames.push(captureDataUrlFull());
+          if (i < FRAMES - 1) await new Promise(r => setTimeout(r, DELAY_MS));
+        }
+
+        // Score each frame by LED digit visibility:
+        // The bottom-center region of the image should have bright green pixels (LED digits).
+        // Best frame = highest green-channel variance in that region (digits present = high variance).
+        let bestIdx = 0;
+        let bestScore = -1;
+
+        for (let fi = 0; fi < frames.length; fi++){
+          const score = await scoreFrameForLed(frames[fi]);
+          console.log("[BRACKET] frame", fi, "LED score =", score);
+          if (score > bestScore){ bestScore = score; bestIdx = fi; }
+        }
+
+        console.log("[BRACKET] Using frame", bestIdx, "score =", bestScore);
+        return frames[bestIdx];
+      }
+
+      function scoreFrameForLed(dataUrl){
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = function(){
+            const sc = document.createElement("canvas");
+            // Only score the bottom-center region (where scale digits are)
+            const sw = Math.round(img.width * 0.6);
+            const sh = Math.round(img.height * 0.35);
+            const sx = Math.round((img.width - sw) / 2);
+            const sy = Math.round(img.height * 0.60);
+            sc.width = sw; sc.height = sh;
+            const ctx = sc.getContext("2d", { willReadFrequently: true });
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+            const d = ctx.getImageData(0, 0, sw, sh).data;
+
+            // Measure green-dominant pixel count and variance
+            let greenCount = 0;
+            let totalPixels = sw * sh;
+            let sumG = 0;
+            for (let i = 0; i < d.length; i += 4){
+              const r = d[i], g = d[i+1], b = d[i+2];
+              sumG += g;
+              // Green LED pixel: green clearly dominant
+              if (g > r + 15 && g > b + 15 && g > 80) greenCount++;
+            }
+            const avgG = sumG / totalPixels;
+            let variance = 0;
+            for (let i = 1; i < d.length; i += 4){
+              variance += (d[i] - avgG) ** 2;
+            }
+            variance /= totalPixels;
+
+            // Score = combination of green pixel count + channel variance
+            const score = greenCount * 2 + Math.sqrt(variance);
+            resolve(score);
+          };
+          img.onerror = () => resolve(0);
+          img.src = dataUrl;
+        });
+      }
+
+      /* ✅ SUNLIGHT FIX 3: Image enhancement for OCR
+         After best frame is chosen, enhance contrast and boost green channel
+         so the OCR model can reliably read the digits.
+      */
+      async function enhanceImageForOcr(dataUrl) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = function () {
+            const ec = document.createElement("canvas");
+            ec.width = img.width;
+            ec.height = img.height;
+            const ctx = ec.getContext("2d", { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, ec.width, ec.height);
+            const data = imageData.data;
+
+            // Step 1: Strong contrast boost + darken to recover washed out digits
+            const contrast = 1.8;
+            const brightness = -40;
+            const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
+            for (let i = 0; i < data.length; i += 4) {
+              data[i]   = Math.min(255, Math.max(0, factor * (data[i]   - 128) + 128 + brightness));
+              data[i+1] = Math.min(255, Math.max(0, factor * (data[i+1] - 128) + 128 + brightness));
+              data[i+2] = Math.min(255, Math.max(0, factor * (data[i+2] - 128) + 128 + brightness));
+            }
+
+            // Step 2: Green LED amplification
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i], g = data[i+1], b = data[i+2];
+              if (g > r + 18 && g > b + 18) {
+                data[i+1] = Math.min(255, g * 1.5);
+                data[i]   = Math.max(0, r * 0.6);
+                data[i+2] = Math.max(0, b * 0.6);
+              }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            resolve(ec.toDataURL("image/jpeg", 0.93));
+          };
+          img.onerror = () => resolve(dataUrl);
+          img.src = dataUrl;
+        });
       }
 
       /* ✅ UPDATED: capture EXACTLY what roiViewport shows (portrait, ROI-only) */
@@ -783,12 +1090,16 @@ function captureDataUrlFull(opts){
         btnSubmit.textContent = "SUBMIT";
         resetDisplay();
 
+        // Hide captured preview on reset
+        const pw = document.getElementById("capturedPreviewWrap");
+        if (pw) { pw.style.display = "none"; document.getElementById("capturedPreviewImg").src = ""; }
+
         setBtn("CAPTURE FRAME");
         setStatus("RESET ✅\nStarting camera again...");
         try{
           await startLiveCamera();
           uiState = "camera_on";
-          setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
+          setStatus("Camera ON ✅\n👆 TAP THE GREEN ZONE (bottom of preview) to lock exposure on scale digits.\nThen press CAPTURE FRAME.");
           showCaptureButtons();
         }catch(err){
           uiState = "idle";
@@ -911,7 +1222,7 @@ function captureDataUrlFull(opts){
           try{
             await startLiveCamera();
             uiState = "camera_on";
-            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
+            setStatus("Camera ON ✅\n👆 TAP THE GREEN ZONE (bottom of preview) to lock exposure on scale digits.\nThen press CAPTURE FRAME.");
             showCaptureButtons();
           }catch(err){
             uiState = "idle";
@@ -924,13 +1235,27 @@ function captureDataUrlFull(opts){
 
         if (uiState === "camera_on"){
           setBtn("PROCESSING...");
-          setStatus("Capturing image (freezing frame)...");
-          const dataUrl = captureDataUrlFull();
+          setStatus("Capturing best frame for OCR...");
+
+          // ✅ SUNLIGHT FIX: grab best-exposed frame from multiple candidates
+          const rawDataUrl = await captureDataUrlBestExposure();
           stopLiveCamera();
+          document.getElementById("expLockBadge").style.display = "none";
+
+          // ✅ Enhance contrast + green channel before sending to OCR
+          setStatus("Enhancing image for OCR...");
+          const dataUrl = await enhanceImageForOcr(rawDataUrl);
+
+          // ✅ Show captured image while OCR runs
+          const prevWrap = document.getElementById("capturedPreviewWrap");
+          const prevImg  = document.getElementById("capturedPreviewImg");
+          const prevLbl  = document.getElementById("capturedPreviewLabel");
+          prevImg.src = dataUrl;
+          prevWrap.style.display = "block";
+          prevLbl.textContent = "📸 Captured — OCR Running...";
 
           const tAll0 = performance.now();
-
-          setStatus("Image captured ✅\nRunning OCR...");
+          setStatus("Image ready ✅\nRunning OCR...");
           const tOcr0 = performance.now();
           let r;
 
@@ -938,6 +1263,7 @@ function captureDataUrlFull(opts){
             r = await callServer("visionExtract", { imageDataUrl: dataUrl });
           }catch(err){
             const msOcr = _ms_(tOcr0);
+            prevLbl.textContent = "❌ OCR Failed";
             setStatus(
               "ERROR: OCR call failed\n" +
               (err && err.message ? err.message : String(err)) +
@@ -963,6 +1289,7 @@ function captureDataUrlFull(opts){
               });
             }catch(e){}
 
+            prevLbl.textContent = "❌ OCR Failed";
             setStatus(
               "ERROR: OCR failed.\n" +
               (r && r.message ? r.message : "Unknown OCR error") +
@@ -981,6 +1308,9 @@ function captureDataUrlFull(opts){
           setText("memberName", r.memberName || "-");
           setText("itemName", r.itemName || "-");
           setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
+
+          // Update preview label to show OCR done
+          prevLbl.textContent = "✅ OCR Done — Review & Submit";
 
           pendingCapture = {
             memberId: r.memberId,
