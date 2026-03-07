@@ -355,6 +355,53 @@ justify-content: center;
     padding:8px !important;
   }
 }
+    /* ✅ Captured image preview — shown while OCR is running */
+    #capturedPreviewWrap{
+      display:none;
+      width:100%;
+      max-height:46vw;
+      overflow:hidden;
+      border-radius:12px;
+      margin:10px 0 6px 0;
+      position:relative;
+      background:#000;
+    }
+    #capturedPreviewImg{
+      width:100%;
+      max-height:46vw;
+      object-fit:contain;
+      border-radius:12px;
+      display:block;
+    }
+    #capturedPreviewLabel{
+      position:absolute;
+      top:8px;left:10px;
+      background:rgba(0,0,0,0.60);
+      color:#fff;
+      font-size:12px;
+      font-weight:800;
+      padding:4px 10px;
+      border-radius:8px;
+    }
+
+    /* ✅ CAPTURED WEIGHT PREVIEW — blue, large */
+    .kv div#capW{
+      color:#0b5ed7 !important;
+      font-size:38px !important;
+      font-weight:900 !important;
+      letter-spacing:2px !important;
+      line-height:1.1 !important;
+    }
+    .capW-label{
+      color:#0b5ed7 !important;
+      font-weight:900 !important;
+    }
+    @media (max-width:768px){
+      .kv div#capW{
+        font-size:42px !important;
+        letter-spacing:2px !important;
+      }
+    }
   </style>
 </head>
 
@@ -375,6 +422,12 @@ justify-content: center;
 
       <canvas id="canvas"></canvas>
 
+      <!-- ✅ Captured image shown while OCR runs -->
+      <div id="capturedPreviewWrap">
+        <img id="capturedPreviewImg" src="" alt="Captured frame" />
+        <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
+      </div>
+
       <div class="btnFixed" id="btnFixedWrap">
         <button class="btn" id="btnCaptureFixed">CAPTURE</button>
       </div>
@@ -387,7 +440,7 @@ justify-content: center;
         <div class="label">NEW M.NO</div><div id="memberId">-</div>
         <div class="label">MEMBER NAME</div><div id="memberName">-</div>
         <div class="label">ITEM NAME</div><div id="itemName">-</div>
-        <div class="label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+        <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
 
         <div class="label">OUT WEIGHT</div><div id="outW">-</div>
         <div class="label">IN WEIGHT</div><div id="inW">-</div>
@@ -617,10 +670,8 @@ try{
     adv.push({ zoom: targetZoom });
   }
 
-  // Torch improves sharpness by improving light (if supported)
-  if (caps && caps.torch){
-    adv.push({ torch: true });
-  }
+  // Torch: kept auto — do not force on
+  // if (caps && caps.torch){ adv.push({ torch: true }); }
 
   // Exposure mode (if supported)
   if (caps && caps.exposureMode && Array.isArray(caps.exposureMode)){
@@ -783,6 +834,10 @@ function captureDataUrlFull(opts){
         btnSubmit.textContent = "SUBMIT";
         resetDisplay();
 
+        // ✅ Hide captured preview on reset
+        const pw = document.getElementById("capturedPreviewWrap");
+        if (pw){ pw.style.display = "none"; document.getElementById("capturedPreviewImg").src = ""; }
+
         setBtn("CAPTURE FRAME");
         setStatus("RESET ✅\nStarting camera again...");
         try{
@@ -928,6 +983,14 @@ function captureDataUrlFull(opts){
           const dataUrl = captureDataUrlFull();
           stopLiveCamera();
 
+          // ✅ Show captured image while OCR runs
+          const prevWrap = document.getElementById("capturedPreviewWrap");
+          const prevImg  = document.getElementById("capturedPreviewImg");
+          const prevLbl  = document.getElementById("capturedPreviewLabel");
+          prevImg.src = dataUrl;
+          prevWrap.style.display = "block";
+          prevLbl.textContent = "📸 Captured — OCR Running...";
+
           const tAll0 = performance.now();
 
           setStatus("Image captured ✅\nRunning OCR...");
@@ -938,6 +1001,7 @@ function captureDataUrlFull(opts){
             r = await callServer("visionExtract", { imageDataUrl: dataUrl });
           }catch(err){
             const msOcr = _ms_(tOcr0);
+            prevLbl.textContent = "❌ OCR Failed";
             setStatus(
               "ERROR: OCR call failed\n" +
               (err && err.message ? err.message : String(err)) +
@@ -963,6 +1027,7 @@ function captureDataUrlFull(opts){
               });
             }catch(e){}
 
+            prevLbl.textContent = "❌ OCR Failed";
             setStatus(
               "ERROR: OCR failed.\n" +
               (r && r.message ? r.message : "Unknown OCR error") +
@@ -981,6 +1046,8 @@ function captureDataUrlFull(opts){
           setText("memberName", r.memberName || "-");
           setText("itemName", r.itemName || "-");
           setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
+
+          prevLbl.textContent = "✅ OCR Done — Review & Submit";
 
           pendingCapture = {
             memberId: r.memberId,
