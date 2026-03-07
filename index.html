@@ -678,6 +678,34 @@ try{
     if (caps.exposureMode.includes("continuous")) adv.push({ exposureMode: "continuous" });
   }
 
+  // ✅ Shutter speed 50–100 Hz range for anti-flicker + sunlight LED readability
+  // 50 Hz = 1/50s (20000µs), 100 Hz = 1/100s (10000µs)
+  // This prevents LED display flicker sync issues and keeps digits sharp in sunlight.
+  // exposureTime is in microseconds on most devices.
+  if (caps && caps.exposureTime &&
+      typeof caps.exposureTime.min === "number" &&
+      typeof caps.exposureTime.max === "number"){
+    const us50hz  = 20000; // 1/50s in microseconds
+    const us100hz = 10000; // 1/100s in microseconds
+    // Clamp to what the device actually supports
+    const targetExp = Math.min(
+      caps.exposureTime.max,
+      Math.max(caps.exposureTime.min, us100hz)
+    );
+    // Only apply if it falls within our 50–100 Hz window
+    if (targetExp >= us100hz && targetExp <= us50hz){
+      adv.push({ exposureTime: targetExp });
+      console.log("[CAM] exposureTime set =", targetExp, "µs (", (1000000/targetExp).toFixed(1), "Hz )");
+    } else if (caps.exposureTime.max >= us100hz && caps.exposureTime.min <= us50hz){
+      // Device range overlaps our window — pick closest value inside it
+      const clamped = Math.min(us50hz, Math.max(us100hz, caps.exposureTime.min));
+      adv.push({ exposureTime: clamped });
+      console.log("[CAM] exposureTime clamped =", clamped, "µs (", (1000000/clamped).toFixed(1), "Hz )");
+    } else {
+      console.log("[CAM] exposureTime range", caps.exposureTime.min, "-", caps.exposureTime.max, "µs does not cover 50–100 Hz window, skipping.");
+    }
+  }
+
   if (adv.length){
     await track.applyConstraints({ advanced: adv });
     console.log("[CAM] appliedConstraints.advanced =", adv);
