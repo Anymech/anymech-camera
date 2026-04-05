@@ -5,7 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Anymech Live Capture</title>
   <style>
+    @media (max-width:768px){
+  .topSplit{
+    flex-direction:column;
+  }
+}
+    .topSplit{
+  display:flex;
+  gap:14px;
+  align-items:stretch;
+}
+
+.halfCard{
+  flex:1 1 0;
+  min-width:0;
+}
     body{font-family:system-ui,Arial;margin:16px;max-width:900px}
+    #threeBtnWrap{
+  display:flex;
+  gap:12px;
+  align-items:stretch;
+  justify-content:space-between;
+  margin:12px 0;
+}
+
+#threeBtnWrap .btnRow{
+  flex:1 1 0;
+  width:auto !important;
+  margin:0 !important;
+  padding:22px 10px;
+  border-radius:18px;
+}
+
+@media (max-width:768px){
+  #threeBtnWrap{
+    gap:8px;
+  }
+  #threeBtnWrap .btnRow{
+    width:auto !important;
+    margin:0 !important;
+    padding:16px 8px !important;
+    font-size:16px !important;
+  }
+}
 
     .appFrame{
       border:1px solid #e6e6e6;
@@ -49,16 +91,17 @@
       object-fit: cover;
     }
 
-    .roiViewport{
-      width: min(99vw, 1080px);
-      aspect-ratio: 1.65 / 1;
-      margin: 14px auto;
-      border-radius: 14px;
-      overflow: hidden;
-      position: relative;
-      background:#000;
-      z-index: 9991;
-    }
+   .roiViewport{
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1.65 / 1;
+  margin: 14px auto;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  background:#000;
+  z-index: 9991;
+}
 
     .roiViewport video{
       position: absolute;
@@ -409,30 +452,48 @@
   <div class="appFrame">
     <h1 class="appTitle">ANYMECH PRODUCTS</h1>
 
-    <div class="card">
-      <div class="camWrap" id="camWrap">
-        <div class="roiViewport" id="roiViewport">
-          <video id="video" autoplay playsinline></video>
-          <div class="roiBorder"></div>
-          <div class="guideLine"></div>
-          <div class="guideLabel">Top: Card | Bottom: Scale</div>
-        </div>
+    <div class="topSplit">
+  <div class="card halfCard">
+    <div class="camWrap" id="camWrap">
+      <div class="roiViewport" id="roiViewport">
+        <video id="video" autoplay playsinline></video>
+        <div class="roiBorder"></div>
+        <div class="guideLine"></div>
+        <div class="guideLabel">Top: Card | Bottom: Scale</div>
       </div>
-
-      <canvas id="canvas"></canvas>
-
-      <div id="capturedPreviewWrap">
-        <img id="capturedPreviewImg" src="" alt="Captured frame" />
-        <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
-        <div id="capturedClarityLabel"></div>
-      </div>
-
-      <div class="btnFixed" id="btnFixedWrap">
-        <button class="btn" id="btnCaptureFixed">CAPTURE</button>
-      </div>
-
-      <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
     </div>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="capturedPreviewWrap">
+      <img id="capturedPreviewImg" src="" alt="Captured frame" />
+      <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
+      <div id="capturedClarityLabel"></div>
+    </div>
+
+    <div class="btnFixed" id="btnFixedWrap">
+      <button class="btn" id="btnCaptureFixed">CAPTURE</button>
+    </div>
+
+    <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
+  </div>
+
+  <div class="card halfCard">
+    <div class="kv">
+      <div class="label">NEW M.NO</div><div id="memberId">-</div>
+      <div class="label">MEMBER NAME</div><div id="memberName">-</div>
+      <div class="label">ITEM NAME</div><div id="itemName">-</div>
+      <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+
+      <div class="label">OUT WEIGHT</div><div id="outW">-</div>
+      <div class="label">IN WEIGHT</div><div id="inW">-</div>
+      <div class="label">READY WEIGHT</div><div id="readyW">-</div>
+
+      <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
+      <div class="label">STATUS</div><div id="stage">-</div>
+    </div>
+  </div>
+</div>
 
     <div class="card">
       <div class="kv">
@@ -452,10 +513,10 @@
 
     <button class="btn" id="btnReset" style="display:block;">RESET</button>
 
-   <div id="threeBtnWrap" style="display:flex; gap:10px;">
-  <button class="btn" id="btnIn" style="flex:1;">IN</button>
-  <button class="btn" id="btnReady" style="flex:1;">READY</button>
-  <button class="btn" id="btnOut" style="flex:1;">OUT</button>
+   <div id="threeBtnWrap">
+  <button class="btn btnRow" id="btnIn">IN</button>
+  <button class="btn btnRow" id="btnReady">READY</button>
+  <button class="btn btnRow" id="btnOut">OUT</button>
 </div>
 
     <button class="btn" id="btnExtra" style="display:block;">EXTRA WEIGHT</button>
