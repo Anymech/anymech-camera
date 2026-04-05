@@ -495,21 +495,7 @@
   </div>
 </div>
 
-    <div class="card">
-      <div class="kv">
-        <div class="label">NEW M.NO</div><div id="memberId">-</div>
-        <div class="label">MEMBER NAME</div><div id="memberName">-</div>
-        <div class="label">ITEM NAME</div><div id="itemName">-</div>
-        <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
-
-        <div class="label">OUT WEIGHT</div><div id="outW">-</div>
-        <div class="label">IN WEIGHT</div><div id="inW">-</div>
-        <div class="label">READY WEIGHT</div><div id="readyW">-</div>
-
-        <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
-        <div class="label">STATUS</div><div id="stage">-</div>
-      </div>
-    </div>
+    
 
     <button class="btn" id="btnReset" style="display:block;">RESET</button>
 
@@ -1186,24 +1172,7 @@
       btnReset.addEventListener("click", resetClick);
 
       showIdleButtons();
-      // =========================
-// ADD THIS HELPER FUNCTION (ONLY ADDITION)
-// =========================
-function _applyWeightCellFormat_(sh, rowIndex, colIndex, itemName) {
-  const master = _getMaster_();
-  const itemKey = _normItemKey_(itemName);
-  const rangeObj = master.itemRangeByName[itemKey];
 
-  const cell = sh.getRange(rowIndex, colIndex);
-
-  // If no range defined → highlight in sheet
-  if (!rangeObj || (rangeObj.min === null && rangeObj.max === null)) {
-    cell.setBackground("#ffcccc"); // red highlight
-    return;
-  }
-
-  // valid range → no highlight
-  cell.setBackground(null);
 }
     </script>
   </div>
