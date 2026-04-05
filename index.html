@@ -15,110 +15,16 @@
       background:#fff;
     }
 
-    .appTitle{
-      text-align:center;
-      font-size:38px;
-      font-weight:900;
-      color:#0b4fd6;
-      letter-spacing:1.2px;
-      margin:6px 0 18px 0;
-    }
-
-    .topSplit{
-      display:flex;
-      gap:14px;
-      align-items:stretch;
-    }
-
-    .halfCard{
-      flex:1 1 0;
-      min-width:0;
-    }
-
-    @media (max-width:768px){
-      .topSplit{
-        flex-direction:row;
-      }
-    }
-
-    .card{
-      border:1px solid #ddd;
-      border-radius:14px;
-      padding:14px;
-      margin:12px 0;
-      background:#fff;
-    }
-
-    .status{
-      background:#f6f6f6;
-      padding:12px;
-      border-radius:10px;
-      margin-top:10px;
-      white-space:pre-wrap;
-    }
-
-    .kv{
-      display:grid;
-      grid-template-columns:180px 1fr;
-      gap:10px;
-    }
-
-    .kv div{
-      padding:8px 0;
-      border-bottom:1px dashed #eee;
-    }
-
-    .label{
-      font-weight:700;
-      text-align:left;
-    }
-
-    .kv div:nth-child(2n){
-      font-weight:800;
-      text-align:right;
-    }
-
-    video{
-      width:100%;
-      aspect-ratio:1/1;
-      object-fit:cover;
-      background:#000;
-      border-radius:12px;
-    }
-
-    canvas{display:none}
-    .ok{color:#0a7a0a;font-weight:800}
-
-    .btn{
-      width:100%;
-      padding:22px;
-      border-radius:16px;
+    .brandTitle{
       font-size:22px;
       font-weight:900;
-      border:1px solid #b9b9b9;
-      cursor:pointer;
-      background:linear-gradient(#ffffff,#f1f1f1);
-      box-shadow:
-        0 10px 0 #d0d0d0,
-        0 18px 28px rgba(0,0,0,0.12);
-      transition:transform 0.08s ease, box-shadow 0.08s ease;
-      user-select:none;
-      -webkit-tap-highlight-color:transparent;
+      color:#0b5ed7;
+      letter-spacing:0.6px;
+      margin:0 0 10px 0;
+      text-align:center;
     }
 
-    .btn:active{
-      transform:translateY(6px);
-      box-shadow:
-        0 4px 0 #d0d0d0,
-        0 10px 18px rgba(0,0,0,0.12);
-    }
-
-    #btnReset{color:#d60000;}
-    #btnIn{color:#0b5ed7;}
-    #btnReady{color:#ff4da6;}
-    #btnOut{color:#1f9d3a;}
-
-    /* PREVIOUS SCRIPT CAMERA LAYOUT */
+    /* FULL SCREEN CAMERA PREVIEW */
     .camWrap{
       width: 100vw;
       height: 100vh;
@@ -144,6 +50,7 @@
       object-fit: cover;
     }
 
+    /* ROI viewport (rectangle) */
     .roiViewport{
       width: min(99vw, 1080px);
       aspect-ratio: 1.65 / 1;
@@ -154,7 +61,6 @@
       background:#000;
       z-index: 9991;
     }
-
     .roiViewport video{
       position: absolute;
       inset: 0;
@@ -164,7 +70,6 @@
       aspect-ratio: auto;
       border-radius: 0;
     }
-
     .roiBorder{
       position:absolute;
       inset:0;
@@ -173,7 +78,6 @@
       pointer-events:none;
       z-index: 2;
     }
-
     .guideLine{
       position:absolute;
       left:0; right:0;
@@ -183,7 +87,6 @@
       pointer-events:none;
       z-index: 3;
     }
-
     .guideLabel{
       position:absolute;
       left:10px;
@@ -197,6 +100,39 @@
       z-index: 3;
     }
 
+    /* BASE BUTTON STYLE */
+    .btn{
+      width:100%;
+      padding:22px;
+      border-radius:16px;
+      font-size:22px;
+      font-weight:900;
+      border:1px solid #b9b9b9;
+      cursor:pointer;
+      background:linear-gradient(#ffffff,#f1f1f1);
+      box-shadow:
+        0 10px 0 #d0d0d0,
+        0 18px 28px rgba(0,0,0,0.12);
+      transition:transform 0.08s ease, box-shadow 0.08s ease;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .btn:active{
+      transform:translateY(6px);
+      box-shadow:
+        0 4px 0 #d0d0d0,
+        0 10px 18px rgba(0,0,0,0.12);
+    }
+
+    /* BUTTON TEXT COLORS */
+    #btnReset  { color:#d60000; }
+    #btnIn     { color:#0b5ed7; }
+    #btnReady  { color:#ff4da6; }
+    #btnOut    { color:#1f9d3a; }
+    #btnSubmit { color:#111111; }
+    #btnExtra  { color:#111111; }
+
+    /* CAPTURE BUTTON FIXED BOTTOM-CENTER WHILE CAMERA FULL SCREEN */
     .btnFixed{
       position: fixed;
       left: 50%;
@@ -207,64 +143,7 @@
       display: none;
     }
 
-    #capturedPreviewWrap{
-      display:none;
-      width:100%;
-      max-height:46vw;
-      overflow:hidden;
-      border-radius:12px;
-      margin:10px 0 6px 0;
-      position:relative;
-      background:#000;
-    }
-
-    #capturedPreviewImg{
-      width:100%;
-      max-height:46vw;
-      object-fit:contain;
-      border-radius:12px;
-      display:block;
-    }
-
-    #capturedPreviewLabel{
-      position:absolute;
-      top:8px;left:10px;
-      background:rgba(0,0,0,0.60);
-      color:#fff;
-      font-size:12px;
-      font-weight:800;
-      padding:4px 10px;
-      border-radius:8px;
-    }
-
-    #capturedClarityLabel{
-      position:absolute;
-      bottom:8px;right:10px;
-      background:rgba(0,0,0,0.60);
-      color:#ff3b3b;
-      font-size:13px;
-      font-weight:900;
-      padding:4px 10px;
-      border-radius:8px;
-      letter-spacing:0.5px;
-    }
-
-    .kv div#capW{
-      color:#0b5ed7 !important;
-      font-size:38px !important;
-      font-weight:900 !important;
-      letter-spacing:2px !important;
-      line-height:1.1 !important;
-    }
-
-    .capW-label{
-      color:#0b5ed7 !important;
-      font-weight:900 !important;
-    }
-
-    .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
-    .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
-
+    /* THREE EQUAL BUTTONS ROW */
     #threeBtnWrap{
       display:flex;
       gap:12px;
@@ -273,7 +152,6 @@
       margin:12px 0;
       flex-wrap:nowrap;
     }
-
     #threeBtnWrap .btnRow{
       flex:1 1 0;
       width:33.333%;
@@ -287,6 +165,10 @@
       text-align:center;
     }
 
+    .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
+    .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
+
+    /* OVERLAY */
     .overlayDone{
       position:fixed;
       inset:0;
@@ -296,7 +178,6 @@
       background:rgba(0,0,0,0.18);
       z-index:9999;
     }
-
     .overlayCard{
       background:#fff;
       border-radius:20px;
@@ -305,7 +186,6 @@
       text-align:center;
       width:min(320px, 88vw);
     }
-
     .overlayTick{
       font-size:64px;
       line-height:1;
@@ -313,7 +193,6 @@
       font-weight:900;
       margin-bottom:10px;
     }
-
     .overlayText{
       font-size:18px;
       font-weight:900;
@@ -321,51 +200,148 @@
       letter-spacing:0.4px;
     }
 
-    @media (max-width: 768px) {
-      body{margin:8px;font-size:20px}
-      .appFrame{padding:20px;border-radius:26px}
-      .card{padding:18px}
-      .kv{grid-template-columns:140px 1fr;gap:14px}
-      .kv div{font-size:18px;padding:12px 0}
-      .label{font-size:18px;font-weight:800}
-      video{border-radius:16px}
-      .btn{font-size:22px;padding:26px;border-radius:18px}
-      .status{font-size:16px;padding:16px}
-      .appTitle{font-size:42px}
-      .kv div#capW{font-size:42px !important;letter-spacing:2px !important}
-      #threeBtnWrap{gap:8px}
+    /* CAPTURED PREVIEW */
+    #capturedPreviewWrap{
+      display:none;
+      width:100%;
+      max-height:46vw;
+      overflow:hidden;
+      border-radius:12px;
+      margin:10px 0 6px 0;
+      position:relative;
+      background:#000;
+    }
+    #capturedPreviewImg{
+      width:100%;
+      max-height:46vw;
+      object-fit:contain;
+      border-radius:12px;
+      display:block;
+    }
+    #capturedPreviewLabel{
+      position:absolute;
+      top:8px;left:10px;
+      background:rgba(0,0,0,0.60);
+      color:#fff;
+      font-size:12px;
+      font-weight:800;
+      padding:4px 10px;
+      border-radius:8px;
+    }
+    #capturedClarityLabel{
+      position:absolute;
+      bottom:8px;right:10px;
+      background:rgba(0,0,0,0.60);
+      color:#ff3b3b;
+      font-size:13px;
+      font-weight:900;
+      padding:4px 10px;
+      border-radius:8px;
+      letter-spacing:0.5px;
+    }
+
+    /* KV GRID */
+    .card{
+      border:1px solid #ddd;
+      border-radius:14px;
+      padding:14px;
+      margin:12px 0;
+      background:#fff;
+    }
+    .status{
+      background:#f6f6f6;
+      padding:12px;
+      border-radius:10px;
+      margin-top:10px;
+      white-space:pre-wrap;
+    }
+    .kv{
+      display:grid;
+      grid-template-columns:180px 1fr;
+      gap:10px;
+    }
+    .kv div{
+      padding:8px 0;
+      border-bottom:1px dashed #eee;
+    }
+    .label{font-weight:700;text-align:left;}
+    .kv div:nth-child(2n){font-weight:800;text-align:right;}
+    canvas{display:none}
+    .ok{color:#0a7a0a;font-weight:800}
+
+    /* CAPTURED WEIGHT PREVIEW — blue, large */
+    .kv div#capW{
+      color:#0b5ed7 !important;
+      font-size:38px !important;
+      font-weight:900 !important;
+      letter-spacing:2px !important;
+      line-height:1.1 !important;
+    }
+    .capW-label{
+      color:#0b5ed7 !important;
+      font-weight:900 !important;
+    }
+
+    .appTitle{
+      text-align:center;
+      font-size:38px;
+      font-weight:900;
+      color:#0b4fd6;
+      letter-spacing:1.2px;
+      margin:6px 0 18px 0;
+    }
+
+    .kv div{font-size:24px;padding:16px 0}
+    .label{font-size:24px;font-weight:900}
+    #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{
+      font-size:24px;
+      font-weight:800;
+    }
+
+    /* RESET / SUBMIT / EXTRA BUTTON SIZING */
+    #btnReset, #btnSubmit, #btnExtra{
+      display:block;
+      margin:12px auto 12px auto;
+      width:min(94%, 460px);
+      padding:32px;
+      font-size:28px;
+      font-weight:900;
+      border-radius:22px;
+    }
+
+    /* MOBILE */
+    @media (max-width: 768px){
+      body{ font-size:14px !important; margin:6px !important; }
+      .appFrame{ padding:10px !important; border-radius:18px !important; }
+      .appTitle{ font-size:22px !important; margin:4px 0 10px 0 !important; }
+      .brandTitle{ font-size:18px !important; }
+      .kv{ grid-template-columns:120px 1fr !important; gap:6px !important; }
+      .kv div{ font-size:14px !important; padding:6px 0 !important; }
+      .label{ font-size:14px !important; font-weight:700 !important; }
+      #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{
+        font-size:14px !important; font-weight:700 !important;
+      }
+      .card{ padding:10px !important; margin:8px 0 !important; }
+      #btnReset, #btnSubmit, #btnExtra{
+        padding:14px !important;
+        font-size:16px !important;
+        border-radius:14px !important;
+        margin:10px auto 8px auto !important;
+        width:96% !important;
+      }
+      #threeBtnWrap{ gap:8px; }
       #threeBtnWrap .btnRow{
-        flex:1 1 0;
-        width:33.333%;
-        min-width:0;
-        margin:0 !important;
-        padding:16px 6px !important;
+        padding:14px 6px !important;
         font-size:16px !important;
       }
+      .status{ font-size:13px !important; padding:8px !important; }
+      .kv div#capW{ font-size:42px !important; letter-spacing:2px !important; }
     }
 
     @media (max-width: 520px){
-      body{margin:10px;max-width:100%}
-      .appFrame{padding:12px;border-radius:18px}
-      .card{margin:10px 0;padding:12px}
-      .kv{grid-template-columns:140px 1fr}
-      .btn{padding:24px;font-size:22px;border-radius:18px}
-      .appTitle{font-size:22px !important;margin:4px 0 10px 0 !important}
-      .status{font-size:13px !important;padding:8px !important}
-      #btnSubmit,
-      #btnReset,
-      #btnExtra{
-        padding:14px !important;
-        font-size:16px !important;
-        border-radius:14px !important;
-        margin:14px auto 8px auto !important;
-      }
-      #btnIn,#btnReady,#btnOut{
-        padding:14px !important;
-        font-size:16px !important;
-        border-radius:14px !important;
-        margin:0 !important;
-      }
+      body{ margin:10px; max-width:100%; }
+      .appFrame{ padding:12px; border-radius:18px; }
+      .card{ margin:10px 0; padding:12px; }
     }
   </style>
 </head>
@@ -374,50 +350,51 @@
   <div class="appFrame">
     <h1 class="appTitle">ANYMECH PRODUCTS</h1>
 
-    <div class="topSplit">
-      <div class="card halfCard">
-        <div class="camWrap" id="camWrap">
-          <div class="roiViewport" id="roiViewport">
-            <video id="video" autoplay playsinline></video>
-            <div class="roiBorder"></div>
-            <div class="guideLine"></div>
-            <div class="guideLabel">Top: Card | Bottom: Scale</div>
-          </div>
+    <!-- CARD 1: Camera / Preview / Status -->
+    <div class="card">
+      <div class="camWrap" id="camWrap">
+        <div class="roiViewport" id="roiViewport">
+          <video id="video" autoplay playsinline></video>
+          <div class="roiBorder"></div>
+          <div class="guideLine"></div>
+          <div class="guideLabel">Top: Card | Bottom: Scale</div>
         </div>
-
-        <canvas id="canvas"></canvas>
-
-        <div id="capturedPreviewWrap">
-          <img id="capturedPreviewImg" src="" alt="Captured frame" />
-          <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
-          <div id="capturedClarityLabel"></div>
-        </div>
-
-        <div class="btnFixed" id="btnFixedWrap">
-          <button class="btn" id="btnCaptureFixed">CAPTURE</button>
-        </div>
-
-        <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
       </div>
 
-      <div class="card halfCard">
-        <div class="kv">
-          <div class="label">NEW M.NO</div><div id="memberId">-</div>
-          <div class="label">MEMBER NAME</div><div id="memberName">-</div>
-          <div class="label">ITEM NAME</div><div id="itemName">-</div>
-          <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+      <canvas id="canvas"></canvas>
 
-          <div class="label">OUT WEIGHT</div><div id="outW">-</div>
-          <div class="label">IN WEIGHT</div><div id="inW">-</div>
-          <div class="label">READY WEIGHT</div><div id="readyW">-</div>
+      <div id="capturedPreviewWrap">
+        <img id="capturedPreviewImg" src="" alt="Captured frame" />
+        <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
+        <div id="capturedClarityLabel"></div>
+      </div>
 
-          <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
-          <div class="label">STATUS</div><div id="stage">-</div>
-        </div>
+      <div class="btnFixed" id="btnFixedWrap">
+        <button class="btn" id="btnCaptureFixed">CAPTURE</button>
+      </div>
+
+      <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
+    </div>
+
+    <!-- CARD 2: KV Data -->
+    <div class="card">
+      <div class="kv">
+        <div class="label">NEW M.NO</div><div id="memberId">-</div>
+        <div class="label">MEMBER NAME</div><div id="memberName">-</div>
+        <div class="label">ITEM NAME</div><div id="itemName">-</div>
+        <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+
+        <div class="label">OUT WEIGHT</div><div id="outW">-</div>
+        <div class="label">IN WEIGHT</div><div id="inW">-</div>
+        <div class="label">READY WEIGHT</div><div id="readyW">-</div>
+
+        <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
+        <div class="label">STATUS</div><div id="stage">-</div>
       </div>
     </div>
 
-    <button class="btn" id="btnReset" style="display:block;">RESET</button>
+    <!-- BUTTON ORDER: RESET → IN|READY|OUT → SUBMIT → EXTRA WEIGHT -->
+    <button class="btn" id="btnReset">RESET</button>
 
     <div id="threeBtnWrap">
       <button class="btn btnRow" id="btnIn">IN</button>
@@ -425,13 +402,13 @@
       <button class="btn btnRow" id="btnOut">OUT</button>
     </div>
 
-    <button class="btn" id="btnExtra" style="display:block;">EXTRA WEIGHT</button>
+    <button class="btn" id="btnExtra">EXTRA WEIGHT</button>
     <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
 
     <script>
-      window.onerror = function (msg, src, line, col, err) {
+      window.onerror = function(msg, src, line, col, err){
         const s = "JS ERROR: " + msg + "\n" + (src||"") + ":" + line + ":" + col;
-        try { document.getElementById("status").textContent = s; } catch(e) {}
+        try{ document.getElementById("status").textContent = s; }catch(e){}
         return false;
       };
     </script>
@@ -446,15 +423,15 @@
       let rangeWarning = false;
       let wrongWeight = false;
 
-      const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
-      const camWrap = document.getElementById("camWrap");
-      const btnFixedWrap = document.getElementById("btnFixedWrap");
-      const btnCaptureFixed = document.getElementById("btnCaptureFixed");
-      const btnSubmit = document.getElementById("btnSubmit");
-      const btnReset  = document.getElementById("btnReset");
-      const btnExtra = document.getElementById("btnExtra");
-      const threeBtnWrap = document.getElementById("threeBtnWrap");
+      const video          = document.getElementById("video");
+      const canvas         = document.getElementById("canvas");
+      const camWrap        = document.getElementById("camWrap");
+      const btnFixedWrap   = document.getElementById("btnFixedWrap");
+      const btnCaptureFixed= document.getElementById("btnCaptureFixed");
+      const btnSubmit      = document.getElementById("btnSubmit");
+      const btnReset       = document.getElementById("btnReset");
+      const btnExtra       = document.getElementById("btnExtra");
+      const threeBtnWrap   = document.getElementById("threeBtnWrap");
 
       function setStatus(t){ document.getElementById("status").textContent = t; }
       function setBtn(t){ btnCaptureFixed.textContent = t; }
@@ -469,14 +446,13 @@
       function setShortMaterial(v){
         const el = document.getElementById("shortMat");
         el.className = "";
-        if (v === null || v === undefined || v === "" || Number.isNaN(v)){
-          el.textContent = "-";
-          return;
+        if(v === null || v === undefined || v === "" || Number.isNaN(v)){
+          el.textContent = "-"; return;
         }
         const n = Number(v);
         el.textContent = n.toFixed(3);
-        if (n < -0.200) el.className = "hlRed";
-        else if (n > 0.200) el.className = "hlGreen";
+        if(n < -0.200) el.className = "hlRed";
+        else if(n > 0.200) el.className = "hlGreen";
       }
 
       function tickSound(){
@@ -484,9 +460,7 @@
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           const o = ctx.createOscillator();
           const g = ctx.createGain();
-          o.type = "square";
-          o.frequency.value = 1200;
-          g.gain.value = 0.06;
+          o.type = "square"; o.frequency.value = 1200; g.gain.value = 0.06;
           o.connect(g); g.connect(ctx.destination);
           o.start();
           setTimeout(()=>{ o.stop(); ctx.close(); }, 90);
@@ -495,30 +469,23 @@
 
       function showLoggedOverlay(){
         const el = document.getElementById("overlayDone");
-        if (!el) return;
+        if(!el) return;
         el.style.display = "flex";
         setTimeout(()=>{ el.style.display = "none"; }, 1000);
       }
 
       function resetDisplay(){
-        setText("memberId","-");
-        setText("memberName","-");
-        setText("itemName","-");
-        setText("outW","-");
-        setText("inW","-");
-        setText("readyW","-");
-        setShortMaterial(null);
-        setStageText("-", false);
-        setText("capW","-");
+        setText("memberId","-"); setText("memberName","-"); setText("itemName","-");
+        setText("outW","-"); setText("inW","-"); setText("readyW","-");
+        setShortMaterial(null); setStageText("-", false); setText("capW","-");
       }
 
-      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzbg5RA7L7yen9yZ11a26oK6KI-VLmfSIEJkZNzUW59MmX2rPspSfvl3nzHR9pEGIYPqQ/exec";
+      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyVRq8tSGdQnevmyumlCwQvFvE6scq1ovl4cefXluL-p4bnBG__1TjaMh55SaMFOWGupQ/exec";
 
       async function callServer(action, payload){
         const body = Object.assign({ action }, payload || {});
         const ctrl = new AbortController();
         const to = setTimeout(() => ctrl.abort(), 25000);
-
         let res, text;
         try{
           res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
@@ -527,27 +494,22 @@
             signal: ctrl.signal
           });
           text = await res.text();
-        } finally {
-          clearTimeout(to);
-        }
+        } finally { clearTimeout(to); }
 
-        if (!res || !res.ok){
-          throw new Error("HTTP " + (res ? res.status : "0") + " " + (res ? res.statusText : "") + "\n\n" + (text ? text.slice(0, 600) : ""));
+        if(!res || !res.ok){
+          throw new Error("HTTP " + (res ? res.status : "0") + " " + (res ? res.statusText : "") + "\n\n" + (text ? text.slice(0,600) : ""));
         }
-
-        try{
-          return JSON.parse(text);
-        }catch(e){
-          throw new Error("JSON parse failed. Server returned:\n\n" + (text ? text.slice(0, 600) : ""));
-        }
+        try{ return JSON.parse(text); }
+        catch(e){ throw new Error("JSON parse failed. Server returned:\n\n" + (text ? text.slice(0,600) : "")); }
       }
 
+      // ---- UI STATE HELPERS ----
       function showIdleButtons(){
-        btnFixedWrap.style.display = "none";
-        btnSubmit.style.display = "none";
-        btnReset.style.display = "block";
-        threeBtnWrap.style.display = "flex";
-        btnExtra.style.display = "block";
+        btnFixedWrap.style.display  = "none";
+        btnSubmit.style.display     = "none";
+        btnReset.style.display      = "block";
+        threeBtnWrap.style.display  = "flex";
+        btnExtra.style.display      = "block";
       }
 
       function showSubmitButtonOnly(){
@@ -563,75 +525,61 @@
   // KEEP RESET
   btnReset.style.display      = "block";
 }
-      function showCameraUI(on){
-        camWrap.style.display = on ? "flex" : "none";
-        btnFixedWrap.style.display = on ? "block" : "none";
 
-        if (on){
-          btnSubmit.style.display = "none";
-          btnReset.style.display = "none";
+      function showCameraUI(on){
+        camWrap.style.display      = on ? "flex" : "none";
+        btnFixedWrap.style.display = on ? "block" : "none";
+        if(on){
+          btnSubmit.style.display    = "none";
+          btnReset.style.display     = "none";
           threeBtnWrap.style.display = "none";
-          btnExtra.style.display = "none";
+          btnExtra.style.display     = "none";
           return;
         }
-
-        if (uiState === "await_submit") {
-          showSubmitButtonOnly();
-        } else {
-          showIdleButtons();
-        }
+        if(uiState === "await_submit") showSubmitButtonOnly();
+        else showIdleButtons();
       }
 
+      // ---- STAGE BUTTON HANDLERS ----
       function startRequestedCapture(stage){
         requestedStage = stage;
         captureClick();
       }
-
-      document.getElementById("btnOut").addEventListener("click", () => startRequestedCapture("OUT"));
-      document.getElementById("btnIn").addEventListener("click", () => startRequestedCapture("IN"));
+      document.getElementById("btnOut").addEventListener("click",   () => startRequestedCapture("OUT"));
+      document.getElementById("btnIn").addEventListener("click",    () => startRequestedCapture("IN"));
       document.getElementById("btnReady").addEventListener("click", () => startRequestedCapture("READY"));
       document.getElementById("btnExtra").addEventListener("click", () => startRequestedCapture("EXTRA"));
 
+      // ---- CAMERA START ----
       window.startLiveCamera = async function startLiveCamera(){
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
           throw new Error("Camera API not available in this browser/webview.");
-        }
-        if (!window.isSecureContext){
+        if(!window.isSecureContext)
           throw new Error("Camera blocked: page is not HTTPS (secure). Open using https:// (or localhost).");
-        }
 
-        try { video.muted = true; } catch(e) {}
+        try{ video.muted = true; }catch(e){}
 
         try{
-          if (navigator.permissions && navigator.permissions.query){
+          if(navigator.permissions && navigator.permissions.query){
             const st = await navigator.permissions.query({ name: "camera" });
-            if (st && st.state === "denied"){
+            if(st && st.state === "denied")
               throw new Error("Camera permission is DENIED in browser settings. Allow camera for this site and reload.");
-            }
           }
         }catch(e){}
 
         const preferred = {
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { min: 1280, ideal: 1920, max: 1920 },
-            height: { min: 720, ideal: 1080, max: 1080 },
-            aspectRatio: { ideal: 16/9 }
-          },
-          audio: false
+          video:{
+            facingMode:{ ideal:"environment" },
+            width:{ min:1280, ideal:1920, max:1920 },
+            height:{ min:720, ideal:1080, max:1080 },
+            aspectRatio:{ ideal:16/9 }
+          }, audio:false
         };
 
-        try{
-          stream = await navigator.mediaDevices.getUserMedia(preferred);
-        }catch(e1){
-          try{
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { ideal: "environment" }, aspectRatio: { ideal: 16/9 } },
-              audio: false
-            });
-          }catch(e2){
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          }
+        try{ stream = await navigator.mediaDevices.getUserMedia(preferred); }
+        catch(e1){
+          try{ stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:"environment" }, aspectRatio:{ ideal:16/9 } }, audio:false }); }
+          catch(e2){ stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
         }
 
         video.srcObject = stream;
@@ -639,59 +587,35 @@
         try{
           const track = stream.getVideoTracks()[0];
           const caps = track && track.getCapabilities ? track.getCapabilities() : null;
-
           console.log("[CAM] capabilities =", caps);
-
           const adv = [];
 
-          if (caps && caps.focusMode && Array.isArray(caps.focusMode)){
-            if (caps.focusMode.includes("continuous")) adv.push({ focusMode: "continuous" });
-            else if (caps.focusMode.includes("auto")) adv.push({ focusMode: "auto" });
+          if(caps && caps.focusMode && Array.isArray(caps.focusMode)){
+            if(caps.focusMode.includes("continuous")) adv.push({ focusMode:"continuous" });
+            else if(caps.focusMode.includes("auto")) adv.push({ focusMode:"auto" });
           }
-
-          if (caps && caps.focusDistance && typeof caps.focusDistance.min === "number"){
+          if(caps && caps.focusDistance && typeof caps.focusDistance.min === "number")
             adv.push({ focusDistance: caps.focusDistance.min });
-          }
-
-          if (caps && caps.zoom && typeof caps.zoom.min === "number" && typeof caps.zoom.max === "number"){
+          if(caps && caps.zoom && typeof caps.zoom.min === "number" && typeof caps.zoom.max === "number"){
             const targetZoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.3));
             adv.push({ zoom: targetZoom });
           }
-
-          if (caps && caps.exposureMode && Array.isArray(caps.exposureMode)){
-            if (caps.exposureMode.includes("continuous")) adv.push({ exposureMode: "continuous" });
+          if(caps && caps.exposureMode && Array.isArray(caps.exposureMode)){
+            if(caps.exposureMode.includes("continuous")) adv.push({ exposureMode:"continuous" });
           }
-
-          if (caps && caps.exposureTime &&
-              typeof caps.exposureTime.min === "number" &&
-              typeof caps.exposureTime.max === "number"){
-            const us50hz  = 20000;
-            const us100hz = 10000;
-            const targetExp = Math.min(
-              caps.exposureTime.max,
-              Math.max(caps.exposureTime.min, us100hz)
-            );
-            if (targetExp >= us100hz && targetExp <= us50hz){
-              adv.push({ exposureTime: targetExp });
-            } else if (caps.exposureTime.max >= us100hz && caps.exposureTime.min <= us50hz){
+          if(caps && caps.exposureTime && typeof caps.exposureTime.min === "number" && typeof caps.exposureTime.max === "number"){
+            const us50hz=20000, us100hz=10000;
+            const targetExp = Math.min(caps.exposureTime.max, Math.max(caps.exposureTime.min, us100hz));
+            if(targetExp >= us100hz && targetExp <= us50hz) adv.push({ exposureTime: targetExp });
+            else if(caps.exposureTime.max >= us100hz && caps.exposureTime.min <= us50hz){
               const clamped = Math.min(us50hz, Math.max(us100hz, caps.exposureTime.min));
               adv.push({ exposureTime: clamped });
             }
           }
+          if(adv.length){ await track.applyConstraints({ advanced: adv }); console.log("[CAM] appliedConstraints.advanced =", adv); }
+        }catch(e){ console.log("[CAM] applyConstraints error:", e); }
 
-          if (adv.length){
-            await track.applyConstraints({ advanced: adv });
-            console.log("[CAM] appliedConstraints.advanced =", adv);
-          }
-        }catch(e){
-          console.log("[CAM] applyConstraints error:", e);
-        }
-
-        await new Promise(r => {
-          if (video.videoWidth && video.videoHeight) return r();
-          video.onloadedmetadata = () => r();
-        });
-
+        await new Promise(r => { if(video.videoWidth && video.videoHeight) return r(); video.onloadedmetadata = () => r(); });
         await video.play();
         await new Promise(r => requestAnimationFrame(r));
         await new Promise(r => requestAnimationFrame(r));
@@ -702,90 +626,68 @@
           const tracks = stream ? stream.getVideoTracks() : [];
           const t0 = tracks && tracks[0] ? tracks[0] : null;
           console.log("[CAM] video.videoWidth/video.videoHeight =", video.videoWidth, video.videoHeight);
-          if (t0 && t0.getSettings){
-            console.log("[CAM] track.getSettings() =", t0.getSettings());
-          }
-        }catch(e){
-          console.log("[CAM] log error:", e);
-        }
+          if(t0 && t0.getSettings) console.log("[CAM] track.getSettings() =", t0.getSettings());
+        }catch(e){ console.log("[CAM] log error:", e); }
       }
 
       window.stopLiveCamera = function stopLiveCamera(){
-        try{
-          if (stream){
-            stream.getTracks().forEach(t => t.stop());
-            stream = null;
-          }
-        }catch(e){}
+        try{ if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; } }catch(e){}
         video.srcObject = null;
         showCameraUI(false);
       }
 
+      // ---- CAPTURE FRAME ----
       function captureDataUrlFull(opts){
         opts = opts || {};
-
         const roi = document.getElementById("roiViewport");
-        if (!roi) throw new Error("roiViewport not found");
-
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        if (!vw || !vh) throw new Error("Video metadata not ready");
+        if(!roi) throw new Error("roiViewport not found");
+        const vw = video.videoWidth, vh = video.videoHeight;
+        if(!vw || !vh) throw new Error("Video metadata not ready");
 
         const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.86;
-        const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 1600;
+        const maxOutW     = (typeof opts.maxOutW     === "number") ? opts.maxOutW     : 1600;
 
         const vRect = video.getBoundingClientRect();
         const rRect = roi.getBoundingClientRect();
 
-        console.log("[CAP] video DOM rect =", {
-          left: vRect.left, top: vRect.top, width: vRect.width, height: vRect.height
-        });
-        console.log("[CAP] ROI DOM rect =", {
-          left: rRect.left, top: rRect.top, width: rRect.width, height: rRect.height
-        });
+        console.log("[CAP] video DOM rect =", { left:vRect.left, top:vRect.top, width:vRect.width, height:vRect.height });
+        console.log("[CAP] ROI DOM rect =",   { left:rRect.left, top:rRect.top, width:rRect.width, height:rRect.height });
 
-        try{
-          const tr = getComputedStyle(video).transform;
-          console.log("[CAP] video computed transform =", tr);
-        }catch(e){}
+        try{ console.log("[CAP] video computed transform =", getComputedStyle(video).transform); }catch(e){}
 
-        const roiX = (rRect.left - vRect.left);
-        const roiY = (rRect.top  - vRect.top );
+        const roiX = rRect.left - vRect.left;
+        const roiY = rRect.top  - vRect.top;
         const roiW = rRect.width;
         const roiH = rRect.height;
 
-        const scale = Math.max(vRect.width / vw, vRect.height / vh);
-        const drawnW = vw * scale;
-        const drawnH = vh * scale;
-        const offX = (drawnW - vRect.width) / 2;
-        const offY = (drawnH - vRect.height) / 2;
+        const scale  = Math.max(vRect.width / vw, vRect.height / vh);
+        const drawnW = vw * scale, drawnH = vh * scale;
+        const offX   = (drawnW - vRect.width)  / 2;
+        const offY   = (drawnH - vRect.height) / 2;
+
+        console.log("[CAP] cover math =", { scale, drawnW, drawnH, offX, offY });
 
         let sx = (roiX + offX) / scale;
         let sy = (roiY + offY) / scale;
-        let sw = (roiW) / scale;
-        let sh = (roiH) / scale;
+        let sw = roiW / scale;
+        let sh = roiH / scale;
 
-        if (sx < 0) { sw += sx; sx = 0; }
-        if (sy < 0) { sh += sy; sy = 0; }
-        if (sx + sw > vw) sw = vw - sx;
-        if (sy + sh > vh) sh = vh - sy;
+        if(sx < 0){ sw += sx; sx = 0; }
+        if(sy < 0){ sh += sy; sy = 0; }
+        if(sx + sw > vw) sw = vw - sx;
+        if(sy + sh > vh) sh = vh - sy;
 
-        let outW = Math.round(sw);
-        let outH = Math.round(sh);
+        console.log("[CAP] source crop sx/sy/sw/sh =", { sx, sy, sw, sh });
 
-        if (maxOutW > 0 && outW > maxOutW){
-          const outScale = maxOutW / outW;
-          outW = Math.round(outW * outScale);
-          outH = Math.round(outH * outScale);
-        }
+        let outW = Math.round(sw), outH = Math.round(sh);
+        if(maxOutW > 0 && outW > maxOutW){ const sc = maxOutW / outW; outW = Math.round(outW*sc); outH = Math.round(outH*sc); }
 
-        canvas.width = outW;
-        canvas.height = outH;
+        console.log("[CAP] canvas output size =", { outW, outH });
 
+        canvas.width = outW; canvas.height = outH;
         const ctx = canvas.getContext("2d", { willReadFrequently:true });
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
-
         return canvas.toDataURL("image/jpeg", jpegQuality);
       }
 
@@ -795,57 +697,47 @@
           img.onload = function(){
             try{
               const sc = document.createElement("canvas");
-              const sw = Math.round(img.width  * 0.70);
+              const sw = Math.round(img.width * 0.70);
               const sh = Math.round(img.height * 0.45);
               const sx = Math.round((img.width - sw) / 2);
               const sy = Math.round(img.height * 0.50);
               sc.width = sw; sc.height = sh;
-              const ctx = sc.getContext("2d", { willReadFrequently: true });
+              const ctx = sc.getContext("2d", { willReadFrequently:true });
               ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
               const d = ctx.getImageData(0, 0, sw, sh).data;
-
               const grey = new Float32Array(sw * sh);
-              for (let i = 0, p = 0; i < d.length; i += 4, p++){
-                grey[p] = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-              }
-
-              let sum = 0, sum2 = 0, count = 0;
-              for (let y = 1; y < sh - 1; y++){
-                for (let x = 1; x < sw - 1; x++){
-                  const p = y * sw + x;
+              for(let i=0, p=0; i<d.length; i+=4, p++) grey[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+              let sum=0, sum2=0, count=0;
+              for(let y=1; y<sh-1; y++){
+                for(let x=1; x<sw-1; x++){
+                  const p = y*sw+x;
                   const lap = -grey[p-sw] - grey[p-1] + 4*grey[p] - grey[p+1] - grey[p+sw];
-                  sum  += lap;
-                  sum2 += lap * lap;
-                  count++;
+                  sum += lap; sum2 += lap*lap; count++;
                 }
               }
-              const variance = (sum2 - (sum * sum) / count) / count;
-              const pct = Math.min(100, Math.max(0, Math.round((Math.sqrt(variance) / 45) * 100)));
+              const variance = (sum2 - (sum*sum)/count) / count;
+              const pct = Math.min(100, Math.max(0, Math.round((Math.sqrt(variance)/45)*100)));
               resolve(pct);
-            }catch(e){
-              resolve(null);
-            }
+            }catch(e){ resolve(null); }
           };
           img.onerror = () => resolve(null);
           img.src = dataUrl;
         });
       }
 
+      // ---- RESET ----
       window.resetClick = async function resetClick(){
         pendingCapture = null;
         requestedStage = "";
-        wrongWeight = false;
-        rangeWarning = false;
+        wrongWeight    = false;
+        rangeWarning   = false;
         btnSubmit.textContent = "SUBMIT";
         resetDisplay();
 
         const pw = document.getElementById("capturedPreviewWrap");
-        if (pw){
-          pw.style.display = "none";
-          document.getElementById("capturedPreviewImg").src = "";
-        }
+        if(pw){ pw.style.display = "none"; document.getElementById("capturedPreviewImg").src = ""; }
         const cl = document.getElementById("capturedClarityLabel");
-        if (cl) cl.textContent = "";
+        if(cl) cl.textContent = "";
 
         stopLiveCamera();
         uiState = "idle";
@@ -854,13 +746,12 @@
         showIdleButtons();
       }
 
+      // ---- SUBMIT ----
       window.submitClick = async function submitClick(){
-        if (uiState !== "await_submit" || !pendingCapture){
+        if(uiState !== "await_submit" || !pendingCapture){
           setStatus("No captured data pending. Please capture first.");
-          uiState = "idle";
-          pendingCapture = null;
-          showIdleButtons();
-          return;
+          uiState = "idle"; pendingCapture = null;
+          showIdleButtons(); return;
         }
 
         const tSub0 = performance.now();
@@ -870,118 +761,127 @@
         let resp;
         try{
           resp = await callServer("captureFromOcr", {
-            memberId: pendingCapture.memberId,
-            itemName: pendingCapture.itemName,
-            weight: pendingCapture.weight,
+            memberId:     pendingCapture.memberId,
+            itemName:     pendingCapture.itemName,
+            weight:       pendingCapture.weight,
             imageDataUrl: pendingCapture.dataUrl,
             stageRequest: requestedStage
           });
         }catch(err){
           const msSub = _ms_(tSub0);
           setStatus("ERROR: Submit call failed\n" + (err && err.message ? err.message : String(err)) + "\n\nTIMING:\nSubmit call: " + msSub + " ms");
-          btnSubmit.textContent = "SUBMIT";
-          return;
+          btnSubmit.textContent = "SUBMIT"; return;
+        }
+
+        const msSub = _ms_(tSub0);
+
+        if(!resp || !resp.ok){
+          setStatus("ERROR: " + (resp && resp.message ? resp.message : "Unknown submit error") + "\n\nTIMING:\nSubmit call: " + msSub + " ms");
+          btnSubmit.textContent = "SUBMIT"; return;
         }
 
         const d = (resp && resp.data) ? resp.data : {};
 
-        const outW = (d.outWeight !== undefined && d.outWeight !== null && String(d.outWeight).trim() !== "") ? Number(d.outWeight) : null;
-        const inW  = (d.inWeight  !== undefined && d.inWeight  !== null && String(d.inWeight).trim()  !== "") ? Number(d.inWeight)  : null;
+        const outW = (d.outWeight   !== undefined && d.outWeight   !== null && String(d.outWeight).trim()   !== "") ? Number(d.outWeight)   : null;
+        const inW  = (d.inWeight    !== undefined && d.inWeight    !== null && String(d.inWeight).trim()    !== "") ? Number(d.inWeight)    : null;
         const rdW  = (d.readyWeight !== undefined && d.readyWeight !== null && String(d.readyWeight).trim() !== "") ? Number(d.readyWeight) : null;
 
         setText("outW",   (outW !== null && !Number.isNaN(outW)) ? String(outW) : "-");
         setText("inW",    (inW  !== null && !Number.isNaN(inW))  ? String(inW)  : "-");
         setText("readyW", (rdW  !== null && !Number.isNaN(rdW))  ? String(rdW)  : "-");
 
-        if (resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
+        if(resp.stage === "OUT" || resp.stage === "IN" || resp.stage === "READY") tickSound();
 
-        if (outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
+        if(outW !== null && inW !== null && !Number.isNaN(outW) && !Number.isNaN(inW)) setShortMaterial(inW - outW);
         else setShortMaterial(null);
 
-        setText("memberId",   d.memberId || pendingCapture.memberId || "-");
+        setText("memberId",   d.memberId   || pendingCapture.memberId      || "-");
         setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
-        setText("itemName",   d.itemName || pendingCapture.itemName || "-");
-        setText("capW","-");
+        setText("itemName",   d.itemName   || pendingCapture.itemName      || "-");
+        setText("capW", "-");
 
         let st = d.statusText || resp.stage || "-";
         const completed = !!d.completed;
 
-        if (resp.stage === "OUT") { st = "OUT ✅"; showLoggedOverlay(); }
-        else if (resp.stage === "READY" || completed === true) { st = "COMPLETED ✅"; showLoggedOverlay(); }
-        else if (resp.stage === "IN") { st = "IN ✅"; }
+        if(resp.stage === "OUT")                     { st = "OUT ✅";       showLoggedOverlay(); }
+        else if(resp.stage === "READY" || completed) { st = "COMPLETED ✅"; showLoggedOverlay(); }
+        else if(resp.stage === "IN")                 { st = "IN ✅"; }
 
         setStageText(st, completed || resp.stage === "READY");
         pendingCapture = null;
         requestedStage = "";
-        wrongWeight = false;
-        rangeWarning = false;
+        wrongWeight    = false;
+        rangeWarning   = false;
 
-        setStatus("SUCCESS ✅ " + resp.message + " (" + st + ")");
+        setStatus("SUCCESS ✅ " + resp.message + " (" + st + ")\n\nTIMING:\nSubmit call: " + msSub + " ms");
         uiState = "idle";
         btnSubmit.textContent = "SUBMIT";
         showIdleButtons();
       }
 
+      // ---- CAPTURE CLICK (triggered by IN / OUT / READY / EXTRA buttons) ----
       window.captureClick = async function captureClick(){
-        if (uiState === "idle"){
+        if(uiState === "idle"){
           pendingCapture = null;
-          wrongWeight = false;
-          rangeWarning = false;
+          wrongWeight    = false;
+          rangeWarning   = false;
           btnSubmit.textContent = "SUBMIT";
-
           resetDisplay();
           setBtn("CAPTURE FRAME");
           setStatus("Starting live camera...");
           try{
             await startLiveCamera();
             uiState = "camera_on";
-            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR.");
+            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
           }catch(err){
             uiState = "idle";
             setBtn("CAPTURE");
-            setStatus("Camera failed: " + (err && err.name ? (err.name + " - " + (err.message || "")) : String(err)));
+            setStatus("Camera failed: " + (err && err.name ? (err.name + " - " + (err.message||"")) : String(err)));
             showIdleButtons();
           }
           return;
         }
 
-        if (uiState === "camera_on"){
+        if(uiState === "camera_on"){
           setBtn("PROCESSING...");
           setStatus("Capturing image (freezing frame)...");
           const dataUrl = captureDataUrlFull();
           stopLiveCamera();
 
-          const prevWrap = document.getElementById("capturedPreviewWrap");
-          const prevImg  = document.getElementById("capturedPreviewImg");
-          const prevLbl  = document.getElementById("capturedPreviewLabel");
+          const prevWrap   = document.getElementById("capturedPreviewWrap");
+          const prevImg    = document.getElementById("capturedPreviewImg");
+          const prevLbl    = document.getElementById("capturedPreviewLabel");
           const clarityLbl = document.getElementById("capturedClarityLabel");
           prevImg.src = dataUrl;
           prevWrap.style.display = "block";
           prevLbl.textContent = "📸 Captured — OCR Running...";
           clarityLbl.textContent = "";
 
-          measureClarity(dataUrl).then(pct => {
-            if (pct !== null) clarityLbl.textContent = "Clarity: " + pct + "%";
-          });
+          measureClarity(dataUrl).then(pct => { if(pct !== null) clarityLbl.textContent = "Clarity: " + pct + "%"; });
 
+          const tAll0 = performance.now();
+          setStatus("Image captured ✅\nRunning OCR...");
+          const tOcr0 = performance.now();
           let r;
+
           try{
             r = await callServer("visionExtract", { imageDataUrl: dataUrl });
           }catch(err){
+            const msOcr = _ms_(tOcr0);
             prevLbl.textContent = "❌ OCR Failed";
-            setStatus("ERROR: OCR call failed\n" + (err && err.message ? err.message : String(err)));
-            setBtn("CAPTURE");
-            uiState = "idle";
-            showIdleButtons();
-            return;
+            setStatus("ERROR: OCR call failed\n" + (err && err.message ? err.message : String(err)) + "\n\nTIMING:\nOCR call: " + msOcr + " ms");
+            setBtn("CAPTURE"); uiState = "idle"; showIdleButtons(); return;
           }
 
-          if (!r || !r.ok){
+          const msOcr = _ms_(tOcr0);
+          const msAll = _ms_(tAll0);
+
+          if(!r || !r.ok){
             try{
               await callServer("postFailTasks", {
                 imageDataUrl: dataUrl,
-                failMessage: (r && r.message) ? r.message : "OCR failed",
-                rawText: (r && r.rawText) ? r.rawText : ""
+                failMessage:  (r && r.message)  ? r.message  : "OCR failed",
+                rawText:      (r && r.rawText)   ? r.rawText  : ""
               });
             }catch(e){}
 
@@ -989,27 +889,30 @@
             setStatus(
               "ERROR: OCR failed.\n" +
               (r && r.message ? r.message : "Unknown OCR error") +
-              "\n\nERROR DETAIL:\n" + (r && r.error ? r.error : "") +
-              "\n\nRAW:\n" + (r && r.rawText ? r.rawText : "")
+              "\n\nERROR DETAIL:\n" + (r && r.error   ? r.error   : "") +
+              "\n\nRAW:\n"          + (r && r.rawText ? r.rawText : "") +
+              "\n\nTIMING:\nOCR call: " + msOcr + " ms\nTOTAL: " + msAll + " ms"
             );
-
-            setBtn("CAPTURE");
-            uiState = "idle";
-            showIdleButtons();
-            return;
+            setBtn("CAPTURE"); uiState = "idle"; showIdleButtons(); return;
           }
 
-          setText("memberId", r.memberId || "-");
+          setText("memberId",   r.memberId   || "-");
           setText("memberName", r.memberName || "-");
-          setText("itemName", r.itemName || "-");
+          setText("itemName",   r.itemName   || "-");
           setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
 
           rangeWarning = !!r.rangeWarning;
-          wrongWeight = !!r.wrongWeight;
+          wrongWeight  = !!r.wrongWeight;
           prevLbl.textContent = "";
 
-          if (wrongWeight) {
-            setStatus("WRONG WEIGHT\nPlease recapture correct weight.");
+          // WRONG WEIGHT — block submit, prompt recapture
+          if(wrongWeight){
+            setStatus(
+              "⚠️ WRONG WEIGHT\n" +
+              "Captured: " + (r.weight !== null && r.weight !== undefined ? r.weight : "-") + " kg\n" +
+              "Weight is outside the allowed range for this item.\n\n" +
+              "Press the stage button again to recapture."
+            );
             setBtn("CAPTURE");
             uiState = "idle";
             pendingCapture = null;
@@ -1018,19 +921,20 @@
           }
 
           pendingCapture = {
-            memberId: r.memberId,
-            itemName: r.itemName,
-            weight: r.weight,
-            dataUrl: dataUrl,
+            memberId:      r.memberId,
+            itemName:      r.itemName,
+            weight:        r.weight,
+            dataUrl:       dataUrl,
             ocrMemberName: r.memberName || "",
-            ocrItemName: r.itemName || ""
+            ocrItemName:   r.itemName   || ""
           };
 
           uiState = "await_submit";
           setBtn("CAPTURE");
           setStatus(
             (rangeWarning ? "OCR DONE ✅\nNo min/max range found for this item.\n\n" : "OCR DONE ✅\n") +
-            "Press SUBMIT to upload & sync to Google Sheet."
+            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
+            "TIMING:\nOCR call: " + msOcr + " ms"
           );
           showSubmitButtonOnly();
         }
