@@ -130,6 +130,10 @@
       user-select:none;
       -webkit-tap-highlight-color:transparent;
     }
+    #btnReset{color:#d60000;}
+#btnIn{color:#0b5ed7;}
+#btnReady{color:#ff4da6;}
+#btnOut{color:#1f9d3a;}
 
     .btn:active{
       transform:translateY(6px);
@@ -216,10 +220,10 @@
     }
 
     .kv div{font-size:24px;padding:16px 0}
-    .label{font-size:24px;font-weight:900}
+    .label{font-size:28px;font-weight:900}
 
     #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{
-      font-size:24px;
+      font-size:28px;
       font-weight:800;
     }
 
@@ -448,11 +452,11 @@
 
     <button class="btn" id="btnReset" style="display:block;">RESET</button>
 
-    <div id="threeBtnWrap" style="display:block;">
-      <button class="btn" id="btnIn">IN</button>
-      <button class="btn" id="btnReady">READY</button>
-      <button class="btn" id="btnOut">OUT</button>
-    </div>
+   <div id="threeBtnWrap" style="display:flex; gap:10px;">
+  <button class="btn" id="btnIn" style="flex:1;">IN</button>
+  <button class="btn" id="btnReady" style="flex:1;">READY</button>
+  <button class="btn" id="btnOut" style="flex:1;">OUT</button>
+</div>
 
     <button class="btn" id="btnExtra" style="display:block;">EXTRA WEIGHT</button>
     <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
@@ -542,7 +546,7 @@
         document.getElementById("capW").className = "";
       }
 
-      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzfHnWKz5BU9eequsQLG5btm-ckLBtjfO2-_ACaFi6XOtaxOCOkbvkd7zjF1Vu2lbRVXQ/exec";
+      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzbg5RA7L7yen9yZ11a26oK6KI-VLmfSIEJkZNzUW59MmX2rPspSfvl3nzHR9pEGIYPqQ/exec";
 
       async function callServer(action, payload){
         const body = Object.assign({ action }, payload || {});
@@ -1079,12 +1083,7 @@
           rangeWarning = !!r.rangeWarning;
           wrongWeight = !!r.wrongWeight;
 
-          if (rangeWarning) {
-            document.getElementById("capW").className = "hlRed";
-          } else {
-            document.getElementById("capW").className = "";
-          }
-
+          document.getElementById("capW").className = "";
           prevLbl.textContent = "";
 
           if (wrongWeight) {
@@ -1108,11 +1107,10 @@
           uiState = "await_submit";
           setBtn("CAPTURE");
           setStatus(
-            (rangeWarning ? "OCR DONE ✅\nNo min/max range found for this item. Verify highlighted weight.\n\n" : "OCR DONE ✅\n") +
-            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
-            "TIMING:\nOCR call: " + msOcr + " ms"
-          );
-
+  (rangeWarning ? "OCR DONE ✅\nNo min/max range found for this item.\n\n" : "OCR DONE ✅\n") +
+  "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
+  "TIMING:\nOCR call: " + msOcr + " ms"
+);
           showSubmitButtonOnly();
           return;
         }
@@ -1127,6 +1125,25 @@
       btnReset.addEventListener("click", resetClick);
 
       showIdleButtons();
+      // =========================
+// ADD THIS HELPER FUNCTION (ONLY ADDITION)
+// =========================
+function _applyWeightCellFormat_(sh, rowIndex, colIndex, itemName) {
+  const master = _getMaster_();
+  const itemKey = _normItemKey_(itemName);
+  const rangeObj = master.itemRangeByName[itemKey];
+
+  const cell = sh.getRange(rowIndex, colIndex);
+
+  // If no range defined → highlight in sheet
+  if (!rangeObj || (rangeObj.min === null && rangeObj.max === null)) {
+    cell.setBackground("#ffcccc"); // red highlight
+    return;
+  }
+
+  // valid range → no highlight
+  cell.setBackground(null);
+}
     </script>
   </div>
 
