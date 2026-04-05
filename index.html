@@ -835,66 +835,73 @@
           return;
         }
 
-       const dataUrl = captureDataUrlFull();
-stopLiveCamera();
+      if(uiState === "camera_on"){
+  setBtn("PROCESSING...");
+  setStatus("Capturing image (freezing frame)...");
 
-const prevWrap   = document.getElementById("capturedPreviewWrap");
-const prevImg    = document.getElementById("capturedPreviewImg");
-const prevLbl    = document.getElementById("capturedPreviewLabel");
-const clarityLbl = document.getElementById("capturedClarityLabel");
-prevImg.src = dataUrl;
-prevWrap.style.display = "block";
-prevLbl.textContent = "📸 Captured — OCR Running...";
-clarityLbl.textContent = "";
+  const dataUrl = captureDataUrlFull();
+  stopLiveCamera();
 
-measureClarity(dataUrl).then(pct => { if(pct !== null) clarityLbl.textContent = "Clarity: " + pct + "%"; });
+  const prevWrap   = document.getElementById("capturedPreviewWrap");
+  const prevImg    = document.getElementById("capturedPreviewImg");
+  const prevLbl    = document.getElementById("capturedPreviewLabel");
+  const clarityLbl = document.getElementById("capturedClarityLabel");
 
-          const tAll0 = performance.now();
-          setStatus("Image captured ✅\nRunning OCR...");
-          const tOcr0 = performance.now();
-          let r;
+  prevImg.src = dataUrl;
+  prevWrap.style.display = "block";
+  prevLbl.textContent = "📸 Captured — OCR Running...";
+  clarityLbl.textContent = "";
 
-          try{
-            r = await callServer("visionExtract", { imageDataUrl: dataUrl });
-          }catch(err){
-            const msOcr = _ms_(tOcr0);
-            prevLbl.textContent = "❌ OCR Failed";
-            setStatus("ERROR: OCR call failed\n" + (err && err.message ? err.message : String(err)) + "\n\nTIMING:\nOCR call: " + msOcr + " ms");
-            setBtn("CAPTURE"); uiState = "idle"; showIdleButtons(); return;
-          }
+  measureClarity(dataUrl).then(pct => {
+    if(pct !== null) clarityLbl.textContent = "Clarity: " + pct + "%";
+  });
 
-          const msOcr = _ms_(tOcr0);
-          const msAll = _ms_(tAll0);
+  const tAll0 = performance.now();
+  setStatus("Image captured ✅\nRunning OCR...");
+  const tOcr0 = performance.now();
 
-          if(!r || !r.ok){
-            try{
-              await callServer("postFailTasks", {
-                imageDataUrl: dataUrl,
-                failMessage:  (r && r.message)  ? r.message  : "OCR failed",
-                rawText:      (r && r.rawText)   ? r.rawText  : ""
-              });
-            }catch(e){}
+  let r;
 
-            prevLbl.textContent = "❌ OCR Failed";
-            setStatus(
-              "ERROR: OCR failed.\n" +
-              (r && r.message ? r.message : "Unknown OCR error") +
-              "\n\nERROR DETAIL:\n" + (r && r.error   ? r.error   : "") +
-              "\n\nRAW:\n"          + (r && r.rawText ? r.rawText : "") +
-              "\n\nTIMING:\nOCR call: " + msOcr + " ms\nTOTAL: " + msAll + " ms"
-            );
-            setBtn("CAPTURE"); uiState = "idle"; showIdleButtons(); return;
-          }
+  try{
+    r = await callServer("visionExtract", { imageDataUrl: dataUrl });
+  }catch(err){
+    const msOcr = _ms_(tOcr0);
+    prevLbl.textContent = "❌ OCR Failed";
+    setStatus("ERROR: OCR call failed\n" + err.message);
+    setBtn("CAPTURE");
+    uiState = "idle";
+    showIdleButtons();
+    return;
+  }
 
-          setText("memberId",   r.memberId   || "-");
-          setText("memberName", r.memberName || "-");
-          setText("itemName",   r.itemName   || "-");
-          setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
+  const msOcr = _ms_(tOcr0);
 
-          rangeWarning = !!r.rangeWarning;
-          wrongWeight  = !!r.wrongWeight;
-          prevLbl.textContent = "";
+  if(!r || !r.ok){
+    prevLbl.textContent = "❌ OCR Failed";
+    setStatus("OCR failed");
+    setBtn("CAPTURE");
+    uiState = "idle";
+    showIdleButtons();
+    return;
+  }
 
+  setText("memberId", r.memberId || "-");
+  setText("memberName", r.memberName || "-");
+  setText("itemName", r.itemName || "-");
+  setText("capW", r.weight ?? "-");
+
+  pendingCapture = {
+    memberId: r.memberId,
+    itemName: r.itemName,
+    weight: r.weight,
+    dataUrl: dataUrl
+  };
+
+  uiState = "await_submit";
+  setBtn("CAPTURE");
+  setStatus("OCR DONE ✅\nPress SUBMIT");
+  showSubmitButtonOnly();
+}
           // WRONG WEIGHT — block submit, prompt recapture
           if(wrongWeight){
             setStatus(
