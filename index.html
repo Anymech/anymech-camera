@@ -78,6 +78,18 @@
       text-align:center;
     }
 
+    .topStatus{
+      background:#f6f6f6;
+      padding:8px 12px;
+      border-radius:10px;
+      margin:0 0 12px 0;
+      white-space:pre-wrap;
+      font-size:12px;
+      line-height:1.4;
+      color:#333;
+      border:1px solid #ececec;
+    }
+
     .camWrap{
       width:100vw;
       height:100vh;
@@ -134,13 +146,13 @@
       z-index:2;
     }
 
-    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
-    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap}
+    .card{border:1px solid #ddd;border-radius:14px;padding:14px;margin:0;background:#fff}
+    .status{background:#f6f6f6;padding:12px;border-radius:10px;margin-top:10px;white-space:pre-wrap;font-size:12px;line-height:1.4}
 
     .kv{display:grid;grid-template-columns:180px 1fr;gap:10px}
     .kv div{padding:8px 0;border-bottom:1px dashed #eee}
-    .label{font-weight:700}
-    .kv div:nth-child(2n){font-weight:800}
+    .label{font-weight:700;text-align:left}
+    .kv div:nth-child(2n){font-weight:800;text-align:right}
 
     video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000;border-radius:12px}
     canvas{display:none}
@@ -214,7 +226,7 @@
     @media (max-width: 520px){
       body{margin:10px;max-width:100%}
       .appFrame{padding:12px;border-radius:18px}
-      .card{margin:10px 0;padding:12px}
+      .card{margin:0;padding:12px}
       .kv{grid-template-columns:140px 1fr}
       .btn{padding:24px;font-size:22px;border-radius:18px}
       .brandTitle{font-size:22px}
@@ -263,7 +275,8 @@
       .label{font-size:18px;font-weight:800}
       video{border-radius:16px}
       .btn{font-size:22px;padding:26px;border-radius:18px}
-      .status{font-size:16px;padding:16px}
+      .status{font-size:11px;padding:10px}
+      .topStatus{font-size:11px;padding:7px 10px}
     }
 
     .appTitle{
@@ -272,7 +285,7 @@
       font-weight:900;
       color:#0b4fd6;
       letter-spacing:1.2px;
-      margin:6px 0 18px 0;
+      margin:6px 0 10px 0;
     }
 
     .kv div{font-size:24px;padding:16px 0}
@@ -348,6 +361,11 @@
         font-size:18px !important;
       }
 
+      .topStatus{
+        font-size:10px !important;
+        padding:6px 8px !important;
+      }
+
       .kv{
         grid-template-columns:120px 1fr !important;
         gap:6px !important;
@@ -376,7 +394,7 @@
 
       .card{
         padding:10px !important;
-        margin:8px 0 !important;
+        margin:0 !important;
       }
 
       #btnSubmit,
@@ -398,12 +416,11 @@
       }
 
       .status{
-        font-size:13px !important;
+        font-size:10px !important;
         padding:8px !important;
       }
     }
 
-    /* normal layout preview shown in top half */
     #capturedPreviewWrap{
       display:none;
       width:100%;
@@ -480,6 +497,8 @@
   <div class="appFrame">
     <h1 class="appTitle">ANYMECH PRODUCTS</h1>
 
+    <div class="topStatus" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
+
     <div class="topSplit">
       <div class="card halfCard">
         <div class="camWrap" id="camWrap">
@@ -499,11 +518,11 @@
           <div id="capturedClarityLabel"></div>
         </div>
 
+        <div class="status">Captured image preview will appear here after capture.</div>
+
         <div class="btnFixed" id="btnFixedWrap">
           <button class="btn" id="btnCaptureFixed">CAPTURE</button>
         </div>
-
-        <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
       </div>
 
       <div class="card halfCard">
