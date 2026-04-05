@@ -551,13 +551,18 @@
       }
 
       function showSubmitButtonOnly(){
-        btnFixedWrap.style.display = "none";
-        btnSubmit.style.display = "block";
-        btnReset.style.display = "block";
-        threeBtnWrap.style.display = "none";
-        btnExtra.style.display = "none";
-      }
+  btnFixedWrap.style.display  = "none";
 
+  // SHOW ONLY REQUIRED BUTTONS
+  btnSubmit.style.display     = "block";   // 👈 SUBMIT visible
+  btnExtra.style.display      = "block";   // 👈 EXTRA stays above it
+
+  // HIDE STAGE BUTTONS
+  threeBtnWrap.style.display  = "none";
+
+  // KEEP RESET
+  btnReset.style.display      = "block";
+}
       function showCameraUI(on){
         camWrap.style.display = on ? "flex" : "none";
         btnFixedWrap.style.display = on ? "block" : "none";
