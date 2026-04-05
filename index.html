@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html>
 <head>
@@ -6,48 +7,51 @@
   <title>Anymech Live Capture</title>
   <style>
     @media (max-width:768px){
-  .topSplit{
-    flex-direction:column;
-  }
-}
+      .topSplit{
+        flex-direction:column;
+      }
+    }
+
     .topSplit{
-  display:flex;
-  gap:14px;
-  align-items:stretch;
-}
+      display:flex;
+      gap:14px;
+      align-items:stretch;
+    }
 
-.halfCard{
-  flex:1 1 0;
-  min-width:0;
-}
+    .halfCard{
+      flex:1 1 0;
+      min-width:0;
+    }
+
     body{font-family:system-ui,Arial;margin:16px;max-width:900px}
+
     #threeBtnWrap{
-  display:flex;
-  gap:12px;
-  align-items:stretch;
-  justify-content:space-between;
-  margin:12px 0;
-}
+      display:flex;
+      gap:12px;
+      align-items:stretch;
+      justify-content:space-between;
+      margin:12px 0;
+    }
 
-#threeBtnWrap .btnRow{
-  flex:1 1 0;
-  width:auto !important;
-  margin:0 !important;
-  padding:22px 10px;
-  border-radius:18px;
-}
+    #threeBtnWrap .btnRow{
+      flex:1 1 0;
+      width:auto !important;
+      margin:0 !important;
+      padding:22px 10px;
+      border-radius:18px;
+    }
 
-@media (max-width:768px){
-  #threeBtnWrap{
-    gap:8px;
-  }
-  #threeBtnWrap .btnRow{
-    width:auto !important;
-    margin:0 !important;
-    padding:16px 8px !important;
-    font-size:16px !important;
-  }
-}
+    @media (max-width:768px){
+      #threeBtnWrap{
+        gap:8px;
+      }
+      #threeBtnWrap .btnRow{
+        width:auto !important;
+        margin:0 !important;
+        padding:16px 8px !important;
+        font-size:16px !important;
+      }
+    }
 
     .appFrame{
       border:1px solid #e6e6e6;
@@ -91,17 +95,17 @@
       object-fit: cover;
     }
 
-   .roiViewport{
-  width: 100%;
-  max-width: 100%;
-  aspect-ratio: 1.65 / 1;
-  margin: 14px auto;
-  border-radius: 14px;
-  overflow: hidden;
-  position: relative;
-  background:#000;
-  z-index: 9991;
-}
+    .roiViewport{
+      width: 100%;
+      max-width: 100%;
+      aspect-ratio: 1.65 / 1;
+      margin: 14px auto;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      background:#000;
+      z-index: 9991;
+    }
 
     .roiViewport video{
       position: absolute;
@@ -173,10 +177,11 @@
       user-select:none;
       -webkit-tap-highlight-color:transparent;
     }
+
     #btnReset{color:#d60000;}
-#btnIn{color:#0b5ed7;}
-#btnReady{color:#ff4da6;}
-#btnOut{color:#1f9d3a;}
+    #btnIn{color:#0b5ed7;}
+    #btnReady{color:#ff4da6;}
+    #btnOut{color:#1f9d3a;}
 
     .btn:active{
       transform:translateY(6px);
@@ -453,57 +458,55 @@
     <h1 class="appTitle">ANYMECH PRODUCTS</h1>
 
     <div class="topSplit">
-  <div class="card halfCard">
-    <div class="camWrap" id="camWrap">
-      <div class="roiViewport" id="roiViewport">
-        <video id="video" autoplay playsinline></video>
-        <div class="roiBorder"></div>
-        <div class="guideLine"></div>
-        <div class="guideLabel">Top: Card | Bottom: Scale</div>
+      <div class="card halfCard">
+        <div class="camWrap" id="camWrap">
+          <div class="roiViewport" id="roiViewport">
+            <video id="video" autoplay playsinline></video>
+            <div class="roiBorder"></div>
+            <div class="guideLine"></div>
+            <div class="guideLabel">Top: Card | Bottom: Scale</div>
+          </div>
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <div id="capturedPreviewWrap">
+          <img id="capturedPreviewImg" src="" alt="Captured frame" />
+          <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
+          <div id="capturedClarityLabel"></div>
+        </div>
+
+        <div class="btnFixed" id="btnFixedWrap">
+          <button class="btn" id="btnCaptureFixed">CAPTURE</button>
+        </div>
+
+        <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
+      </div>
+
+      <div class="card halfCard">
+        <div class="kv">
+          <div class="label">NEW M.NO</div><div id="memberId">-</div>
+          <div class="label">MEMBER NAME</div><div id="memberName">-</div>
+          <div class="label">ITEM NAME</div><div id="itemName">-</div>
+          <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
+
+          <div class="label">OUT WEIGHT</div><div id="outW">-</div>
+          <div class="label">IN WEIGHT</div><div id="inW">-</div>
+          <div class="label">READY WEIGHT</div><div id="readyW">-</div>
+
+          <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
+          <div class="label">STATUS</div><div id="stage">-</div>
+        </div>
       </div>
     </div>
 
-    <canvas id="canvas"></canvas>
-
-    <div id="capturedPreviewWrap">
-      <img id="capturedPreviewImg" src="" alt="Captured frame" />
-      <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
-      <div id="capturedClarityLabel"></div>
-    </div>
-
-    <div class="btnFixed" id="btnFixedWrap">
-      <button class="btn" id="btnCaptureFixed">CAPTURE</button>
-    </div>
-
-    <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
-  </div>
-
-  <div class="card halfCard">
-    <div class="kv">
-      <div class="label">NEW M.NO</div><div id="memberId">-</div>
-      <div class="label">MEMBER NAME</div><div id="memberName">-</div>
-      <div class="label">ITEM NAME</div><div id="itemName">-</div>
-      <div class="label capW-label">CAPTURED WEIGHT (PREVIEW)</div><div id="capW">-</div>
-
-      <div class="label">OUT WEIGHT</div><div id="outW">-</div>
-      <div class="label">IN WEIGHT</div><div id="inW">-</div>
-      <div class="label">READY WEIGHT</div><div id="readyW">-</div>
-
-      <div class="label">SHORT MATERIAL</div><div id="shortMat">-</div>
-      <div class="label">STATUS</div><div id="stage">-</div>
-    </div>
-  </div>
-</div>
-
-    
-
     <button class="btn" id="btnReset" style="display:block;">RESET</button>
 
-   <div id="threeBtnWrap">
-  <button class="btn btnRow" id="btnIn">IN</button>
-  <button class="btn btnRow" id="btnReady">READY</button>
-  <button class="btn btnRow" id="btnOut">OUT</button>
-</div>
+    <div id="threeBtnWrap">
+      <button class="btn btnRow" id="btnIn">IN</button>
+      <button class="btn btnRow" id="btnReady">READY</button>
+      <button class="btn btnRow" id="btnOut">OUT</button>
+    </div>
 
     <button class="btn" id="btnExtra" style="display:block;">EXTRA WEIGHT</button>
     <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
@@ -1154,10 +1157,10 @@
           uiState = "await_submit";
           setBtn("CAPTURE");
           setStatus(
-  (rangeWarning ? "OCR DONE ✅\nNo min/max range found for this item.\n\n" : "OCR DONE ✅\n") +
-  "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
-  "TIMING:\nOCR call: " + msOcr + " ms"
-);
+            (rangeWarning ? "OCR DONE ✅\nNo min/max range found for this item.\n\n" : "OCR DONE ✅\n") +
+            "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
+            "TIMING:\nOCR call: " + msOcr + " ms"
+          );
           showSubmitButtonOnly();
           return;
         }
@@ -1172,8 +1175,6 @@
       btnReset.addEventListener("click", resetClick);
 
       showIdleButtons();
-
-}
     </script>
   </div>
 
@@ -1185,3 +1186,4 @@
   </div>
 </body>
 </html>
+```
