@@ -544,27 +544,30 @@
       }
 
       function showSubmitButtonOnly(){
-        btnFixedWrap.style.display = "none";
-        btnSubmit.style.display = "block";
-        btnExtra.style.display = "block";
-        threeBtnWrap.style.display = "none";
-        btnReset.style.display = "block";
-      }
+  btnFixedWrap.style.display = "none";
+
+  btnSubmit.style.display = "block";
+  btnReset.style.display = "block";
+
+  threeBtnWrap.style.display = "none";
+  btnExtra.style.display = "none";
+}
 
       function showCameraUI(on){
-        camWrap.style.display = on ? "flex" : "none";
-        btnFixedWrap.style.display = on ? "block" : "none";
-        if(on){
-          btnSubmit.style.display = "none";
-          btnReset.style.display = "none";
-          threeBtnWrap.style.display = "none";
-          btnExtra.style.display = "none";
-          return;
-        }
-        if(uiState === "await_submit") showSubmitButtonOnly();
-        else showIdleButtons();
-      }
+  camWrap.style.display = on ? "flex" : "none";
+  btnFixedWrap.style.display = on ? "block" : "none";
 
+  if(on){
+    btnSubmit.style.display = "none";
+    btnReset.style.display = "none";
+    threeBtnWrap.style.display = "none";
+    btnExtra.style.display = "none";
+    return;
+  }
+
+  if(uiState === "await_submit") showSubmitButtonOnly();
+  else showIdleButtons();
+}
       // ---- STAGE BUTTON HANDLERS ----
       function startRequestedCapture(stage){
         requestedStage = stage;
