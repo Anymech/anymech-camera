@@ -24,24 +24,22 @@
       text-align:center;
     }
 
-    /* ✅ FULL SCREEN CAMERA PREVIEW */
     .camWrap{
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  position: fixed;
-  inset: 0;
-  padding-top: 0;
-  background: #000;
-  border-radius: 0;
-  overflow: hidden;
-  z-index: 9990;
-  display: none;
-      
-align-items: center;
-justify-content: center;
- padding-bottom: 120px;
-}
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      position: fixed;
+      inset: 0;
+      padding-top: 0;
+      background: #000;
+      border-radius: 0;
+      overflow: hidden;
+      z-index: 9990;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 120px;
+    }
 
     .camWrap video{
       position: absolute;
@@ -51,7 +49,6 @@ justify-content: center;
       object-fit: cover;
     }
 
-    /* ✅ ADDED: ROI viewport (rectangle) */
     .roiViewport{
       width: min(99vw, 1080px);
       aspect-ratio: 1.65 / 1;
@@ -62,18 +59,17 @@ justify-content: center;
       background:#000;
       z-index: 9991;
     }
+
     .roiViewport video{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      aspect-ratio: auto;
+      border-radius: 0;
+    }
 
-  /* override global square rule */
-  aspect-ratio: auto;
-
-  border-radius: 0;
-}
     .roiBorder{
       position:absolute;
       inset:0;
@@ -104,6 +100,7 @@ justify-content: center;
       pointer-events:none;
       z-index: 3;
     }
+
     .guideLabel{
       position:absolute;
       left:10px;
@@ -117,7 +114,6 @@ justify-content: center;
       z-index: 3;
     }
 
-    /* ✅ CAPTURE BUTTON ON TOP OF FULL SCREEN CAMERA */
     .btn{
       width:100%;
       padding:22px;
@@ -134,6 +130,7 @@ justify-content: center;
       user-select:none;
       -webkit-tap-highlight-color:transparent;
     }
+
     .btn:active{
       transform:translateY(6px);
       box-shadow:
@@ -141,7 +138,6 @@ justify-content: center;
         0 10px 18px rgba(0,0,0,0.12);
     }
 
-    /* ✅ button fixed bottom-center while camera full screen */
     .btnFixed{
       position: fixed;
       left: 50%;
@@ -149,13 +145,12 @@ justify-content: center;
       bottom: 22px;
       z-index: 9992;
       width: min(92vw, 420px);
-      display: none; /* show only when camera is ON */
+      display: none;
     }
 
     .hlRed{background:#ffcccc;border-radius:10px;padding:6px 10px;display:inline-block}
     .hlGreen{background:#ccffcc;border-radius:10px;padding:6px 10px;display:inline-block}
 
-    /* ✅ ADDED: mobile view (no logic change) */
     @media (max-width: 520px){
       body{margin:10px;max-width:100%}
       .appFrame{padding:12px;border-radius:18px}
@@ -165,7 +160,6 @@ justify-content: center;
       .brandTitle{font-size:22px}
     }
 
-    /* ✅ ADDED: overlay for "LOGGED COMPLETED" */
     .overlayDone{
       position:fixed;
       inset:0;
@@ -175,6 +169,7 @@ justify-content: center;
       background:rgba(0,0,0,0.18);
       z-index:9999;
     }
+
     .overlayCard{
       background:#fff;
       border-radius:20px;
@@ -183,6 +178,7 @@ justify-content: center;
       text-align:center;
       width:min(320px, 88vw);
     }
+
     .overlayTick{
       font-size:64px;
       line-height:1;
@@ -190,6 +186,7 @@ justify-content: center;
       font-weight:900;
       margin-bottom:10px;
     }
+
     .overlayText{
       font-size:18px;
       font-weight:900;
@@ -233,25 +230,6 @@ justify-content: center;
       #memberId,#memberName,#itemName,#outW,#inW,#readyW,#stage{font-size:26px}
     }
 
-    #btnCapture{
-      display:block;
-      margin:32px auto 12px auto;
-      width:min(94%, 460px);
-      padding:32px;
-      font-size:28px;
-      font-weight:900;
-      border-radius:22px;
-    }
-
-    @media (max-width: 768px){
-      #btnCapture{
-        width:96%;
-        padding:36px;
-        font-size:30px;
-        border-radius:24px;
-      }
-    }
-
     #btnSubmit{
       display:block;
       margin:32px auto 12px auto;
@@ -261,6 +239,7 @@ justify-content: center;
       font-weight:900;
       border-radius:22px;
     }
+
     @media (max-width: 768px){
       #btnSubmit{
         width:96%;
@@ -279,6 +258,7 @@ justify-content: center;
       font-weight:900;
       border-radius:22px;
     }
+
     @media (max-width: 768px){
       #btnReset{
         width:96%;
@@ -287,75 +267,76 @@ justify-content: center;
         border-radius:24px;
       }
     }
-    /* ===== MOBILE COMPACT MODE (NO LOGIC CHANGE) ===== */
-@media (max-width: 768px){
 
-  body{
-    font-size:14px !important;
-    margin:6px !important;
-  }
+    @media (max-width: 768px){
+      body{
+        font-size:14px !important;
+        margin:6px !important;
+      }
 
-  .appFrame{
-    padding:10px !important;
-    border-radius:18px !important;
-  }
+      .appFrame{
+        padding:10px !important;
+        border-radius:18px !important;
+      }
 
-  .appTitle{
-    font-size:22px !important;
-    margin:4px 0 10px 0 !important;
-  }
+      .appTitle{
+        font-size:22px !important;
+        margin:4px 0 10px 0 !important;
+      }
 
-  .brandTitle{
-    font-size:18px !important;
-  }
+      .brandTitle{
+        font-size:18px !important;
+      }
 
-  .kv{
-    grid-template-columns:120px 1fr !important;
-    gap:6px !important;
-  }
+      .kv{
+        grid-template-columns:120px 1fr !important;
+        gap:6px !important;
+      }
 
-  .kv div{
-    font-size:14px !important;
-    padding:6px 0 !important;
-  }
+      .kv div{
+        font-size:14px !important;
+        padding:6px 0 !important;
+      }
 
-  .label{
-    font-size:14px !important;
-    font-weight:700 !important;
-  }
+      .label{
+        font-size:14px !important;
+        font-weight:700 !important;
+      }
 
-  #memberId,
-  #memberName,
-  #itemName,
-  #outW,
-  #inW,
-  #readyW,
-  #stage{
-    font-size:14px !important;
-    font-weight:700 !important;
-  }
+      #memberId,
+      #memberName,
+      #itemName,
+      #outW,
+      #inW,
+      #readyW,
+      #stage{
+        font-size:14px !important;
+        font-weight:700 !important;
+      }
 
-  .card{
-    padding:10px !important;
-    margin:8px 0 !important;
-  }
+      .card{
+        padding:10px !important;
+        margin:8px 0 !important;
+      }
 
-  /* Compact buttons */
-  #btnCapture,
-  #btnSubmit,
-  #btnReset{
-    padding:14px !important;
-    font-size:16px !important;
-    border-radius:14px !important;
-    margin:14px auto 8px auto !important;
-  }
+      #btnSubmit,
+      #btnReset,
+      #btnIn,
+      #btnReady,
+      #btnOut,
+      #btnExtra{
+        padding:14px !important;
+        font-size:16px !important;
+        border-radius:14px !important;
+        margin:14px auto 8px auto !important;
+      }
 
-  .status{
-    font-size:13px !important;
-    padding:8px !important;
-  }
-}
-    /* ✅ Captured image preview — shown while OCR is running */
+      .status{
+        font-size:13px !important;
+        padding:8px !important;
+      }
+    }
+
     #capturedPreviewWrap{
       display:none;
       width:100%;
@@ -366,6 +347,7 @@ justify-content: center;
       position:relative;
       background:#000;
     }
+
     #capturedPreviewImg{
       width:100%;
       max-height:46vw;
@@ -373,6 +355,7 @@ justify-content: center;
       border-radius:12px;
       display:block;
     }
+
     #capturedPreviewLabel{
       position:absolute;
       top:8px;left:10px;
@@ -383,6 +366,7 @@ justify-content: center;
       padding:4px 10px;
       border-radius:8px;
     }
+
     #capturedClarityLabel{
       position:absolute;
       bottom:8px;right:10px;
@@ -395,7 +379,6 @@ justify-content: center;
       letter-spacing:0.5px;
     }
 
-    /* ✅ CAPTURED WEIGHT PREVIEW — blue, large */
     .kv div#capW{
       color:#0b5ed7 !important;
       font-size:38px !important;
@@ -403,10 +386,12 @@ justify-content: center;
       letter-spacing:2px !important;
       line-height:1.1 !important;
     }
+
     .capW-label{
       color:#0b5ed7 !important;
       font-weight:900 !important;
     }
+
     @media (max-width:768px){
       .kv div#capW{
         font-size:42px !important;
@@ -422,7 +407,6 @@ justify-content: center;
 
     <div class="card">
       <div class="camWrap" id="camWrap">
-        <!-- ✅ ADDED: ROI viewport wrapper -->
         <div class="roiViewport" id="roiViewport">
           <video id="video" autoplay playsinline></video>
           <div class="roiBorder"></div>
@@ -433,7 +417,6 @@ justify-content: center;
 
       <canvas id="canvas"></canvas>
 
-      <!-- ✅ Captured image shown while OCR runs -->
       <div id="capturedPreviewWrap">
         <img id="capturedPreviewImg" src="" alt="Captured frame" />
         <div id="capturedPreviewLabel">📸 Captured — OCR Running...</div>
@@ -444,7 +427,7 @@ justify-content: center;
         <button class="btn" id="btnCaptureFixed">CAPTURE</button>
       </div>
 
-      <div class="status" id="status">Press CAPTURE to start live camera.</div>
+      <div class="status" id="status">Press OUT / IN / READY / EXTRA WEIGHT to start live camera.</div>
     </div>
 
     <div class="card">
@@ -463,9 +446,16 @@ justify-content: center;
       </div>
     </div>
 
-    <button class="btn" id="btnCapture">CAPTURE</button>
+    <button class="btn" id="btnReset" style="display:block;">RESET</button>
+
+    <div id="threeBtnWrap" style="display:block;">
+      <button class="btn" id="btnIn">IN</button>
+      <button class="btn" id="btnReady">READY</button>
+      <button class="btn" id="btnOut">OUT</button>
+    </div>
+
+    <button class="btn" id="btnExtra" style="display:block;">EXTRA WEIGHT</button>
     <button class="btn" id="btnSubmit" style="display:none;">SUBMIT</button>
-    <button class="btn" id="btnReset" style="display:none;">RESET</button>
 
     <script>
       window.onerror = function (msg, src, line, col, err) {
@@ -481,18 +471,22 @@ justify-content: center;
       let uiState = "idle";
       let stream = null;
       let pendingCapture = null;
+      let requestedStage = "";
+      let rangeWarning = false;
+      let wrongWeight = false;
 
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const camWrap = document.getElementById("camWrap");
       const btnFixedWrap = document.getElementById("btnFixedWrap");
       const btnCaptureFixed = document.getElementById("btnCaptureFixed");
-
       const btnSubmit = document.getElementById("btnSubmit");
       const btnReset  = document.getElementById("btnReset");
+      const threeBtnWrap = document.getElementById("threeBtnWrap");
+      const btnExtra = document.getElementById("btnExtra");
 
       function setStatus(t){ document.getElementById("status").textContent = t; }
-      function setBtn(t){ document.getElementById("btnCapture").textContent = t; btnCaptureFixed.textContent = t; }
+      function setBtn(t){ btnCaptureFixed.textContent = t; }
       function setText(id, t){ document.getElementById(id).textContent = (t ?? "-"); }
 
       function setStageText(t, completed){
@@ -545,13 +539,10 @@ justify-content: center;
         setShortMaterial(null);
         setStageText("-", false);
         setText("capW","-");
+        document.getElementById("capW").className = "";
       }
 
-      // ===============================
-      // ✅ GitHub Pages → Apps Script WebApp (doPost) using fetch()
-      // IMPORTANT: do NOT send Content-Type header to avoid CORS preflight
-      // ===============================
-      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyVRq8tSGdQnevmyumlCwQvFvE6scq1ovl4cefXluL-p4bnBG__1TjaMh55SaMFOWGupQ/exec";
+      const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzfHnWKz5BU9eequsQLG5btm-ckLBtjfO2-_ACaFi6XOtaxOCOkbvkd7zjF1Vu2lbRVXQ/exec";
 
       async function callServer(action, payload){
         const body = Object.assign({ action }, payload || {});
@@ -581,35 +572,50 @@ justify-content: center;
         }
       }
 
-      function showCaptureButtons(){
-        document.getElementById("btnCapture").style.display = (camWrap.style.display === "flex") ? "none" : "block";
-        btnFixedWrap.style.display = (camWrap.style.display === "flex") ? "block" : "none";
+      function showIdleButtons(){
+        btnFixedWrap.style.display = "none";
         btnSubmit.style.display = "none";
-        btnReset.style.display = "none";
+        btnReset.style.display = "block";
+        threeBtnWrap.style.display = "block";
+        btnExtra.style.display = "block";
       }
 
       function showSubmitButtonOnly(){
         btnFixedWrap.style.display = "none";
-        document.getElementById("btnCapture").style.display = "none";
         btnSubmit.style.display = "block";
         btnReset.style.display = "block";
+        threeBtnWrap.style.display = "none";
+        btnExtra.style.display = "none";
       }
 
       function showCameraUI(on){
         camWrap.style.display = on ? "flex" : "none";
         btnFixedWrap.style.display = on ? "block" : "none";
-        document.getElementById("btnCapture").style.display = on ? "none" : "block";
 
-        if (uiState === "await_submit") {
-          btnFixedWrap.style.display = "none";
-          document.getElementById("btnCapture").style.display = "none";
-          btnSubmit.style.display = "block";
-          btnReset.style.display = "block";
-        } else {
+        if (on){
           btnSubmit.style.display = "none";
           btnReset.style.display = "none";
+          threeBtnWrap.style.display = "none";
+          btnExtra.style.display = "none";
+          return;
+        }
+
+        if (uiState === "await_submit") {
+          showSubmitButtonOnly();
+        } else {
+          showIdleButtons();
         }
       }
+
+      function startRequestedCapture(stage){
+        requestedStage = stage;
+        captureClick();
+      }
+
+      document.getElementById("btnOut").addEventListener("click", () => startRequestedCapture("OUT"));
+      document.getElementById("btnIn").addEventListener("click", () => startRequestedCapture("IN"));
+      document.getElementById("btnReady").addEventListener("click", () => startRequestedCapture("READY"));
+      document.getElementById("btnExtra").addEventListener("click", () => startRequestedCapture("EXTRA"));
 
       window.startLiveCamera = async function startLiveCamera(){
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
@@ -654,80 +660,65 @@ justify-content: center;
         }
 
         video.srcObject = stream;
-// ✅ Camera tuning: apply ONLY supported constraints (focus/zoom/torch/exposure)
-// (does not change UI/workflow; only tries to improve live stream sharpness)
-try{
-  const track = stream.getVideoTracks()[0];
-  const caps = track && track.getCapabilities ? track.getCapabilities() : null;
 
-  console.log("[CAM] capabilities =", caps);
+        try{
+          const track = stream.getVideoTracks()[0];
+          const caps = track && track.getCapabilities ? track.getCapabilities() : null;
 
-  const adv = [];
+          console.log("[CAM] capabilities =", caps);
 
-  // Focus mode (if supported)
-  if (caps && caps.focusMode && Array.isArray(caps.focusMode)){
-    if (caps.focusMode.includes("continuous")) adv.push({ focusMode: "continuous" });
-    else if (caps.focusMode.includes("auto")) adv.push({ focusMode: "auto" });
-  }
+          const adv = [];
 
-  // Focus distance (closest focus for near objects like scale/card)
-  // NOTE: only works on devices that expose focusDistance
-  if (caps && caps.focusDistance && typeof caps.focusDistance.min === "number"){
-    adv.push({ focusDistance: caps.focusDistance.min });
-  }
+          if (caps && caps.focusMode && Array.isArray(caps.focusMode)){
+            if (caps.focusMode.includes("continuous")) adv.push({ focusMode: "continuous" });
+            else if (caps.focusMode.includes("auto")) adv.push({ focusMode: "auto" });
+          }
 
-  // Slight zoom can improve readability of small digits (if supported)
-  if (caps && caps.zoom && typeof caps.zoom.min === "number" && typeof caps.zoom.max === "number"){
-    const targetZoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.3));
-    adv.push({ zoom: targetZoom });
-  }
+          if (caps && caps.focusDistance && typeof caps.focusDistance.min === "number"){
+            adv.push({ focusDistance: caps.focusDistance.min });
+          }
 
-  // Torch: kept auto — do not force on
-  // if (caps && caps.torch){ adv.push({ torch: true }); }
+          if (caps && caps.zoom && typeof caps.zoom.min === "number" && typeof caps.zoom.max === "number"){
+            const targetZoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.3));
+            adv.push({ zoom: targetZoom });
+          }
 
-  // Exposure mode (if supported)
-  if (caps && caps.exposureMode && Array.isArray(caps.exposureMode)){
-    if (caps.exposureMode.includes("continuous")) adv.push({ exposureMode: "continuous" });
-  }
+          if (caps && caps.exposureMode && Array.isArray(caps.exposureMode)){
+            if (caps.exposureMode.includes("continuous")) adv.push({ exposureMode: "continuous" });
+          }
 
-  // ✅ Shutter speed 50–100 Hz range for anti-flicker + sunlight LED readability
-  // 50 Hz = 1/50s (20000µs), 100 Hz = 1/100s (10000µs)
-  // This prevents LED display flicker sync issues and keeps digits sharp in sunlight.
-  // exposureTime is in microseconds on most devices.
-  if (caps && caps.exposureTime &&
-      typeof caps.exposureTime.min === "number" &&
-      typeof caps.exposureTime.max === "number"){
-    const us50hz  = 20000; // 1/50s in microseconds
-    const us100hz = 10000; // 1/100s in microseconds
-    // Clamp to what the device actually supports
-    const targetExp = Math.min(
-      caps.exposureTime.max,
-      Math.max(caps.exposureTime.min, us100hz)
-    );
-    // Only apply if it falls within our 50–100 Hz window
-    if (targetExp >= us100hz && targetExp <= us50hz){
-      adv.push({ exposureTime: targetExp });
-      console.log("[CAM] exposureTime set =", targetExp, "µs (", (1000000/targetExp).toFixed(1), "Hz )");
-    } else if (caps.exposureTime.max >= us100hz && caps.exposureTime.min <= us50hz){
-      // Device range overlaps our window — pick closest value inside it
-      const clamped = Math.min(us50hz, Math.max(us100hz, caps.exposureTime.min));
-      adv.push({ exposureTime: clamped });
-      console.log("[CAM] exposureTime clamped =", clamped, "µs (", (1000000/clamped).toFixed(1), "Hz )");
-    } else {
-      console.log("[CAM] exposureTime range", caps.exposureTime.min, "-", caps.exposureTime.max, "µs does not cover 50–100 Hz window, skipping.");
-    }
-  }
+          if (caps && caps.exposureTime &&
+              typeof caps.exposureTime.min === "number" &&
+              typeof caps.exposureTime.max === "number"){
+            const us50hz  = 20000;
+            const us100hz = 10000;
+            const targetExp = Math.min(
+              caps.exposureTime.max,
+              Math.max(caps.exposureTime.min, us100hz)
+            );
+            if (targetExp >= us100hz && targetExp <= us50hz){
+              adv.push({ exposureTime: targetExp });
+              console.log("[CAM] exposureTime set =", targetExp, "µs (", (1000000/targetExp).toFixed(1), "Hz )");
+            } else if (caps.exposureTime.max >= us100hz && caps.exposureTime.min <= us50hz){
+              const clamped = Math.min(us50hz, Math.max(us100hz, caps.exposureTime.min));
+              adv.push({ exposureTime: clamped });
+              console.log("[CAM] exposureTime clamped =", clamped, "µs (", (1000000/clamped).toFixed(1), "Hz )");
+            } else {
+              console.log("[CAM] exposureTime range", caps.exposureTime.min, "-", caps.exposureTime.max, "µs does not cover 50–100 Hz window, skipping.");
+            }
+          }
 
-  if (adv.length){
-    await track.applyConstraints({ advanced: adv });
-    console.log("[CAM] appliedConstraints.advanced =", adv);
-  } else {
-    console.log("[CAM] No advanced constraints supported on this device/browser.");
-  }
+          if (adv.length){
+            await track.applyConstraints({ advanced: adv });
+            console.log("[CAM] appliedConstraints.advanced =", adv);
+          } else {
+            console.log("[CAM] No advanced constraints supported on this device/browser.");
+          }
 
-}catch(e){
-  console.log("[CAM] applyConstraints error:", e);
-}
+        }catch(e){
+          console.log("[CAM] applyConstraints error:", e);
+        }
+
         await new Promise(r => {
           if (video.videoWidth && video.videoHeight) return r();
           video.onloadedmetadata = () => r();
@@ -738,25 +729,21 @@ try{
         await new Promise(r => requestAnimationFrame(r));
 
         showCameraUI(true);
-      }
-        /* =========================
-   PATCH 1: Add stream-resolution logs (minimal)
-   Put this INSIDE startLiveCamera(), AFTER video metadata is ready
-   (right after the onloadedmetadata wait is fine)
-   ========================= */
-try{
-  const tracks = stream ? stream.getVideoTracks() : [];
-  const t0 = tracks && tracks[0] ? tracks[0] : null;
 
-  console.log("[CAM] video.videoWidth/video.videoHeight =", video.videoWidth, video.videoHeight);
+        try{
+          const tracks = stream ? stream.getVideoTracks() : [];
+          const t0 = tracks && tracks[0] ? tracks[0] : null;
 
-  if (t0 && t0.getSettings){
-    console.log("[CAM] track.getSettings() =", t0.getSettings());
-  } else {
-    console.log("[CAM] track.getSettings() = Not available");
-  }
-}catch(e){
-  console.log("[CAM] log error:", e);
+          console.log("[CAM] video.videoWidth/video.videoHeight =", video.videoWidth, video.videoHeight);
+
+          if (t0 && t0.getSettings){
+            console.log("[CAM] track.getSettings() =", t0.getSettings());
+          } else {
+            console.log("[CAM] track.getSettings() = Not available");
+          }
+        }catch(e){
+          console.log("[CAM] log error:", e);
+        }
       }
 
       window.stopLiveCamera = function stopLiveCamera(){
@@ -770,110 +757,82 @@ try{
         showCameraUI(false);
       }
 
-      /* ✅ UPDATED: capture EXACTLY what roiViewport shows (portrait, ROI-only) */
-     /* =========================
-   PATCH 2: Replace your captureDataUrlFull() with this
-   - Matches ROI preview 1:1 using object-fit: cover math
-   - No rotation, uses video frame only
-   - Adds console logs requested
-   - Clarity: increases output pixels (configurable)
-   ========================= */
-function captureDataUrlFull(opts){
-  opts = opts || {};
+      function captureDataUrlFull(opts){
+        opts = opts || {};
 
-  const roi = document.getElementById("roiViewport");
-  if (!roi) throw new Error("roiViewport not found");
+        const roi = document.getElementById("roiViewport");
+        if (!roi) throw new Error("roiViewport not found");
 
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  if (!vw || !vh) throw new Error("Video metadata not ready");
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (!vw || !vh) throw new Error("Video metadata not ready");
 
-  // Optional config (does not change workflow unless you set it)
-  const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.86; // 0.90–0.95 requested
-  const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 1600; // 0 = do not cap by default
+        const jpegQuality = (typeof opts.jpegQuality === "number") ? opts.jpegQuality : 0.86;
+        const maxOutW = (typeof opts.maxOutW === "number") ? opts.maxOutW : 1600;
 
-  // DOM rects
-  const vRect = video.getBoundingClientRect();
-  const rRect = roi.getBoundingClientRect();
+        const vRect = video.getBoundingClientRect();
+        const rRect = roi.getBoundingClientRect();
 
-  console.log("[CAP] video DOM rect =", {
-    left: vRect.left, top: vRect.top, width: vRect.width, height: vRect.height
-  });
-  console.log("[CAP] ROI DOM rect =", {
-    left: rRect.left, top: rRect.top, width: rRect.width, height: rRect.height
-  });
+        console.log("[CAP] video DOM rect =", {
+          left: vRect.left, top: vRect.top, width: vRect.width, height: vRect.height
+        });
+        console.log("[CAP] ROI DOM rect =", {
+          left: rRect.left, top: rRect.top, width: rRect.width, height: rRect.height
+        });
 
-  // Ensure no transform/rotation is affecting capture (log only)
-  try{
-    const tr = getComputedStyle(video).transform;
-    console.log("[CAP] video computed transform =", tr);
-  }catch(e){
-    console.log("[CAP] computedStyle(transform) = Not available");
-  }
+        try{
+          const tr = getComputedStyle(video).transform;
+          console.log("[CAP] video computed transform =", tr);
+        }catch(e){
+          console.log("[CAP] computedStyle(transform) = Not available");
+        }
 
-  // ROI position relative to the VIDEO element in DOM pixels
-  const roiX = (rRect.left - vRect.left);
-  const roiY = (rRect.top  - vRect.top );
-  const roiW = rRect.width;
-  const roiH = rRect.height;
+        const roiX = (rRect.left - vRect.left);
+        const roiY = (rRect.top  - vRect.top );
+        const roiW = rRect.width;
+        const roiH = rRect.height;
 
-  // ---- object-fit: cover math ----
-  // Scale factor used to cover the element
-  const scale = Math.max(vRect.width / vw, vRect.height / vh);
+        const scale = Math.max(vRect.width / vw, vRect.height / vh);
+        const drawnW = vw * scale;
+        const drawnH = vh * scale;
+        const offX = (drawnW - vRect.width) / 2;
+        const offY = (drawnH - vRect.height) / 2;
 
-  // Size of the scaled camera frame as it would be drawn into the element
-  const drawnW = vw * scale;
-  const drawnH = vh * scale;
+        console.log("[CAP] cover math =", { scale, drawnW, drawnH, offX, offY });
 
-  // Center-crop offsets (in DOM pixels) due to cover
-  const offX = (drawnW - vRect.width) / 2;
-  const offY = (drawnH - vRect.height) / 2;
+        let sx = (roiX + offX) / scale;
+        let sy = (roiY + offY) / scale;
+        let sw = (roiW) / scale;
+        let sh = (roiH) / scale;
 
-  console.log("[CAP] cover math =", { scale, drawnW, drawnH, offX, offY });
+        if (sx < 0) { sw += sx; sx = 0; }
+        if (sy < 0) { sh += sy; sy = 0; }
+        if (sx + sw > vw) sw = vw - sx;
+        if (sy + sh > vh) sh = vh - sy;
 
-  // Map ROI DOM pixels -> source video pixels
-  let sx = (roiX + offX) / scale;
-  let sy = (roiY + offY) / scale;
-  let sw = (roiW) / scale;
-  let sh = (roiH) / scale;
+        console.log("[CAP] source crop sx/sy/sw/sh =", { sx, sy, sw, sh });
 
-  // Clamp to source bounds
-  if (sx < 0) { sw += sx; sx = 0; }
-  if (sy < 0) { sh += sy; sy = 0; }
-  if (sx + sw > vw) sw = vw - sx;
-  if (sy + sh > vh) sh = vh - sy;
+        let outW = Math.round(sw);
+        let outH = Math.round(sh);
 
-  console.log("[CAP] source crop sx/sy/sw/sh =", { sx, sy, sw, sh });
+        if (maxOutW > 0 && outW > maxOutW){
+          const outScale = maxOutW / outW;
+          outW = Math.round(outW * outScale);
+          outH = Math.round(outH * outScale);
+        }
 
-  // Output size (avoid unnecessary downscaling)
-  // Default: keep full crop resolution (no cap) unless maxOutW provided
-  let outW = Math.round(sw);
-  let outH = Math.round(sh);
+        canvas.width = outW;
+        canvas.height = outH;
 
-  if (maxOutW > 0 && outW > maxOutW){
-    const outScale = maxOutW / outW;
-    outW = Math.round(outW * outScale);
-    outH = Math.round(outH * outScale);
-  }
+        console.log("[CAP] canvas output size =", { outW, outH });
 
-  canvas.width = outW;
-  canvas.height = outH;
+        const ctx = canvas.getContext("2d", { willReadFrequently:true });
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
 
-  console.log("[CAP] canvas output size =", { outW, outH });
+        return canvas.toDataURL("image/jpeg", jpegQuality);
+      }
 
-  const ctx = canvas.getContext("2d", { willReadFrequently:true });
-  ctx.imageSmoothingEnabled = false;
-
-  // Draw video frame only (overlays do not affect canvas drawImage)
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
-
-  return canvas.toDataURL("image/jpeg", jpegQuality);
-}
-      /* ✅ Image clarity measurement — returns 0–100%
-         Measures sharpness using Laplacian variance on the digit area
-         (bottom-centre of frame where the scale display is).
-         High variance = sharp edges = good clarity.
-      */
       function measureClarity(dataUrl){
         return new Promise((resolve) => {
           const img = new Image();
@@ -889,13 +848,11 @@ function captureDataUrlFull(opts){
               ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
               const d = ctx.getImageData(0, 0, sw, sh).data;
 
-              // Convert to greyscale
               const grey = new Float32Array(sw * sh);
               for (let i = 0, p = 0; i < d.length; i += 4, p++){
                 grey[p] = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
               }
 
-              // Laplacian variance (sharpness metric)
               let sum = 0, sum2 = 0, count = 0;
               for (let y = 1; y < sh - 1; y++){
                 for (let x = 1; x < sw - 1; x++){
@@ -907,9 +864,6 @@ function captureDataUrlFull(opts){
                 }
               }
               const variance = (sum2 - (sum * sum) / count) / count;
-
-              // Map variance to 0–100%:
-              // <50  = very blurry, >2000 = very sharp (empirical thresholds for scale digits)
               const pct = Math.min(100, Math.max(0, Math.round((Math.sqrt(variance) / 45) * 100)));
               resolve(pct);
             }catch(e){
@@ -923,37 +877,30 @@ function captureDataUrlFull(opts){
 
       window.resetClick = async function resetClick(){
         pendingCapture = null;
+        requestedStage = "";
+        wrongWeight = false;
+        rangeWarning = false;
         btnSubmit.textContent = "SUBMIT";
         resetDisplay();
 
-        // ✅ Hide captured preview on reset
         const pw = document.getElementById("capturedPreviewWrap");
         if (pw){ pw.style.display = "none"; document.getElementById("capturedPreviewImg").src = ""; }
         const cl = document.getElementById("capturedClarityLabel");
         if (cl) cl.textContent = "";
 
-        setBtn("CAPTURE FRAME");
-        setStatus("RESET ✅\nStarting camera again...");
-        try{
-          await startLiveCamera();
-          uiState = "camera_on";
-          setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
-          showCaptureButtons();
-        }catch(err){
-          uiState = "idle";
-          setBtn("CAPTURE");
-          setStatus("RESET ✅\nCamera failed: " + (err && err.name ? (err.name + " - " + (err.message || "")) : String(err)));
-          showCaptureButtons();
-        }
+        stopLiveCamera();
+        uiState = "idle";
+        setBtn("CAPTURE");
+        setStatus("RESET ✅");
+        showIdleButtons();
       }
 
       window.submitClick = async function submitClick(){
         if (uiState !== "await_submit" || !pendingCapture){
-          setStatus("No captured data pending. Please CAPTURE first.");
+          setStatus("No captured data pending. Please capture first.");
           uiState = "idle";
           pendingCapture = null;
-          setBtn("CAPTURE");
-          showCaptureButtons();
+          showIdleButtons();
           return;
         }
 
@@ -967,7 +914,8 @@ function captureDataUrlFull(opts){
             memberId: pendingCapture.memberId,
             itemName: pendingCapture.itemName,
             weight: pendingCapture.weight,
-            imageDataUrl: pendingCapture.dataUrl
+            imageDataUrl: pendingCapture.dataUrl,
+            stageRequest: requestedStage
           });
         }catch(err){
           const msSub = _ms_(tSub0);
@@ -1007,6 +955,7 @@ function captureDataUrlFull(opts){
         setText("memberName", d.memberName || pendingCapture.ocrMemberName || "-");
         setText("itemName",   d.itemName || pendingCapture.itemName || "-");
         setText("capW","-");
+        document.getElementById("capW").className = "";
 
         let st = d.statusText || resp.stage || "-";
         const completed = !!d.completed;
@@ -1017,42 +966,26 @@ function captureDataUrlFull(opts){
 
         setStageText(st, completed || resp.stage === "READY");
         pendingCapture = null;
+        requestedStage = "";
+        wrongWeight = false;
+        rangeWarning = false;
 
         setStatus(
           "SUCCESS ✅ " + resp.message + " (" + st + ")" +
           "\n\nTIMING:\nSubmit call: " + msSub + " ms"
         );
 
-        if (resp.stage === "IN") {
-          uiState = "idle";
-          btnSubmit.textContent = "SUBMIT";
-          setBtn("CAPTURE READY");
-          setStatus("IN saved ✅\nNow capture READY WEIGHT (click CAPTURE READY).");
-          try{
-            await startLiveCamera();
-            uiState = "camera_on";
-            showCaptureButtons();
-          }catch(err){
-            uiState = "idle";
-            setBtn("CAPTURE");
-            showCaptureButtons();
-            setStatus("IN saved ✅\nCamera failed for READY: " + (err && err.message ? err.message : String(err)));
-          }
-          return;
-        }
-
         uiState = "idle";
         btnSubmit.textContent = "SUBMIT";
-        setBtn("CAPTURE");
-        showCaptureButtons();
+        showIdleButtons();
       }
 
       window.captureClick = async function captureClick(){
         if (uiState === "idle"){
           pendingCapture = null;
+          wrongWeight = false;
+          rangeWarning = false;
           btnSubmit.textContent = "SUBMIT";
-          btnSubmit.style.display = "none";
-          btnReset.style.display = "none";
 
           resetDisplay();
           setBtn("CAPTURE FRAME");
@@ -1060,13 +993,12 @@ function captureDataUrlFull(opts){
           try{
             await startLiveCamera();
             uiState = "camera_on";
-            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR (Submit will be shown after OCR).");
-            showCaptureButtons();
+            setStatus("Camera ON ✅\nPress CAPTURE FRAME to capture image first, then OCR.");
           }catch(err){
             uiState = "idle";
             setBtn("CAPTURE");
             setStatus("Camera failed: " + (err && err.name ? (err.name + " - " + (err.message || "")) : String(err)));
-            showCaptureButtons();
+            showIdleButtons();
           }
           return;
         }
@@ -1077,7 +1009,6 @@ function captureDataUrlFull(opts){
           const dataUrl = captureDataUrlFull();
           stopLiveCamera();
 
-          // ✅ Show captured image while OCR runs
           const prevWrap = document.getElementById("capturedPreviewWrap");
           const prevImg  = document.getElementById("capturedPreviewImg");
           const prevLbl  = document.getElementById("capturedPreviewLabel");
@@ -1087,13 +1018,11 @@ function captureDataUrlFull(opts){
           prevLbl.textContent = "📸 Captured — OCR Running...";
           clarityLbl.textContent = "";
 
-          // Measure and show clarity % in red
           measureClarity(dataUrl).then(pct => {
             if (pct !== null) clarityLbl.textContent = "Clarity: " + pct + "%";
           });
 
           const tAll0 = performance.now();
-
           setStatus("Image captured ✅\nRunning OCR...");
           const tOcr0 = performance.now();
           let r;
@@ -1110,7 +1039,7 @@ function captureDataUrlFull(opts){
             );
             setBtn("CAPTURE");
             uiState = "idle";
-            showCaptureButtons();
+            showIdleButtons();
             return;
           }
 
@@ -1119,7 +1048,6 @@ function captureDataUrlFull(opts){
           if (!r || !r.ok){
             const msAll = _ms_(tAll0);
 
-            // log failed OCR in backend (your doPost supports postFailTasks)
             try{
               await callServer("postFailTasks", {
                 imageDataUrl: dataUrl,
@@ -1139,7 +1067,7 @@ function captureDataUrlFull(opts){
 
             setBtn("CAPTURE");
             uiState = "idle";
-            showCaptureButtons();
+            showIdleButtons();
             return;
           }
 
@@ -1148,7 +1076,25 @@ function captureDataUrlFull(opts){
           setText("itemName", r.itemName || "-");
           setText("capW", (r.weight !== undefined && r.weight !== null) ? String(r.weight) : "-");
 
+          rangeWarning = !!r.rangeWarning;
+          wrongWeight = !!r.wrongWeight;
+
+          if (rangeWarning) {
+            document.getElementById("capW").className = "hlRed";
+          } else {
+            document.getElementById("capW").className = "";
+          }
+
           prevLbl.textContent = "";
+
+          if (wrongWeight) {
+            setStatus("WRONG WEIGHT\nPlease recapture correct weight.");
+            setBtn("CAPTURE");
+            uiState = "idle";
+            pendingCapture = null;
+            showIdleButtons();
+            return;
+          }
 
           pendingCapture = {
             memberId: r.memberId,
@@ -1162,7 +1108,7 @@ function captureDataUrlFull(opts){
           uiState = "await_submit";
           setBtn("CAPTURE");
           setStatus(
-            "OCR DONE ✅\n" +
+            (rangeWarning ? "OCR DONE ✅\nNo min/max range found for this item. Verify highlighted weight.\n\n" : "OCR DONE ✅\n") +
             "Press SUBMIT to upload & sync to Google Sheet.\n\n" +
             "TIMING:\nOCR call: " + msOcr + " ms"
           );
@@ -1174,14 +1120,13 @@ function captureDataUrlFull(opts){
 
       resetDisplay();
       setBtn("CAPTURE");
-      setStatus("Press CAPTURE to start live camera.");
+      setStatus("Press OUT / IN / READY / EXTRA WEIGHT to start live camera.");
 
-      document.getElementById("btnCapture").addEventListener("click", captureClick);
       btnCaptureFixed.addEventListener("click", captureClick);
       btnSubmit.addEventListener("click", submitClick);
       btnReset.addEventListener("click", resetClick);
 
-      showCaptureButtons();
+      showIdleButtons();
     </script>
   </div>
 
