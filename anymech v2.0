@@ -563,7 +563,7 @@
 /* ═══════════════════════════════════════════════════
    ⚠️  REPLACE THIS URL WITH YOUR NEW APPS SCRIPT URL
    ═══════════════════════════════════════════════════ */
-const BACKEND_URL = "YOUR_NEW_APPS_SCRIPT_DEPLOYED_URL_HERE";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyU_Y8Ys3894VW93YmohqA90Mm_xAwV743dIICaKm-dfilMGCEw0JngTyRQNCt_5TVBMw/exec";
 
 /* ── Error catcher ── */
 window.onerror = function(msg,s,l,c){
