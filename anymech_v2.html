@@ -707,20 +707,52 @@ async function startCamera(){
   if(!window.isSecureContext)
     throw new Error("Camera requires HTTPS.");
 
+  // Check permissions first
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const perm = await navigator.permissions.query({name:"camera"});
+      if(perm.state === "denied"){
+        throw new Error("Camera permission DENIED. Please allow camera access in your browser settings and reload.");
+      }
+    }
+  }catch(permErr){
+    if(permErr.message && permErr.message.includes("DENIED")) throw permErr;
+    // ignore other permission query errors
+  }
+
+  // Check if any video devices exist
+  try{
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
+    if(videoDevices.length === 0){
+      throw new Error("No camera found on this device.");
+    }
+  }catch(devErr){
+    if(devErr.message && devErr.message.includes("No camera")) throw devErr;
+    // ignore enumerate errors, continue trying
+  }
+
   // 5-level fallback
   const attempts = [
-    { video:{ facingMode:{exact:"environment"}, width:{ideal:1920}, height:{ideal:1080} }, audio:false },
-    { video:{ facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080} }, audio:false },
-    { video:{ facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720}  }, audio:false },
+    { video:{ facingMode:{exact:"environment"} }, audio:false },
     { video:{ facingMode:{ideal:"environment"} }, audio:false },
-    { video: true, audio: false }
+    { video:{ facingMode:"environment" },         audio:false },
+    { video:{ facingMode:"user" },                audio:false },
+    { video: true,                                audio: false }
   ];
   let lastErr = null;
+  let attemptNum = 0;
   for(const constraints of attempts){
-    try{ stream = await navigator.mediaDevices.getUserMedia(constraints); lastErr=null; break; }
-    catch(e){ lastErr=e; }
+    attemptNum++;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      lastErr = null;
+      break;
+    }catch(e){
+      lastErr = e;
+    }
   }
-  if(lastErr) throw new Error("Camera not available: "+(lastErr.message||String(lastErr)));
+  if(lastErr) throw new Error("Camera failed after "+attemptNum+" attempts. Last error: "+(lastErr.message||String(lastErr))+". Try: allow camera permission, use Chrome/Safari, ensure HTTPS.");
 
   video.srcObject = stream;
 
