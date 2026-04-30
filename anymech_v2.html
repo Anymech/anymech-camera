@@ -24,19 +24,16 @@
     .card-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 
     /* STAGE BUTTONS */
-    .row-reset{margin-bottom:8px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .sbtn{padding:15px 6px;border-radius:13px;font-size:14px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:2.5px solid transparent;background:#fff;cursor:pointer;transition:transform 0.1s,background 0.12s,color 0.12s;user-select:none}
+    .sbtn{padding:15px 6px;border-radius:13px;font-size:13px;font-weight:900;letter-spacing:0.3px;text-transform:uppercase;border:2.5px solid transparent;background:#fff;cursor:pointer;transition:transform 0.1s,background 0.12s,color 0.12s;user-select:none;line-height:1.2}
     .sbtn:active{transform:scale(0.93)}
-    .s-reset{color:var(--red);border-color:var(--red);width:100%}
     .s-in{color:var(--blue);border-color:var(--blue)}
     .s-ready{color:var(--pink);border-color:var(--pink)}
     .s-out{color:var(--green);border-color:var(--green)}
     .s-extra{color:var(--dark);border-color:var(--dark)}
     .s-boxes{color:var(--orange);border-color:var(--orange)}
     .sbtn.sel{color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(0,0,0,0.18)}
-    .s-reset.sel{background:var(--red)}
     .s-in.sel{background:var(--blue)}
     .s-ready.sel{background:var(--pink)}
     .s-out.sel{background:var(--green)}
@@ -74,7 +71,7 @@
     .kv{display:grid;grid-template-columns:150px 1fr;gap:0}
     .kv-lbl{font-size:13px;font-weight:700;color:var(--muted);padding:11px 0;border-bottom:1px solid #f1f5f9}
     .kv-val{font-size:14px;font-weight:800;color:var(--text);padding:11px 0;border-bottom:1px solid #f1f5f9;word-break:break-all}
-    .kv-val.capW{font-size:32px;font-weight:900;color:var(--blue);letter-spacing:2px;line-height:1.1}
+    .kv-val.capW{font-size:32px;font-weight:900;color:var(--blue);letter-spacing:2px;line-height:1.1;padding-left:12px}
     .kv-lbl.capW-lbl{color:var(--blue);font-weight:900}
     .kv-val.stage-ok{color:var(--green);font-weight:900}
     .hl-red{background:#fee2e2;border-radius:6px;padding:2px 8px;color:#991b1b;display:inline-block}
@@ -86,10 +83,10 @@
     .overrideInput{width:100%;padding:12px;font-size:22px;font-weight:700;font-family:monospace;border:2px solid var(--border);border-radius:12px;text-align:center;color:var(--blue);outline:none;background:#f8fafc}
     .overrideInput:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,0.12)}
 
-    /* BOXES INPUT */
+    /* BOXES COUNT INPUT */
     .boxesWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
     .boxesLbl{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:8px;display:block}
-    .boxesInput{width:100%;padding:16px;font-size:32px;font-weight:700;font-family:monospace;border:2.5px solid var(--orange);border-radius:14px;text-align:center;color:var(--orange);outline:none;background:#fffbeb}
+    .boxesInput{width:100%;padding:16px;font-size:40px;font-weight:900;font-family:monospace;border:2.5px solid var(--orange);border-radius:14px;text-align:center;color:var(--orange);outline:none;background:#fffbeb}
     .boxesInput:focus{box-shadow:0 0 0 3px rgba(217,119,6,0.2)}
 
     /* EXTRA INFO */
@@ -104,9 +101,8 @@
     /* ACTION BUTTONS */
     .btn{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;user-select:none;box-shadow:0 8px 0 rgba(0,0,0,0.18),0 14px 28px rgba(0,0,0,0.10);transition:transform 0.08s,box-shadow 0.08s;margin-bottom:10px;display:none}
     .btn:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,0.18),0 6px 12px rgba(0,0,0,0.10)}
-    .btn-capture{background:linear-gradient(160deg,#2563eb,#1a40c4);color:#fff}
-    .btn-submit{background:linear-gradient(160deg,#16a34a,#0f7a36);color:#fff}
     .btn-reset-a{background:linear-gradient(160deg,#dc2626,#a81c1c);color:#fff}
+    .btn-submit{background:linear-gradient(160deg,#16a34a,#0f7a36);color:#fff}
 
     /* SUCCESS OVERLAY */
     .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.22);z-index:9999;align-items:center;justify-content:center}
@@ -120,7 +116,7 @@
     @media(max-width:420px){
       body{padding:8px 8px 32px}
       .appTitle{font-size:22px}
-      .sbtn{padding:13px 4px;font-size:12px;border-radius:11px}
+      .sbtn{padding:12px 4px;font-size:11px;border-radius:11px}
       .kv{grid-template-columns:120px 1fr}
       .kv-val.capW{font-size:26px}
       .btn{font-size:18px;padding:20px}
@@ -134,12 +130,9 @@
   <div class="appTitle">Anymech Products</div>
   <div class="appSub">Live Weight Capture · V2</div>
 
-  <!-- STAGE SELECTION -->
+  <!-- STAGE BUTTONS -->
   <div class="card">
     <div class="card-title">Select Stage</div>
-    <div class="row-reset">
-      <button class="sbtn s-reset" id="sReset">↺ RESET</button>
-    </div>
     <div class="row3">
       <button class="sbtn s-in"    id="sIn">IN</button>
       <button class="sbtn s-ready" id="sReady">READY</button>
@@ -147,7 +140,7 @@
     </div>
     <div class="row2">
       <button class="sbtn s-extra" id="sExtra">EXTRA WEIGHT</button>
-      <button class="sbtn s-boxes" id="sBoxes">BOXES</button>
+      <button class="sbtn s-boxes" id="sBoxes">BOXES COUNT</button>
     </div>
   </div>
 
@@ -158,7 +151,7 @@
       <div class="prevTag" id="prevTag">📸 Captured</div>
       <div class="clarityTag" id="clarityTag"></div>
     </div>
-    <div class="status info" id="status">Select a stage above, then press CAPTURE.</div>
+    <div class="status info" id="status">Select a stage above to open camera.</div>
   </div>
 
   <!-- LOCK BOX -->
@@ -174,39 +167,35 @@
     <div class="kv">
       <div class="kv-lbl">NEW M.NO</div>
       <div class="kv-val" id="dMid">-</div>
-
       <div class="kv-lbl">MEMBER NAME</div>
       <div class="kv-val" id="dMname">-</div>
-
       <div class="kv-lbl">ITEM NAME</div>
       <div class="kv-val" id="dItem">-</div>
-
-      <div class="kv-lbl capW-lbl">CAPTURED WEIGHT</div>
+      <div class="kv-lbl capW-lbl" id="capWLbl">CAPTURED WEIGHT</div>
       <div class="kv-val capW" id="dCapW">-</div>
-
       <div class="kv-lbl">OUT WEIGHT</div>
       <div class="kv-val" id="dOutW">-</div>
-
       <div class="kv-lbl">IN WEIGHT</div>
       <div class="kv-val" id="dInW">-</div>
-
       <div class="kv-lbl">READY / BOXES</div>
       <div class="kv-val" id="dReadyW">-</div>
-
       <div class="kv-lbl">SHORT MATERIAL</div>
       <div class="kv-val" id="dShort">-</div>
-
       <div class="kv-lbl">STATUS</div>
       <div class="kv-val stage-ok" id="dStage">-</div>
     </div>
 
-    <!-- Weight override -->
+    <!-- Weight override (hidden for BOXES COUNT) -->
     <div class="overrideWrap" id="overrideWrap">
-      <label class="overrideLbl">✏️ Weight wrong? Correct it here before submitting:</label>
-      <input type="number" step="0.001" min="0" class="overrideInput" id="wtInput" placeholder="e.g. 58.500"/>
+      <label class="overrideLbl">✏️ Weight wrong? Correct it here:</label>
+      <input type="number" step="0.001" min="0" class="overrideInput" id="wtInput"
+             placeholder="e.g. 58.500"
+             oninput="this.dataset.edited=(parseFloat(this.value)!==parseFloat(this.dataset.original))?'true':'false';
+                      this.style.borderColor=this.dataset.edited==='true'?'#d97706':'';
+                      this.style.background=this.dataset.edited==='true'?'#fff7ed':''"/>
     </div>
 
-    <!-- Boxes count -->
+    <!-- Boxes count (only for BOXES COUNT stage) -->
     <div class="boxesWrap" id="boxesWrap">
       <label class="boxesLbl">📦 Enter Boxes Count:</label>
       <input type="number" min="1" step="1" class="boxesInput" id="boxesInput" placeholder="0"/>
@@ -216,10 +205,9 @@
     <div class="extraInfo" id="extraInfo"></div>
   </div>
 
-  <!-- ACTION BUTTONS -->
-  <button class="btn btn-capture" id="btnCapture">📷 CAPTURE</button>
-  <button class="btn btn-submit"  id="btnSubmit">✅ SUBMIT</button>
+  <!-- ACTION BUTTONS: RESET above SUBMIT -->
   <button class="btn btn-reset-a" id="btnResetA">↺ RESET</button>
+  <button class="btn btn-submit"  id="btnSubmit">✅ SUBMIT</button>
 
 </div>
 
@@ -251,33 +239,46 @@
 
 <script>
 window.onerror=function(msg,s,l,c){
-  try{setStatus("JS ERROR: "+msg+" (line "+l+")", "err");}catch(e){}
+  try{setStatus("JS ERROR: "+msg+" (line "+l+")","err");}catch(e){}
   return false;
 };
 
 const BACKEND_URL="https://script.google.com/macros/s/AKfycbzaeF-M1OwWnLmpFeZZjD393pY5YEoY1R10NwZtZ3Mlsw1j7XPYQeqxkphbQ05ayizkDQ/exec";
 
-let uiState="idle",stage=null,stream=null,pending=null,capSess=0;
+/* ── STATE ── */
+let uiState="idle"; // idle | cam | processing | await | submitting
+let stage=null;
+let stream=null;
+let pending=null;
+let capSess=0;
 
+/* ── ELEMENTS ── */
 const video       =document.getElementById("video");
 const canvas      =document.getElementById("canvas");
 const camWrap     =document.getElementById("camWrap");
 const btnFixedWrap=document.getElementById("btnFixedWrap");
 const btnCapFixed =document.getElementById("btnCaptureFixed");
-const btnCapture  =document.getElementById("btnCapture");
 const btnSubmit   =document.getElementById("btnSubmit");
 const btnResetA   =document.getElementById("btnResetA");
 
+/* ── STAGE CONFIG ── */
+const STAGE_CFG={
+  IN:          {id:"sIn",    color:"#1a56db", label:"IN"},
+  READY:       {id:"sReady", color:"#c026d3", label:"READY"},
+  OUT:         {id:"sOut",   color:"#16a34a", label:"OUT"},
+  EXTRA_WEIGHT:{id:"sExtra", color:"#111827", label:"EXTRA WEIGHT"},
+  BOXES:       {id:"sBoxes", color:"#d97706", label:"BOXES COUNT"},
+};
+
+/* ── HELPERS ── */
 function _ms_(t0){return Math.round(performance.now()-t0);}
 function tx(id,v){const e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?"-":String(v);}
 function setStatus(msg,cls){const el=document.getElementById("status");el.textContent=msg||"";el.className="status "+(cls||"info");}
 
 function setShortage(v){
-  const el=document.getElementById("dShort");
-  el.className="kv-val";
+  const el=document.getElementById("dShort");el.className="kv-val";
   if(v===null||v===undefined||v===""){el.textContent="-";return;}
-  const n=Number(v);
-  if(isNaN(n)){el.textContent="-";return;}
+  const n=Number(v);if(isNaN(n)){el.textContent="-";return;}
   el.textContent=n.toFixed(3);
   if(n<-0.200) el.innerHTML='<span class="hl-red">▼ '+n.toFixed(3)+'</span>';
   else if(n>0.200) el.innerHTML='<span class="hl-grn">▲ '+n.toFixed(3)+'</span>';
@@ -301,57 +302,88 @@ function showOverlay(title,sub){
   setTimeout(()=>el.style.display="none",1800);
 }
 
-const STAGE_CFG={
-  IN:          {id:"sIn",    color:"#1a56db",label:"IN"},
-  READY:       {id:"sReady", color:"#c026d3",label:"READY"},
-  OUT:         {id:"sOut",   color:"#16a34a",label:"OUT"},
-  EXTRA_WEIGHT:{id:"sExtra", color:"#111827",label:"EXTRA WEIGHT"},
-  BOXES:       {id:"sBoxes", color:"#d97706",label:"BOXES"},
-};
-
+/* ── SHOW UI ── */
 function showUI(){
   const isCam  =uiState==="cam";
-  const isSel  =uiState==="sel";
   const isAwait=uiState==="await";
   const isSub  =uiState==="submitting";
   const isBoxes=(stage==="BOXES");
-  const isExtra=(stage==="EXTRA_WEIGHT");
 
   camWrap.style.display      =isCam?"flex":"none";
   btnFixedWrap.style.display =isCam?"block":"none";
-  btnCapture.style.display   =isSel?"block":"none";
-  btnSubmit.style.display    =(isAwait||isSub)?"block":"none";
   btnResetA.style.display    =isAwait?"block":"none";
+  btnSubmit.style.display    =(isAwait||isSub)?"block":"none";
 
   if(isSub){btnSubmit.textContent="⏳ SUBMITTING...";btnSubmit.disabled=true;}
   else{btnSubmit.textContent="✅ SUBMIT";btnSubmit.disabled=false;}
 
-  document.getElementById("overrideWrap").style.display=(isAwait&&!isBoxes)?"block":"none";
-  document.getElementById("boxesWrap").style.display=(isAwait&&isBoxes)?"block":"none";
-  document.getElementById("extraInfo").style.display=(isAwait&&isExtra)?"block":"none";
+  // BOXES COUNT: hide captured weight row, show count input
+  const capWRow=document.getElementById("capWLbl");
+  const capWVal=document.getElementById("dCapW");
+  if(isAwait&&isBoxes){
+    if(capWRow) capWRow.style.display="none";
+    if(capWVal) capWVal.style.display="none";
+    document.getElementById("overrideWrap").style.display="none";
+    document.getElementById("boxesWrap").style.display="block";
+  } else {
+    if(capWRow) capWRow.style.display="";
+    if(capWVal) capWVal.style.display="";
+    document.getElementById("overrideWrap").style.display=isAwait?"block":"none";
+    document.getElementById("boxesWrap").style.display="none";
+  }
+  document.getElementById("extraInfo").style.display=(isAwait&&stage==="EXTRA_WEIGHT")?"block":"none";
 }
 
-function selectStage(s){
+/* ── SELECT STAGE → open camera immediately ── */
+async function selectStage(s){
   if(["processing","submitting"].includes(uiState)) return;
   stopCamera();
-  stage=s;uiState="sel";
+  stage=s;
+  pending=null;
+  capSess++;
+
+  // Highlight selected button
   Object.entries(STAGE_CFG).forEach(([k,v])=>{
     document.getElementById(v.id).classList.toggle("sel",k===s);
   });
+
+  // Camera pill
   const cfg=STAGE_CFG[s];
   const pill=document.getElementById("stagePill");
   pill.textContent=cfg.label;pill.style.background=cfg.color;
+
+  // Clear inputs
   document.getElementById("wtInput").value="";
+  document.getElementById("wtInput").dataset.original="";
+  document.getElementById("wtInput").dataset.edited="false";
+  document.getElementById("wtInput").style.borderColor="";
+  document.getElementById("wtInput").style.background="";
   document.getElementById("boxesInput").value="";
   document.getElementById("lockBox").style.display="none";
   document.getElementById("extraInfo").style.display="none";
+  document.getElementById("prevWrap").style.display="none";
+  document.getElementById("prevImg").src="";
+  document.getElementById("clarityTag").textContent="";
+  tx("dCapW","-");
+
+  // Open camera immediately
+  uiState="cam";
   showUI();
-  setStatus("Stage: "+cfg.label+"\nPress CAPTURE to open camera.","info");
+  setStatus("Opening camera for "+cfg.label+"...","info");
+  try{
+    await startCamera();
+    setStatus("Camera ON ✅  ["+cfg.label+"]\nAlign: Member Card (top) + Scale (bottom)\nPress CAPTURE FRAME.","ok");
+  }catch(err){
+    setStatus("Camera error: "+(err&&err.message?err.message:String(err)),"err");
+    uiState="idle";showUI();
+  }
 }
 
+/* ── RESET ── */
 function doReset(){
   stopCamera();
   stage=null;pending=null;capSess++;uiState="idle";
+
   Object.values(STAGE_CFG).forEach(v=>document.getElementById(v.id).classList.remove("sel"));
   ["dMid","dMname","dItem","dCapW","dOutW","dInW","dReadyW","dStage"].forEach(id=>tx(id,"-"));
   setShortage(null);
@@ -360,17 +392,20 @@ function doReset(){
   document.getElementById("prevImg").src="";
   document.getElementById("clarityTag").textContent="";
   document.getElementById("wtInput").value="";
+  document.getElementById("wtInput").style.borderColor="";
+  document.getElementById("wtInput").style.background="";
   document.getElementById("boxesInput").value="";
   document.getElementById("extraInfo").style.display="none";
   showUI();
   setStatus("Reset ✓  Select a stage to begin.","info");
 }
 
+/* ── CAMERA ── */
 async function startCamera(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)
-    throw new Error("Camera API not available in this browser/webview.");
+    throw new Error("Camera API not available.");
   if(!window.isSecureContext)
-    throw new Error("Camera blocked: page is not HTTPS.");
+    throw new Error("Camera requires HTTPS.");
 
   try{video.muted=true;}catch(e){}
 
@@ -389,7 +424,6 @@ async function startCamera(){
     {video:{facingMode:"environment"},audio:false},
     {video:true,audio:false}
   ];
-
   let lastErr=null;
   for(const c of attempts){
     try{stream=await navigator.mediaDevices.getUserMedia(c);lastErr=null;break;}
@@ -398,8 +432,6 @@ async function startCamera(){
   if(lastErr) throw new Error("Camera not available: "+(lastErr.message||String(lastErr)));
 
   video.srcObject=stream;
-
-  // Camera tuning
   try{
     const track=stream.getVideoTracks()[0];
     const caps=track&&track.getCapabilities?track.getCapabilities():null;
@@ -422,9 +454,6 @@ async function startCamera(){
   await video.play();
   await new Promise(r=>requestAnimationFrame(r));
   await new Promise(r=>requestAnimationFrame(r));
-
-  uiState="cam";
-  showUI();
 }
 
 function stopCamera(){
@@ -434,23 +463,19 @@ function stopCamera(){
   btnFixedWrap.style.display="none";
 }
 
+/* ── CAPTURE ROI ── */
 function captureROI(){
-  const vw=video.videoWidth, vh=video.videoHeight;
-  if(!vw||!vh) throw new Error("Video stream not ready — try again.");
-
+  const vw=video.videoWidth,vh=video.videoHeight;
+  if(!vw||!vh) throw new Error("Video not ready.");
   const roi=document.getElementById("roiViewport");
-
-  let sx=0,sy=0,sw=vw,sh=vh; // default: full frame
-
-  // Try ROI crop if viewport is available and visible
+  let sx=0,sy=0,sw=vw,sh=vh;
   try{
     if(roi){
       const vRect=video.getBoundingClientRect();
       const rRect=roi.getBoundingClientRect();
-      if(vRect.width>0&&vRect.height>0&&rRect.width>0&&rRect.height>0){
+      if(vRect.width>0&&rRect.width>0){
         const scale=Math.max(vRect.width/vw,vRect.height/vh);
-        const dw=vw*scale,dh=vh*scale;
-        const offX=(dw-vRect.width)/2,offY=(dh-vRect.height)/2;
+        const offX=((vw*scale)-vRect.width)/2,offY=((vh*scale)-vRect.height)/2;
         let _sx=(rRect.left-vRect.left+offX)/scale;
         let _sy=(rRect.top-vRect.top+offY)/scale;
         let _sw=rRect.width/scale,_sh=rRect.height/scale;
@@ -460,41 +485,31 @@ function captureROI(){
       }
     }
   }catch(e){}
-
-  // Scale output (max 1600px wide)
   const maxW=1600;
   let outW=Math.round(sw),outH=Math.round(sh);
   if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
-  if(outW<1||outH<1) throw new Error("Invalid capture dimensions.");
-
   canvas.width=outW;canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;
   ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
-
-  // Try JPEG first, fallback to PNG
   let dataUrl="";
-  try{ dataUrl=canvas.toDataURL("image/jpeg",0.88); }catch(e){}
+  try{dataUrl=canvas.toDataURL("image/jpeg",0.88);}catch(e){}
   if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
-    try{ dataUrl=canvas.toDataURL("image/png"); }catch(e){}
+    try{dataUrl=canvas.toDataURL("image/png");}catch(e){}
   }
-  if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
-    throw new Error("Canvas capture failed — video may not be ready. Please try again.");
-  }
-  if(!dataUrl.startsWith("data:image")){
-    throw new Error("Captured image format invalid. Please try again.");
-  }
+  if(!dataUrl||dataUrl.length<100) throw new Error("Image capture failed. Please try again.");
   return dataUrl;
 }
 
+/* ── CLARITY ── */
 async function measureClarity(dataUrl){
   return new Promise(resolve=>{
     const img=new Image();
     img.onload=function(){
       try{
         const sc=document.createElement("canvas");
-        const sw2=Math.round(img.width*0.70),sh2=Math.round(img.height*0.45);
-        const sx2=Math.round((img.width-sw2)/2),sy2=Math.round(img.height*0.50);
+        const sw2=Math.round(img.width*0.7),sh2=Math.round(img.height*0.45);
+        const sx2=Math.round((img.width-sw2)/2),sy2=Math.round(img.height*0.5);
         sc.width=sw2;sc.height=sh2;
         const ctx=sc.getContext("2d",{willReadFrequently:true});
         ctx.drawImage(img,sx2,sy2,sw2,sh2,0,0,sw2,sh2);
@@ -503,8 +518,7 @@ async function measureClarity(dataUrl){
         for(let i=0,p=0;i<d.length;i+=4,p++) g[p]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
         let s=0,s2=0,n=0;
         for(let y=1;y<sh2-1;y++) for(let x=1;x<sw2-1;x++){
-          const p=y*sw2+x;
-          const l=-g[p-sw2]-g[p-1]+4*g[p]-g[p+1]-g[p+sw2];
+          const p=y*sw2+x;const l=-g[p-sw2]-g[p-1]+4*g[p]-g[p+1]-g[p+sw2];
           s+=l;s2+=l*l;n++;
         }
         const v=(s2-(s*s)/n)/n;
@@ -516,14 +530,12 @@ async function measureClarity(dataUrl){
   });
 }
 
+/* ── SERVER CALL ── */
 async function callServer(action,payload){
   const body=Object.assign({action},payload||{});
   if(body.imageDataUrl!==undefined){
     const du=String(body.imageDataUrl||"").trim();
-    // Only validate if it's clearly broken (empty or wrong prefix)
-    if(!du||du==="data:,"||du.length<50){
-      throw new Error("Captured image is blank — please tap RESET and try again.");
-    }
+    if(!du||du==="data:,"||du.length<50) throw new Error("Captured image is blank — tap RESET and try again.");
     body.imageDataUrl=du;
   }
   const ctrl=new AbortController();
@@ -532,136 +544,140 @@ async function callServer(action,payload){
   try{
     res=await fetch(BACKEND_URL,{method:"POST",body:JSON.stringify(body),signal:ctrl.signal});
     text=await res.text();
-  }catch(fetchErr){
+  }catch(err){
     clearTimeout(to);
-    if(fetchErr.name==="AbortError") throw new Error("Request timed out. Check internet connection.");
-    throw new Error("Network error: "+(fetchErr.message||String(fetchErr)));
+    if(err.name==="AbortError") throw new Error("Request timed out. Check internet.");
+    throw new Error("Network error: "+(err.message||String(err)));
   }finally{clearTimeout(to);}
-  if(!res||!res.ok) throw new Error("HTTP "+(res?.status||0)+" - "+(text||"").slice(0,300));
+  if(!res||!res.ok) throw new Error("HTTP "+(res&&res.status?res.status:0)+" - "+(text||"").slice(0,300));
   try{return JSON.parse(text);}
   catch(e){throw new Error("Server error: "+(text||"").slice(0,300));}
 }
 
-async function onCapture(){
-  if(!stage){
-    setStatus("⚠️ Select a stage first (IN / READY / OUT / EXTRA WEIGHT / BOXES).","err");
-    return;
+/* ── CAPTURE FRAME (called from fixed button) ── */
+async function onCaptureFrame(){
+  if(uiState!=="cam") return;
+  const sess=++capSess;
+  uiState="processing";showUI();
+
+  let dataUrl;
+  try{dataUrl=captureROI();}
+  catch(err){
+    setStatus("Capture error: "+(err&&err.message?err.message:String(err)),"err");
+    uiState="cam";showUI();return;
   }
 
-  if(uiState==="sel"){
-    setStatus("Opening camera...","info");
-    try{
-      await startCamera();
-      setStatus("Camera ON ✅\nAlign: Member Card (top) + Scale (bottom)\nThen press CAPTURE FRAME.","ok");
-    }catch(err){
-      setStatus("Camera error: "+(err?.message||String(err)),"err");
-      uiState="sel";showUI();
-    }
-    return;
-  }
+  stopCamera();
 
-  if(uiState==="cam"){
-    const sess=++capSess;
-    uiState="processing";showUI();
+  // Show preview
+  document.getElementById("prevImg").src=dataUrl;
+  document.getElementById("prevWrap").style.display="block";
+  document.getElementById("prevTag").textContent="📸 Captured — OCR Running...";
+  document.getElementById("clarityTag").textContent="";
+  measureClarity(dataUrl).then(pct=>{
+    if(pct!==null) document.getElementById("clarityTag").textContent="Clarity: "+pct+"%";
+  });
 
-    let dataUrl;
-    try{dataUrl=captureROI();}
-    catch(err){
-      setStatus("Capture error: "+(err?.message||String(err)),"err");
-      uiState="cam";showUI();return;
-    }
+  tx("dCapW","...");
+  setStatus("Image captured ✅\nRunning OCR — please wait...","info");
 
-    stopCamera();
-
-    const prevWrap=document.getElementById("prevWrap");
-    document.getElementById("prevImg").src=dataUrl;
-    prevWrap.style.display="block";
-    document.getElementById("prevTag").textContent="📸 Captured — OCR Running...";
-    document.getElementById("clarityTag").textContent="";
-
-    measureClarity(dataUrl).then(pct=>{
-      if(pct!==null) document.getElementById("clarityTag").textContent="Clarity: "+pct+"%";
-    });
-
-    tx("dCapW","...");
-    setStatus("Image captured ✅\nRunning OCR — please wait...","info");
-
-    const tOcr=performance.now();
-    let r;
-    try{r=await callServer("visionExtract",{imageDataUrl:dataUrl});}
-    catch(err){
-      if(sess!==capSess) return;
-      document.getElementById("prevTag").textContent="❌ OCR Failed";
-      tx("dCapW","-");
-      setStatus("OCR call failed:\n"+(err?.message||String(err)),"err");
-      uiState="sel";showUI();return;
-    }
-
+  const tOcr=performance.now();
+  let r;
+  try{r=await callServer("visionExtract",{imageDataUrl:dataUrl});}
+  catch(err){
     if(sess!==capSess) return;
-    const msOcr=_ms_(tOcr);
+    document.getElementById("prevTag").textContent="❌ OCR Failed";
+    tx("dCapW","-");
+    setStatus("OCR call failed:\n"+(err&&err.message?err.message:String(err)),"err");
+    uiState="idle";showUI();return;
+  }
 
-    if(!r?.ok){
-      document.getElementById("prevTag").textContent="❌ OCR Failed";
-      tx("dCapW","-");
-      setStatus(
-        "OCR FAILED: "+(r?.message||"Unknown error")+
-        "\nRAW: "+(r?.rawText||"")+
-        "\n["+msOcr+"ms]","err"
-      );
-      callServer("postFailTasks",{imageDataUrl:dataUrl,failMessage:r?.message||"OCR failed",rawText:r?.rawText||""}).catch(()=>{});
-      uiState="sel";showUI();return;
-    }
+  if(sess!==capSess) return;
+  const msOcr=_ms_(tOcr);
 
-    document.getElementById("prevTag").textContent="📸 Captured";
+  if(!r||!r.ok){
+    document.getElementById("prevTag").textContent="❌ OCR Failed";
+    tx("dCapW","-");
+    setStatus("OCR FAILED: "+(r&&r.message?r.message:"Unknown")+"\nRAW: "+(r&&r.rawText?r.rawText:"")+"\n["+msOcr+"ms]","err");
+    callServer("postFailTasks",{imageDataUrl:dataUrl,failMessage:(r&&r.message)||"OCR failed",rawText:(r&&r.rawText)||""}).catch(()=>{});
+    uiState="idle";showUI();return;
+  }
 
-    tx("dMid",   r.memberId||"-");
-    tx("dMname", r.memberName||"-");
-    tx("dItem",  r.itemName||"-");
+  document.getElementById("prevTag").textContent="📸 Captured";
 
-    const isBoxes=(stage==="BOXES");
-    const isExtra=(stage==="EXTRA_WEIGHT");
+  // Fill member/item data
+  tx("dMid",  r.memberId||"-");
+  tx("dMname",r.memberName||"-");
+  tx("dItem", r.itemName||"-");
+
+  const isBoxes=(stage==="BOXES");
+  const isExtra=(stage==="EXTRA_WEIGHT");
+
+  if(isBoxes){
+    // BOXES COUNT: do NOT show weight, show count input only
+    tx("dCapW","-");
+    document.getElementById("boxesInput").value="";
+    document.getElementById("boxesInput").focus();
+  } else {
+    // All other stages: show captured weight + override input
     const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
     tx("dCapW",wtStr);
-
-    if(!isBoxes&&r.weight!==null&&r.weight!==undefined)
+    if(r.weight!==null&&r.weight!==undefined){
       document.getElementById("wtInput").value=r.weight;
-
-    if(isExtra){
-      const ei=document.getElementById("extraInfo");
-      ei.style.display="block";
-      ei.textContent="ℹ️ EXTRA WEIGHT: "+wtStr+" kg will be ADDED to last OUT WEIGHT for this member.";
+      document.getElementById("wtInput").dataset.original=String(r.weight);
+      document.getElementById("wtInput").dataset.edited="false";
     }
-
-    pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl};
-    uiState="await";
-    setStatus(
-      "OCR DONE ✅\n"+
-      "Member: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+" | Weight: "+wtStr+" kg\n\n"+
-      "Verify above → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok"
-    );
-    showUI();
   }
+
+  if(isExtra){
+    const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
+    const ei=document.getElementById("extraInfo");
+    ei.style.display="block";
+    ei.textContent="ℹ️ EXTRA WEIGHT: "+wtStr+" kg will be ADDED to last OUT WEIGHT for this member.";
+  }
+
+  pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl};
+
+  uiState="await";
+  if(isBoxes){
+    setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+"\n\nEnter Boxes Count below → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
+  } else {
+    const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
+    setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+" | Weight: "+wtStr+" kg\n\nVerify → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
+  }
+  showUI();
 }
 
+/* ── SUBMIT ── */
 async function onSubmit(){
   if(uiState!=="await"||!pending){
-    setStatus("No captured data. Please CAPTURE first.","err");return;
+    setStatus("No captured data. Select a stage to capture.","err");return;
   }
 
   const isBoxes=(stage==="BOXES");
   let value;
+  let weightEdited=false;
 
   if(isBoxes){
+    // BOXES COUNT: get count from input
     const cnt=parseInt(document.getElementById("boxesInput").value,10);
     if(!cnt||cnt<1){
       setStatus("⚠️ Please enter a valid Boxes Count.","err");
       document.getElementById("boxesInput").focus();return;
     }
     value=cnt;
-  }else{
+  } else {
+    // All other stages: get weight (possibly overridden)
     const ov=document.getElementById("wtInput").value.trim();
     const n=parseFloat(ov);
-    value=(ov!==""&&isFinite(n)&&n>0)?n:pending.weight;
+    if(ov!==""&&isFinite(n)&&n>0){
+      value=n;
+      const ocrVal=pending.weight;
+      weightEdited=(ocrVal===null||ocrVal===undefined||Math.abs(n-Number(ocrVal))>0.0005);
+    } else {
+      value=pending.weight;
+      weightEdited=false;
+    }
   }
 
   if(value===null||value===undefined){
@@ -679,47 +695,54 @@ async function onSubmit(){
       memberId:pending.memberId,
       itemName:pending.itemName,
       value,
+      weightEdited,
       imageDataUrl:pending.dataUrl
     });
   }catch(err){
-    setStatus("Submit failed:\n"+(err?.message||String(err)),"err");
+    setStatus("Submit failed:\n"+(err&&err.message?err.message:String(err)),"err");
     uiState="await";showUI();return;
   }
 
   const msSub=_ms_(tSub);
 
-  if(resp?.locked){
+  // Lock
+  if(resp&&resp.locked){
     document.getElementById("lockBox").style.display="block";
-    document.getElementById("lockTitle").textContent=(STAGE_CFG[stage]?.label||stage)+" LOCKED for this member";
+    document.getElementById("lockTitle").textContent=(STAGE_CFG[stage]&&STAGE_CFG[stage].label?STAGE_CFG[stage].label:stage)+" LOCKED for this member";
     document.getElementById("lockTime").textContent="🕐 "+resp.remainingMinutes+" min remaining";
     setStatus("🔒 "+resp.message+"\n["+msSub+"ms]","lock");
     uiState="await";showUI();return;
   }
 
-  if(!resp?.ok){
-    setStatus("ERROR: "+(resp?.message||"Unknown error"),"err");
-    uiState="await";showUI();return;
+  if(!resp||!resp.ok){
+    const msg=resp&&resp.message?resp.message:"Unknown error";
+    setStatus("❌ "+msg+"\n["+msSub+"ms]","err");
+    if(msg.includes("rejected")||msg.includes("already")||msg.includes("first")){
+      pending=null;uiState="idle";
+    } else {
+      uiState="await";
+    }
+    showUI();return;
   }
 
+  // Success
   tickSound();
   const d=resp.data||{};
-
   tx("dMid",  d.memberId||pending.memberId||"-");
   tx("dMname",d.memberName||"-");
   tx("dItem", d.itemName||pending.itemName||"-");
   tx("dCapW", "-");
-
   tx("dOutW", (d.outWeight!==null&&d.outWeight!==undefined&&d.outWeight!=="")?d.outWeight:"-");
   tx("dInW",  (d.inWeight !==null&&d.inWeight !==undefined&&d.inWeight  !=="")?d.inWeight :"-");
 
   if(stage==="BOXES"&&resp.boxesCount!==undefined){
     tx("dReadyW","📦 "+resp.boxesCount+" boxes");
-  }else{
+  } else {
     const rdW=d.readyWeight;
     if(rdW!==null&&rdW!==undefined&&rdW!==""){
       const rs=String(rdW);
-      tx("dReadyW",rs.startsWith("BOXES:")?("📦 "+rs.replace("BOXES:","")):rs);
-    }else tx("dReadyW","-");
+      tx("dReadyW",rs.startsWith("BOXES:")?("📦 "+rs.replace("BOXES:","").trim()):rs);
+    } else tx("dReadyW","-");
   }
 
   setShortage(d.shortage!==undefined?d.shortage:null);
@@ -730,35 +753,32 @@ async function onSubmit(){
   else if(stLbl==="OUT")   stLbl="OUT ✅";
   else if(stLbl==="IN")    stLbl="IN ✅";
   else if(stLbl==="READY") stLbl="READY ✅";
-  else if(stLbl==="BOXES") stLbl="BOXES ✅";
+  else if(stLbl==="BOXES") stLbl="BOXES COUNT ✅";
   else if(d.completed)     stLbl="COMPLETED ✅";
   tx("dStage",stLbl);
 
   document.getElementById("lockBox").style.display="none";
 
-  const OVL={OUT:"OUT SAVED ✅",IN:"IN SAVED ✅",READY:"READY SAVED ✅",BOXES:"BOXES LOGGED ✅",EXTRA_WEIGHT:"EXTRA WEIGHT ADDED ✅"};
+  const OVL={OUT:"OUT SAVED ✅",IN:"IN SAVED ✅",READY:"READY SAVED ✅",BOXES:"BOXES COUNT LOGGED ✅",EXTRA_WEIGHT:"EXTRA WEIGHT ADDED ✅"};
   showOverlay(OVL[stage]||"LOGGED ✅",resp.message||"");
-
   setStatus("SUCCESS ✅  "+(resp.message||stLbl)+" ["+msSub+"ms]","ok");
 
   pending=null;
-  uiState="sel";
+  uiState="idle";
   showUI();
 }
 
-// Wire up
+/* ── WIRE UP ── */
 Object.entries(STAGE_CFG).forEach(([k,v])=>{
   document.getElementById(v.id).addEventListener("click",()=>selectStage(k));
 });
-document.getElementById("sReset").addEventListener("click",doReset);
-btnCapture.addEventListener("click",onCapture);
-btnCapFixed.addEventListener("click",onCapture);
+btnCapFixed.addEventListener("click",onCaptureFrame);
 btnSubmit.addEventListener("click",onSubmit);
 btnResetA.addEventListener("click",doReset);
 
-// Init
+/* ── INIT ── */
 showUI();
-setStatus("Select a stage above, then press CAPTURE.","info");
+setStatus("Select a stage above to open camera.","info");
 </script>
 </body>
 </html>
