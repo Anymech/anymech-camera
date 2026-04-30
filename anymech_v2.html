@@ -563,7 +563,7 @@
 /* ═══════════════════════════════════════════════════
    ⚠️  REPLACE THIS URL WITH YOUR NEW APPS SCRIPT URL
    ═══════════════════════════════════════════════════ */
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyU_Y8Ys3894VW93YmohqA90Mm_xAwV743dIICaKm-dfilMGCEw0JngTyRQNCt_5TVBMw/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzaeF-M1OwWnLmpFeZZjD393pY5YEoY1R10NwZtZ3Mlsw1j7XPYQeqxkphbQ05ayizkDQ/exec";
 
 /* ── Error catcher ── */
 window.onerror = function(msg,s,l,c){
@@ -703,22 +703,24 @@ function showUI(){
 /* ── Camera ── */
 async function startCamera(){
   if(!navigator.mediaDevices?.getUserMedia)
-    throw new Error("Camera API not available.");
+    throw new Error("Camera API not available in this browser.");
   if(!window.isSecureContext)
     throw new Error("Camera requires HTTPS.");
 
-  const pref = {
-    video:{facingMode:{ideal:"environment"},
-           width:{min:1280,ideal:1920,max:1920},
-           height:{min:720,ideal:1080,max:1080},
-           aspectRatio:{ideal:16/9}},
-    audio:false
-  };
-  try{ stream = await navigator.mediaDevices.getUserMedia(pref); }
-  catch(e1){
-    try{ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false}); }
-    catch(e2){ stream = await navigator.mediaDevices.getUserMedia({video:true,audio:false}); }
+  // 5-level fallback
+  const attempts = [
+    { video:{ facingMode:{exact:"environment"}, width:{ideal:1920}, height:{ideal:1080} }, audio:false },
+    { video:{ facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080} }, audio:false },
+    { video:{ facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720}  }, audio:false },
+    { video:{ facingMode:{ideal:"environment"} }, audio:false },
+    { video: true, audio: false }
+  ];
+  let lastErr = null;
+  for(const constraints of attempts){
+    try{ stream = await navigator.mediaDevices.getUserMedia(constraints); lastErr=null; break; }
+    catch(e){ lastErr=e; }
   }
+  if(lastErr) throw new Error("Camera not available: "+(lastErr.message||String(lastErr)));
 
   video.srcObject = stream;
 
