@@ -435,33 +435,56 @@ function stopCamera(){
 }
 
 function captureROI(){
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) throw new Error("Video stream not ready — try again.");
+
   const roi=document.getElementById("roiViewport");
-  if(!roi) throw new Error("ROI viewport not found");
-  const vw=video.videoWidth,vh=video.videoHeight;
-  if(!vw||!vh) throw new Error("Video not ready");
 
-  const vRect=video.getBoundingClientRect();
-  const rRect=roi.getBoundingClientRect();
-  const scale=Math.max(vRect.width/vw,vRect.height/vh);
-  const dw=vw*scale,dh=vh*scale;
-  const offX=(dw-vRect.width)/2,offY=(dh-vRect.height)/2;
+  let sx=0,sy=0,sw=vw,sh=vh; // default: full frame
 
-  let sx=(rRect.left-vRect.left+offX)/scale;
-  let sy=(rRect.top-vRect.top+offY)/scale;
-  let sw=rRect.width/scale,sh=rRect.height/scale;
+  // Try ROI crop if viewport is available and visible
+  try{
+    if(roi){
+      const vRect=video.getBoundingClientRect();
+      const rRect=roi.getBoundingClientRect();
+      if(vRect.width>0&&vRect.height>0&&rRect.width>0&&rRect.height>0){
+        const scale=Math.max(vRect.width/vw,vRect.height/vh);
+        const dw=vw*scale,dh=vh*scale;
+        const offX=(dw-vRect.width)/2,offY=(dh-vRect.height)/2;
+        let _sx=(rRect.left-vRect.left+offX)/scale;
+        let _sy=(rRect.top-vRect.top+offY)/scale;
+        let _sw=rRect.width/scale,_sh=rRect.height/scale;
+        if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
+        if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
+        if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
+      }
+    }
+  }catch(e){}
 
-  if(sx<0){sw+=sx;sx=0;} if(sy<0){sh+=sy;sy=0;}
-  if(sx+sw>vw) sw=vw-sx; if(sy+sh>vh) sh=vh-sy;
-
+  // Scale output (max 1600px wide)
   const maxW=1600;
   let outW=Math.round(sw),outH=Math.round(sh);
   if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
+  if(outW<1||outH<1) throw new Error("Invalid capture dimensions.");
 
   canvas.width=outW;canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
-  ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(video,sx,sy,sw,sh,0,0,outW,outH);
-  return canvas.toDataURL("image/jpeg",0.88);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
+
+  // Try JPEG first, fallback to PNG
+  let dataUrl="";
+  try{ dataUrl=canvas.toDataURL("image/jpeg",0.88); }catch(e){}
+  if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
+    try{ dataUrl=canvas.toDataURL("image/png"); }catch(e){}
+  }
+  if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
+    throw new Error("Canvas capture failed — video may not be ready. Please try again.");
+  }
+  if(!dataUrl.startsWith("data:image")){
+    throw new Error("Captured image format invalid. Please try again.");
+  }
+  return dataUrl;
 }
 
 async function measureClarity(dataUrl){
@@ -497,8 +520,10 @@ async function callServer(action,payload){
   const body=Object.assign({action},payload||{});
   if(body.imageDataUrl!==undefined){
     const du=String(body.imageDataUrl||"").trim();
-    if(!du||!du.startsWith("data:image"))
-      throw new Error("Invalid image — please try again.");
+    // Only validate if it's clearly broken (empty or wrong prefix)
+    if(!du||du==="data:,"||du.length<50){
+      throw new Error("Captured image is blank — please tap RESET and try again.");
+    }
     body.imageDataUrl=du;
   }
   const ctrl=new AbortController();
