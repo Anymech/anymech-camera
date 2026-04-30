@@ -5,761 +5,413 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
   <title>Anymech Products V2</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;900&family=DM+Mono:wght@500&display=swap');
-
     :root{
-      --blue:#1a56db;
-      --blue-dk:#1240a8;
-      --green:#16a34a;
-      --green-dk:#0f7a36;
-      --pink:#c026d3;
-      --pink-dk:#901d9c;
-      --orange:#d97706;
-      --orange-dk:#a55b05;
-      --dark:#111827;
-      --dark-dk:#000;
-      --red:#dc2626;
-      --red-dk:#a81c1c;
-      --bg:#f1f4f9;
-      --card:#ffffff;
-      --border:#e2e8f0;
-      --text:#0f172a;
-      --muted:#64748b;
-      --radius:18px;
-      --shadow:0 4px 24px rgba(0,0,0,0.09);
+      --blue:#1a56db;--green:#16a34a;--pink:#c026d3;
+      --orange:#d97706;--dark:#111827;--red:#dc2626;
+      --bg:#f1f4f9;--card:#fff;--border:#e2e8f0;
+      --text:#0f172a;--muted:#64748b;
     }
-
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:system-ui,Arial,sans-serif;background:var(--bg);min-height:100vh;padding:10px 10px 40px;color:var(--text)}
+    .frame{max-width:600px;margin:0 auto}
 
-    body{
-      font-family:'DM Sans',system-ui,sans-serif;
-      background:var(--bg);
-      min-height:100vh;
-      padding:12px 10px 30px;
-      color:var(--text);
-    }
+    /* HEADER */
+    .appTitle{text-align:center;font-size:26px;font-weight:900;color:var(--blue);letter-spacing:2px;padding:14px 0 4px;text-transform:uppercase}
+    .appSub{text-align:center;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
 
-    .frame{
-      max-width:560px;
-      margin:0 auto;
-    }
+    /* CARD */
+    .card{background:var(--card);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:1px solid var(--border)}
+    .card-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 
-    /* ── HEADER ── */
-    .header{
-      text-align:center;
-      padding:16px 0 14px;
-    }
-    .header h1{
-      font-size:26px;
-      font-weight:900;
-      letter-spacing:2px;
-      color:var(--blue);
-      text-transform:uppercase;
-    }
-    .header .sub{
-      font-size:11px;
-      font-weight:700;
-      letter-spacing:3px;
-      color:var(--muted);
-      text-transform:uppercase;
-      margin-top:2px;
-    }
-
-    /* ── CARD ── */
-    .card{
-      background:var(--card);
-      border-radius:var(--radius);
-      padding:16px;
-      margin-bottom:12px;
-      box-shadow:var(--shadow);
-      border:1px solid var(--border);
-    }
-    .card-title{
-      font-size:10px;
-      font-weight:700;
-      letter-spacing:2px;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin-bottom:12px;
-    }
-
-    /* ── STAGE BUTTONS ── */
-    .stage-reset-row{margin-bottom:8px}
-
+    /* STAGE BUTTONS */
+    .row-reset{margin-bottom:8px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-
-    .sbtn{
-      padding:16px 8px;
-      border-radius:14px;
-      font-family:'DM Sans',sans-serif;
-      font-size:15px;
-      font-weight:900;
-      letter-spacing:0.5px;
-      text-transform:uppercase;
-      border:2.5px solid transparent;
-      background:#fff;
-      cursor:pointer;
-      transition:transform 0.1s, box-shadow 0.1s, background 0.15s, color 0.15s;
-      user-select:none;
-      position:relative;
-      overflow:hidden;
-    }
-    .sbtn:active{transform:scale(0.94)}
-
-    /* Colors */
-    .s-reset {color:var(--red);   border-color:var(--red);   width:100%}
-    .s-in    {color:var(--blue);  border-color:var(--blue)}
-    .s-ready {color:var(--pink);  border-color:var(--pink)}
-    .s-out   {color:var(--green); border-color:var(--green)}
-    .s-extra {color:var(--dark);  border-color:var(--dark)}
-    .s-boxes {color:var(--orange);border-color:var(--orange)}
-
-    /* Selected state */
+    .sbtn{padding:15px 6px;border-radius:13px;font-size:14px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:2.5px solid transparent;background:#fff;cursor:pointer;transition:transform 0.1s,background 0.12s,color 0.12s;user-select:none}
+    .sbtn:active{transform:scale(0.93)}
+    .s-reset{color:var(--red);border-color:var(--red);width:100%}
+    .s-in{color:var(--blue);border-color:var(--blue)}
+    .s-ready{color:var(--pink);border-color:var(--pink)}
+    .s-out{color:var(--green);border-color:var(--green)}
+    .s-extra{color:var(--dark);border-color:var(--dark)}
+    .s-boxes{color:var(--orange);border-color:var(--orange)}
     .sbtn.sel{color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(0,0,0,0.18)}
     .s-reset.sel{background:var(--red)}
-    .s-in.sel   {background:var(--blue)}
+    .s-in.sel{background:var(--blue)}
     .s-ready.sel{background:var(--pink)}
-    .s-out.sel  {background:var(--green)}
+    .s-out.sel{background:var(--green)}
     .s-extra.sel{background:var(--dark)}
     .s-boxes.sel{background:var(--orange)}
 
-    /* ── STATUS ── */
-    .status{
-      font-family:'DM Mono',monospace;
-      font-size:12.5px;
-      line-height:1.6;
-      white-space:pre-wrap;
-      background:#f8fafc;
-      border-radius:12px;
-      padding:12px 14px;
-      color:#334155;
-      border-left:3px solid var(--border);
-      min-height:44px;
-    }
-    .status.ok  {background:#f0fdf4;border-left-color:var(--green);color:#14532d}
-    .status.err {background:#fff1f2;border-left-color:var(--red);color:#7f1d1d}
+    /* CAMERA FULLSCREEN */
+    .camWrap{display:none;position:fixed;inset:0;background:#000;z-index:9990;align-items:center;justify-content:center;padding-bottom:120px}
+    .roiViewport{width:min(99vw,600px);aspect-ratio:1.65/1;border-radius:14px;overflow:hidden;position:relative;background:#111;z-index:9991}
+    .roiViewport video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;aspect-ratio:auto;border-radius:0}
+    .roiBorder{position:absolute;inset:0;border:3px solid rgba(255,255,255,0.85);border-radius:14px;pointer-events:none;z-index:2}
+    .guideLine{position:absolute;left:0;right:0;height:2px;background:rgba(255,80,80,0.9);top:50%;pointer-events:none;z-index:3}
+    .guideLabel{position:absolute;left:10px;top:calc(50% - 26px);background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;pointer-events:none;z-index:3}
+    .stagePill{position:absolute;top:10px;right:10px;font-size:11px;font-weight:900;letter-spacing:1px;padding:5px 12px;border-radius:20px;pointer-events:none;z-index:3;text-transform:uppercase;color:#fff}
+
+    /* FIXED CAPTURE BUTTON */
+    .btnFixed{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:9992}
+    .btnFixedInner{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;background:linear-gradient(160deg,#2563eb,#1a40c4);color:#fff;box-shadow:0 8px 0 rgba(0,0,0,0.28),0 16px 32px rgba(0,0,0,0.22);transition:transform 0.08s,box-shadow 0.08s;user-select:none}
+    .btnFixedInner:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,0.28),0 6px 12px rgba(0,0,0,0.14)}
+
+    /* STATUS */
+    .status{font-size:13px;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border-radius:12px;padding:12px 14px;color:#334155;border-left:3px solid var(--border);min-height:44px;font-family:monospace}
+    .status.ok{background:#f0fdf4;border-left-color:var(--green);color:#14532d}
+    .status.err{background:#fff1f2;border-left-color:var(--red);color:#7f1d1d}
     .status.lock{background:#fffbeb;border-left-color:var(--orange);color:#78350f}
     .status.info{background:#eff6ff;border-left-color:var(--blue);color:#1e3a5f}
 
-    /* ── CAPTURED PREVIEW ── */
-    .preview-wrap{
-      display:none;
-      position:relative;
-      border-radius:12px;
-      overflow:hidden;
-      margin-bottom:10px;
-      background:#000;
-      max-height:220px;
-    }
-    .preview-wrap img{
-      width:100%;
-      max-height:220px;
-      object-fit:contain;
-      display:block;
-    }
-    .prev-tag{
-      position:absolute;
-      top:8px;left:8px;
-      background:rgba(0,0,0,0.65);
-      color:#fff;
-      font-size:11px;
-      font-weight:700;
-      padding:4px 10px;
-      border-radius:20px;
-    }
-    .clarity-tag{
-      position:absolute;
-      bottom:8px;right:8px;
-      background:rgba(0,0,0,0.65);
-      color:#fbbf24;
-      font-size:12px;
-      font-weight:700;
-      padding:4px 10px;
-      border-radius:20px;
-    }
+    /* CAPTURED PREVIEW */
+    .prevWrap{display:none;position:relative;border-radius:12px;overflow:hidden;margin-bottom:10px;background:#000;max-height:220px}
+    .prevWrap img{width:100%;max-height:220px;object-fit:contain;display:block}
+    .prevTag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+    .clarityTag{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.65);color:#fbbf24;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px}
 
-    /* ── KV TABLE ── */
-    .kv{display:grid;grid-template-columns:140px 1fr;gap:0}
-    .kv-lbl{
-      font-size:12px;
-      font-weight:700;
-      color:var(--muted);
-      padding:10px 0;
-      border-bottom:1px solid #f1f5f9;
-      letter-spacing:0.3px;
-    }
-    .kv-val{
-      font-size:14px;
-      font-weight:800;
-      color:var(--text);
-      padding:10px 0;
-      border-bottom:1px solid #f1f5f9;
-      word-break:break-all;
-    }
-    .kv-val.big{
-      font-family:'DM Mono',monospace;
-      font-size:28px;
-      font-weight:700;
-      color:var(--blue);
-      letter-spacing:1px;
-    }
-    .kv-val.ok{color:var(--green)}
-    .hl-red {background:#fee2e2;border-radius:6px;padding:2px 8px;color:#991b1b;display:inline-block}
-    .hl-grn {background:#dcfce7;border-radius:6px;padding:2px 8px;color:#14532d;display:inline-block}
+    /* DATA TABLE */
+    .kv{display:grid;grid-template-columns:150px 1fr;gap:0}
+    .kv-lbl{font-size:13px;font-weight:700;color:var(--muted);padding:11px 0;border-bottom:1px solid #f1f5f9}
+    .kv-val{font-size:14px;font-weight:800;color:var(--text);padding:11px 0;border-bottom:1px solid #f1f5f9;word-break:break-all}
+    .kv-val.capW{font-size:32px;font-weight:900;color:var(--blue);letter-spacing:2px;line-height:1.1}
+    .kv-lbl.capW-lbl{color:var(--blue);font-weight:900}
+    .kv-val.stage-ok{color:var(--green);font-weight:900}
+    .hl-red{background:#fee2e2;border-radius:6px;padding:2px 8px;color:#991b1b;display:inline-block}
+    .hl-grn{background:#dcfce7;border-radius:6px;padding:2px 8px;color:#14532d;display:inline-block}
 
-    /* ── BOXES INPUT ── */
-    .boxes-wrap{display:none;margin-top:14px}
-    .boxes-lbl{
-      font-size:12px;
-      font-weight:700;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      color:var(--orange);
-      margin-bottom:8px;
-      display:block;
-    }
-    .boxes-input{
-      width:100%;
-      padding:16px;
-      font-family:'DM Mono',monospace;
-      font-size:32px;
-      font-weight:700;
-      border:2.5px solid var(--orange);
-      border-radius:14px;
-      text-align:center;
-      color:var(--orange);
-      outline:none;
-      background:#fffbeb;
-    }
-    .boxes-input:focus{box-shadow:0 0 0 3px rgba(217,119,6,0.2)}
+    /* WEIGHT OVERRIDE */
+    .overrideWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .overrideLbl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
+    .overrideInput{width:100%;padding:12px;font-size:22px;font-weight:700;font-family:monospace;border:2px solid var(--border);border-radius:12px;text-align:center;color:var(--blue);outline:none;background:#f8fafc}
+    .overrideInput:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,0.12)}
 
-    /* ── WEIGHT OVERRIDE ── */
-    .wt-override-wrap{display:none;margin-top:12px}
-    .wt-override-lbl{
-      font-size:12px;
-      font-weight:700;
-      color:var(--muted);
-      margin-bottom:6px;
-      display:block;
-    }
-    .wt-override-input{
-      width:100%;
-      padding:12px;
-      font-family:'DM Mono',monospace;
-      font-size:22px;
-      font-weight:700;
-      border:2px solid var(--border);
-      border-radius:12px;
-      text-align:center;
-      color:var(--blue);
-      outline:none;
-      background:#f8fafc;
-    }
-    .wt-override-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,0.12)}
+    /* BOXES INPUT */
+    .boxesWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .boxesLbl{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:8px;display:block}
+    .boxesInput{width:100%;padding:16px;font-size:32px;font-weight:700;font-family:monospace;border:2.5px solid var(--orange);border-radius:14px;text-align:center;color:var(--orange);outline:none;background:#fffbeb}
+    .boxesInput:focus{box-shadow:0 0 0 3px rgba(217,119,6,0.2)}
 
-    /* ── EXTRA INFO ── */
-    .extra-info{
-      display:none;
-      margin-top:10px;
-      background:#fefce8;
-      border:1px solid #fde68a;
-      border-radius:12px;
-      padding:12px 14px;
-      font-size:12.5px;
-      color:#78350f;
-      line-height:1.6;
-    }
+    /* EXTRA INFO */
+    .extraInfo{display:none;margin-top:10px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.6}
 
-    /* ── LOCK BOX ── */
-    .lock-box{
-      display:none;
-      background:#fffbeb;
-      border:2px solid #fbbf24;
-      border-radius:16px;
-      padding:20px 16px;
-      text-align:center;
-      margin-bottom:12px;
-    }
-    .lock-icon{font-size:40px;line-height:1;margin-bottom:6px}
-    .lock-title{font-size:15px;font-weight:900;color:#92400e;margin-bottom:4px}
-    .lock-time{
-      font-family:'DM Mono',monospace;
-      font-size:26px;
-      font-weight:700;
-      color:var(--orange);
-    }
+    /* LOCK BOX */
+    .lockBox{display:none;background:#fffbeb;border:2px solid #fbbf24;border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:12px}
+    .lockIcon{font-size:40px;line-height:1;margin-bottom:6px}
+    .lockTitle{font-size:15px;font-weight:900;color:#92400e;margin-bottom:4px}
+    .lockTime{font-size:26px;font-weight:700;color:var(--orange);font-family:monospace}
 
-    /* ── ACTION BUTTONS ── */
-    .act-btn{
-      display:none;
-      width:100%;
-      padding:20px;
-      border-radius:16px;
-      font-family:'DM Sans',sans-serif;
-      font-size:19px;
-      font-weight:900;
-      letter-spacing:0.5px;
-      text-transform:uppercase;
-      border:none;
-      cursor:pointer;
-      margin-bottom:10px;
-      user-select:none;
-      transition:transform 0.08s, box-shadow 0.08s;
-      box-shadow:0 6px 0 rgba(0,0,0,0.18), 0 10px 24px rgba(0,0,0,0.10);
-    }
-    .act-btn:active{
-      transform:translateY(5px);
-      box-shadow:0 1px 0 rgba(0,0,0,0.18), 0 4px 8px rgba(0,0,0,0.10);
-    }
-    .btn-cap {background:linear-gradient(160deg,#2563eb,#1a40c4);color:#fff}
-    .btn-sub {background:linear-gradient(160deg,#16a34a,#0f7a36);color:#fff}
-    .btn-rst-a{background:linear-gradient(160deg,#dc2626,#a81c1c);color:#fff}
+    /* ACTION BUTTONS */
+    .btn{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;user-select:none;box-shadow:0 8px 0 rgba(0,0,0,0.18),0 14px 28px rgba(0,0,0,0.10);transition:transform 0.08s,box-shadow 0.08s;margin-bottom:10px;display:none}
+    .btn:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,0.18),0 6px 12px rgba(0,0,0,0.10)}
+    .btn-capture{background:linear-gradient(160deg,#2563eb,#1a40c4);color:#fff}
+    .btn-submit{background:linear-gradient(160deg,#16a34a,#0f7a36);color:#fff}
+    .btn-reset-a{background:linear-gradient(160deg,#dc2626,#a81c1c);color:#fff}
 
-    /* ── CAMERA FULLSCREEN ── */
-    .cam-wrap{
-      display:none;
-      position:fixed;
-      inset:0;
-      background:#000;
-      z-index:9990;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding-bottom:110px;
-    }
-    .roi-viewport{
-      width:min(98vw,580px);
-      aspect-ratio:1.65/1;
-      border-radius:14px;
-      overflow:hidden;
-      position:relative;
-      background:#111;
-      z-index:9991;
-    }
-    .roi-viewport video{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      aspect-ratio:auto;
-      border-radius:0;
-    }
-    .roi-border{
-      position:absolute;inset:0;
-      border:3px solid rgba(255,255,255,0.8);
-      border-radius:14px;
-      pointer-events:none;
-      z-index:2;
-    }
-    .guide-line{
-      position:absolute;left:0;right:0;
-      height:2px;
-      background:rgba(255,80,80,0.9);
-      top:50%;
-      pointer-events:none;
-      z-index:3;
-    }
-    .guide-lbl{
-      position:absolute;left:10px;top:calc(50% - 26px);
-      background:rgba(0,0,0,0.65);
-      color:#fff;font-size:11px;font-weight:700;
-      padding:4px 10px;border-radius:20px;
-      pointer-events:none;z-index:3;
-    }
-    .cam-stage-pill{
-      position:absolute;top:10px;right:10px;
-      font-size:12px;font-weight:900;letter-spacing:1px;
-      padding:5px 12px;border-radius:20px;
-      pointer-events:none;z-index:3;
-      text-transform:uppercase;
-    }
-
-    /* Fixed capture button over camera */
-    .btn-fixed{
-      display:none;
-      position:fixed;
-      bottom:20px;left:50%;
-      transform:translateX(-50%);
-      width:min(90vw,420px);
-      z-index:9992;
-      padding:22px;
-      border-radius:16px;
-      font-family:'DM Sans',sans-serif;
-      font-size:20px;
-      font-weight:900;
-      letter-spacing:0.5px;
-      text-transform:uppercase;
-      border:none;
-      cursor:pointer;
-      background:linear-gradient(160deg,#2563eb,#1a40c4);
-      color:#fff;
-      box-shadow:0 8px 0 rgba(0,0,0,0.28), 0 16px 32px rgba(0,0,0,0.22);
-      user-select:none;
-      transition:transform 0.08s, box-shadow 0.08s;
-    }
-    .btn-fixed:active{
-      transform:translateX(-50%) translateY(6px);
-      box-shadow:0 2px 0 rgba(0,0,0,0.28), 0 6px 12px rgba(0,0,0,0.18);
-    }
-
-    /* ── SUCCESS OVERLAY ── */
-    .overlay{
-      display:none;
-      position:fixed;inset:0;
-      background:rgba(0,0,0,0.22);
-      z-index:9999;
-      align-items:center;
-      justify-content:center;
-    }
-    .overlay-card{
-      background:#fff;
-      border-radius:22px;
-      padding:28px 24px;
-      text-align:center;
-      box-shadow:0 24px 64px rgba(0,0,0,0.22);
-      width:min(300px,86vw);
-    }
-    .overlay-icon{font-size:56px;line-height:1;margin-bottom:10px}
-    .overlay-title{font-size:18px;font-weight:900;letter-spacing:0.5px}
-    .overlay-sub{font-size:13px;color:var(--muted);margin-top:5px}
+    /* SUCCESS OVERLAY */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.22);z-index:9999;align-items:center;justify-content:center}
+    .overlayCard{background:#fff;border-radius:22px;padding:28px 24px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.22);width:min(300px,86vw)}
+    .overlayTick{font-size:56px;line-height:1;margin-bottom:10px}
+    .overlayTitle{font-size:18px;font-weight:900;letter-spacing:0.5px;color:var(--green)}
+    .overlaySub{font-size:13px;color:var(--muted);margin-top:5px}
 
     canvas{display:none}
 
     @media(max-width:420px){
-      body{padding:8px 8px 24px}
-      .header h1{font-size:22px}
-      .sbtn{padding:14px 6px;font-size:13px;border-radius:12px}
+      body{padding:8px 8px 32px}
+      .appTitle{font-size:22px}
+      .sbtn{padding:13px 4px;font-size:12px;border-radius:11px}
       .kv{grid-template-columns:120px 1fr}
-      .act-btn{font-size:17px;padding:18px}
-      .btn-fixed{font-size:18px;padding:20px}
+      .kv-val.capW{font-size:26px}
+      .btn{font-size:18px;padding:20px}
+      .btnFixedInner{font-size:18px;padding:20px}
     }
   </style>
 </head>
 <body>
 <div class="frame">
 
-  <!-- HEADER -->
-  <div class="header">
-    <h1>Anymech Products</h1>
-    <div class="sub">Live Weight Capture · V2</div>
-  </div>
+  <div class="appTitle">Anymech Products</div>
+  <div class="appSub">Live Weight Capture · V2</div>
 
-  <!-- ── STAGE SELECTION CARD ── -->
+  <!-- STAGE SELECTION -->
   <div class="card">
     <div class="card-title">Select Stage</div>
-
-    <!-- RESET -->
-    <div class="stage-reset-row">
-      <button class="sbtn s-reset" id="btnReset">↺ RESET</button>
+    <div class="row-reset">
+      <button class="sbtn s-reset" id="sReset">↺ RESET</button>
     </div>
-
-    <!-- IN / READY / OUT -->
     <div class="row3">
       <button class="sbtn s-in"    id="sIn">IN</button>
       <button class="sbtn s-ready" id="sReady">READY</button>
       <button class="sbtn s-out"   id="sOut">OUT</button>
     </div>
-
-    <!-- EXTRA WEIGHT / BOXES -->
     <div class="row2">
       <button class="sbtn s-extra" id="sExtra">EXTRA WEIGHT</button>
       <button class="sbtn s-boxes" id="sBoxes">BOXES</button>
     </div>
   </div>
 
-  <!-- ── CAMERA / STATUS CARD ── -->
-  <div class="card" id="camCard">
-    <div class="preview-wrap" id="prevWrap">
+  <!-- CAMERA / STATUS -->
+  <div class="card">
+    <div class="prevWrap" id="prevWrap">
       <img id="prevImg" src="" alt="Captured frame"/>
-      <div class="prev-tag" id="prevTag">📸 Captured</div>
-      <div class="clarity-tag" id="clarityTag"></div>
+      <div class="prevTag" id="prevTag">📸 Captured</div>
+      <div class="clarityTag" id="clarityTag"></div>
     </div>
     <div class="status info" id="status">Select a stage above, then press CAPTURE.</div>
   </div>
 
-  <!-- ── RESULTS CARD (OCR output) ── -->
-  <div class="card" id="resultsCard" style="display:none">
-    <div class="card-title">OCR Extracted Data</div>
+  <!-- LOCK BOX -->
+  <div class="lockBox" id="lockBox">
+    <div class="lockIcon">🔒</div>
+    <div class="lockTitle" id="lockTitle">LOCKED</div>
+    <div class="lockTime"  id="lockTime">— min remaining</div>
+  </div>
+
+  <!-- DATA CARD -->
+  <div class="card">
+    <div class="card-title">Capture Data</div>
     <div class="kv">
-      <div class="kv-lbl">NEW M.NO</div><div class="kv-val" id="rMid">-</div>
-      <div class="kv-lbl">MEMBER NAME</div><div class="kv-val" id="rMname">-</div>
-      <div class="kv-lbl">ITEM NAME</div><div class="kv-val" id="rItem">-</div>
-      <div class="kv-lbl" id="wtLbl">WEIGHT (kg)</div>
-      <div class="kv-val big" id="rWt">-</div>
+      <div class="kv-lbl">NEW M.NO</div>
+      <div class="kv-val" id="dMid">-</div>
+
+      <div class="kv-lbl">MEMBER NAME</div>
+      <div class="kv-val" id="dMname">-</div>
+
+      <div class="kv-lbl">ITEM NAME</div>
+      <div class="kv-val" id="dItem">-</div>
+
+      <div class="kv-lbl capW-lbl">CAPTURED WEIGHT</div>
+      <div class="kv-val capW" id="dCapW">-</div>
+
+      <div class="kv-lbl">OUT WEIGHT</div>
+      <div class="kv-val" id="dOutW">-</div>
+
+      <div class="kv-lbl">IN WEIGHT</div>
+      <div class="kv-val" id="dInW">-</div>
+
+      <div class="kv-lbl">READY / BOXES</div>
+      <div class="kv-val" id="dReadyW">-</div>
+
+      <div class="kv-lbl">SHORT MATERIAL</div>
+      <div class="kv-val" id="dShort">-</div>
+
+      <div class="kv-lbl">STATUS</div>
+      <div class="kv-val stage-ok" id="dStage">-</div>
     </div>
 
     <!-- Weight override -->
-    <div class="wt-override-wrap" id="wtOverrideWrap">
-      <label class="wt-override-lbl">✏️ Correct weight if wrong:</label>
-      <input type="number" step="0.001" min="0" class="wt-override-input" id="wtInput" placeholder="e.g. 58.500"/>
+    <div class="overrideWrap" id="overrideWrap">
+      <label class="overrideLbl">✏️ Weight wrong? Correct it here before submitting:</label>
+      <input type="number" step="0.001" min="0" class="overrideInput" id="wtInput" placeholder="e.g. 58.500"/>
     </div>
 
-    <!-- Boxes count input (BOXES stage only) -->
-    <div class="boxes-wrap" id="boxesWrap">
-      <label class="boxes-lbl">📦 Boxes Count:</label>
-      <input type="number" min="1" step="1" class="boxes-input" id="boxesInput" placeholder="0"/>
+    <!-- Boxes count -->
+    <div class="boxesWrap" id="boxesWrap">
+      <label class="boxesLbl">📦 Enter Boxes Count:</label>
+      <input type="number" min="1" step="1" class="boxesInput" id="boxesInput" placeholder="0"/>
     </div>
 
-    <!-- Extra weight notice -->
-    <div class="extra-info" id="extraInfo"></div>
+    <!-- Extra weight note -->
+    <div class="extraInfo" id="extraInfo"></div>
   </div>
 
-  <!-- ── SUBMITTED DATA CARD ── -->
-  <div class="card" id="submittedCard" style="display:none">
-    <div class="card-title">Sheet Data</div>
-    <div class="kv">
-      <div class="kv-lbl">NEW M.NO</div>    <div class="kv-val" id="sMid">-</div>
-      <div class="kv-lbl">MEMBER NAME</div> <div class="kv-val" id="sMname">-</div>
-      <div class="kv-lbl">ITEM NAME</div>   <div class="kv-val" id="sItem">-</div>
-      <div class="kv-lbl">OUT WEIGHT</div>  <div class="kv-val" id="dOutW">-</div>
-      <div class="kv-lbl">IN WEIGHT</div>   <div class="kv-val" id="dInW">-</div>
-      <div class="kv-lbl">READY / BOXES</div><div class="kv-val" id="dReadyW">-</div>
-      <div class="kv-lbl">SHORT MATERIAL</div><div class="kv-val" id="sShort">-</div>
-      <div class="kv-lbl">STATUS</div>      <div class="kv-val ok" id="sStage">-</div>
-    </div>
-  </div>
+  <!-- ACTION BUTTONS -->
+  <button class="btn btn-capture" id="btnCapture">📷 CAPTURE</button>
+  <button class="btn btn-submit"  id="btnSubmit">✅ SUBMIT</button>
+  <button class="btn btn-reset-a" id="btnResetA">↺ RESET</button>
 
-  <!-- ── LOCK BOX ── -->
-  <div class="lock-box" id="lockBox">
-    <div class="lock-icon">🔒</div>
-    <div class="lock-title" id="lockTitle">LOCKED</div>
-    <div class="lock-time" id="lockTime">— min remaining</div>
-  </div>
+</div>
 
-  <!-- ── ACTION BUTTONS ── -->
-  <button class="act-btn btn-cap" id="btnCapture">📷 CAPTURE</button>
-  <button class="act-btn btn-sub" id="btnSubmit">✅ SUBMIT</button>
-  <button class="act-btn btn-rst-a" id="btnSubReset">↺ RESET</button>
-
-</div><!-- /frame -->
-
-<!-- ── CAMERA FULLSCREEN ── -->
-<div class="cam-wrap" id="camWrap">
-  <div class="roi-viewport" id="roiVP">
+<!-- FULLSCREEN CAMERA -->
+<div class="camWrap" id="camWrap">
+  <div class="roiViewport" id="roiViewport">
     <video id="video" autoplay playsinline muted></video>
-    <div class="roi-border"></div>
-    <div class="guide-line"></div>
-    <div class="guide-lbl">Top: Member Card · Bottom: Scale</div>
-    <div class="cam-stage-pill" id="camPill"></div>
+    <div class="roiBorder"></div>
+    <div class="guideLine"></div>
+    <div class="guideLabel">Top: Member Card · Bottom: Scale</div>
+    <div class="stagePill" id="stagePill"></div>
   </div>
 </div>
 
-<button class="btn-fixed" id="btnFixed">CAPTURE FRAME</button>
+<div class="btnFixed" id="btnFixedWrap">
+  <button class="btnFixedInner" id="btnCaptureFixed">CAPTURE FRAME</button>
+</div>
 
-<!-- ── SUCCESS OVERLAY ── -->
+<!-- SUCCESS OVERLAY -->
 <div class="overlay" id="overlay">
-  <div class="overlay-card">
-    <div class="overlay-icon">✅</div>
-    <div class="overlay-title" id="overlayTitle">LOGGED</div>
-    <div class="overlay-sub" id="overlaySub"></div>
+  <div class="overlayCard">
+    <div class="overlayTick">✅</div>
+    <div class="overlayTitle" id="overlayTitle">LOGGED</div>
+    <div class="overlaySub"   id="overlaySub"></div>
   </div>
 </div>
 
 <canvas id="canvas"></canvas>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   ⚠️  REPLACE THIS URL WITH YOUR NEW APPS SCRIPT URL
-   ═══════════════════════════════════════════════════ */
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzaeF-M1OwWnLmpFeZZjD393pY5YEoY1R10NwZtZ3Mlsw1j7XPYQeqxkphbQ05ayizkDQ/exec";
-
-/* ── Error catcher ── */
-window.onerror = function(msg,s,l,c){
-  try{setStatus("JS ERROR: "+msg+" ("+l+":"+c+")", "err");}catch(e){}
+window.onerror=function(msg,s,l,c){
+  try{setStatus("JS ERROR: "+msg+" (line "+l+")", "err");}catch(e){}
   return false;
 };
 
-/* ── State ── */
-let uiState = "idle";
-// idle | sel | cam | processing | await | submitting
-let stage     = null;
-let stream    = null;
-let pending   = null;  // { memberId, itemName, weight, dataUrl }
-let capSess   = 0;     // session ID to detect stale OCR results after reset
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbzaeF-M1OwWnLmpFeZZjD393pY5YEoY1R10NwZtZ3Mlsw1j7XPYQeqxkphbQ05ayizkDQ/exec";
 
-/* ── Elements ── */
-const video     = document.getElementById("video");
-const canvas    = document.getElementById("canvas");
-const camWrap   = document.getElementById("camWrap");
-const btnFixed  = document.getElementById("btnFixed");
-const btnCap    = document.getElementById("btnCapture");
-const btnSub    = document.getElementById("btnSubmit");
-const btnSubRst = document.getElementById("btnSubReset");
-const statusEl  = document.getElementById("status");
-const resCard   = document.getElementById("resultsCard");
-const subCard   = document.getElementById("submittedCard");
-const lockBox   = document.getElementById("lockBox");
+let uiState="idle",stage=null,stream=null,pending=null,capSess=0;
 
-const STAGES = {
-  IN:           {id:"sIn",    cls:"s-in",    color:"#1a56db", label:"IN"},
-  READY:        {id:"sReady", cls:"s-ready",  color:"#c026d3", label:"READY"},
-  OUT:          {id:"sOut",   cls:"s-out",    color:"#16a34a", label:"OUT"},
-  EXTRA_WEIGHT: {id:"sExtra", cls:"s-extra",  color:"#111827", label:"EXTRA WEIGHT"},
-  BOXES:        {id:"sBoxes", cls:"s-boxes",  color:"#d97706", label:"BOXES"},
-};
+const video       =document.getElementById("video");
+const canvas      =document.getElementById("canvas");
+const camWrap     =document.getElementById("camWrap");
+const btnFixedWrap=document.getElementById("btnFixedWrap");
+const btnCapFixed =document.getElementById("btnCaptureFixed");
+const btnCapture  =document.getElementById("btnCapture");
+const btnSubmit   =document.getElementById("btnSubmit");
+const btnResetA   =document.getElementById("btnResetA");
 
-/* ── Helpers ── */
-function _ms_(t0){ return Math.round(performance.now()-t0); }
-function tx(id,v){ const e=document.getElementById(id); if(e) e.textContent=(v??"-"); }
-function setStatus(msg, cls){
-  statusEl.textContent = msg;
-  statusEl.className   = "status " + (cls||"info");
-}
-function showEl(id,show){ document.getElementById(id).style.display=show?"block":"none"; }
+function _ms_(t0){return Math.round(performance.now()-t0);}
+function tx(id,v){const e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?"-":String(v);}
+function setStatus(msg,cls){const el=document.getElementById("status");el.textContent=msg||"";el.className="status "+(cls||"info");}
 
 function setShortage(v){
-  const el = document.getElementById("sShort");
+  const el=document.getElementById("dShort");
   el.className="kv-val";
   if(v===null||v===undefined||v===""){el.textContent="-";return;}
-  const n = Number(v);
-  el.textContent = n.toFixed(3);
-  if(n < -0.200) el.innerHTML='<span class="hl-red">▼ '+n.toFixed(3)+'</span>';
-  else if(n > 0.200) el.innerHTML='<span class="hl-grn">▲ '+n.toFixed(3)+'</span>';
+  const n=Number(v);
+  if(isNaN(n)){el.textContent="-";return;}
+  el.textContent=n.toFixed(3);
+  if(n<-0.200) el.innerHTML='<span class="hl-red">▼ '+n.toFixed(3)+'</span>';
+  else if(n>0.200) el.innerHTML='<span class="hl-grn">▲ '+n.toFixed(3)+'</span>';
 }
 
-/* ── Stage selection ── */
+function tickSound(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type="square";o.frequency.value=1200;g.gain.value=0.06;
+    o.connect(g);g.connect(ac.destination);
+    o.start();setTimeout(()=>{o.stop();ac.close();},90);
+  }catch(e){}
+}
+
+function showOverlay(title,sub){
+  document.getElementById("overlayTitle").textContent=title||"LOGGED";
+  document.getElementById("overlaySub").textContent=sub||"";
+  const el=document.getElementById("overlay");
+  el.style.display="flex";
+  setTimeout(()=>el.style.display="none",1800);
+}
+
+const STAGE_CFG={
+  IN:          {id:"sIn",    color:"#1a56db",label:"IN"},
+  READY:       {id:"sReady", color:"#c026d3",label:"READY"},
+  OUT:         {id:"sOut",   color:"#16a34a",label:"OUT"},
+  EXTRA_WEIGHT:{id:"sExtra", color:"#111827",label:"EXTRA WEIGHT"},
+  BOXES:       {id:"sBoxes", color:"#d97706",label:"BOXES"},
+};
+
+function showUI(){
+  const isCam  =uiState==="cam";
+  const isSel  =uiState==="sel";
+  const isAwait=uiState==="await";
+  const isSub  =uiState==="submitting";
+  const isBoxes=(stage==="BOXES");
+  const isExtra=(stage==="EXTRA_WEIGHT");
+
+  camWrap.style.display      =isCam?"flex":"none";
+  btnFixedWrap.style.display =isCam?"block":"none";
+  btnCapture.style.display   =isSel?"block":"none";
+  btnSubmit.style.display    =(isAwait||isSub)?"block":"none";
+  btnResetA.style.display    =isAwait?"block":"none";
+
+  if(isSub){btnSubmit.textContent="⏳ SUBMITTING...";btnSubmit.disabled=true;}
+  else{btnSubmit.textContent="✅ SUBMIT";btnSubmit.disabled=false;}
+
+  document.getElementById("overrideWrap").style.display=(isAwait&&!isBoxes)?"block":"none";
+  document.getElementById("boxesWrap").style.display=(isAwait&&isBoxes)?"block":"none";
+  document.getElementById("extraInfo").style.display=(isAwait&&isExtra)?"block":"none";
+}
+
 function selectStage(s){
   if(["processing","submitting"].includes(uiState)) return;
   stopCamera();
-  stage = s;
-  uiState = "sel";
-
-  // Highlight buttons
-  Object.entries(STAGES).forEach(([k,v])=>{
-    const btn = document.getElementById(v.id);
-    btn.classList.toggle("sel", k===s);
+  stage=s;uiState="sel";
+  Object.entries(STAGE_CFG).forEach(([k,v])=>{
+    document.getElementById(v.id).classList.toggle("sel",k===s);
   });
-
-  // Camera pill
-  const info = STAGES[s];
-  const pill = document.getElementById("camPill");
-  pill.textContent = info.label;
-  pill.style.background = info.color;
-  pill.style.color = "#fff";
-
-  resetResults();
+  const cfg=STAGE_CFG[s];
+  const pill=document.getElementById("stagePill");
+  pill.textContent=cfg.label;pill.style.background=cfg.color;
+  document.getElementById("wtInput").value="";
+  document.getElementById("boxesInput").value="";
+  document.getElementById("lockBox").style.display="none";
+  document.getElementById("extraInfo").style.display="none";
   showUI();
-  setStatus("Stage: "+ info.label +"\nPress CAPTURE to open camera.", "info");
+  setStatus("Stage: "+cfg.label+"\nPress CAPTURE to open camera.","info");
 }
 
-/* ── Reset ── */
-async function doReset(){
+function doReset(){
   stopCamera();
-  stage   = null;
-  pending = null;
-  capSess++;
-  uiState = "idle";
-  Object.values(STAGES).forEach(v=>{
-    document.getElementById(v.id).classList.remove("sel");
-  });
-  resetResults();
-  lockBox.style.display = "none";
-  document.getElementById("prevWrap").style.display = "none";
-  document.getElementById("prevImg").src = "";
-  document.getElementById("clarityTag").textContent = "";
-  showUI();
-  setStatus("Reset ✓  Select a stage to begin.", "info");
-}
-
-function resetResults(){
-  ["rMid","rMname","rItem","rWt","sMid","sMname","sItem","dOutW","dInW","dReadyW","sStage"].forEach(id=>tx(id,"-"));
+  stage=null;pending=null;capSess++;uiState="idle";
+  Object.values(STAGE_CFG).forEach(v=>document.getElementById(v.id).classList.remove("sel"));
+  ["dMid","dMname","dItem","dCapW","dOutW","dInW","dReadyW","dStage"].forEach(id=>tx(id,"-"));
   setShortage(null);
-  resCard.style.display    = "none";
-  subCard.style.display    = "none";
-  lockBox.style.display    = "none";
-  document.getElementById("boxesWrap").style.display    = "none";
-  document.getElementById("wtOverrideWrap").style.display = "none";
-  document.getElementById("extraInfo").style.display    = "none";
-  document.getElementById("boxesInput").value  = "";
-  document.getElementById("wtInput").value     = "";
+  document.getElementById("lockBox").style.display="none";
+  document.getElementById("prevWrap").style.display="none";
+  document.getElementById("prevImg").src="";
+  document.getElementById("clarityTag").textContent="";
+  document.getElementById("wtInput").value="";
+  document.getElementById("boxesInput").value="";
+  document.getElementById("extraInfo").style.display="none";
+  showUI();
+  setStatus("Reset ✓  Select a stage to begin.","info");
 }
 
-/* ── Show/hide UI elements ── */
-function showUI(){
-  const cam  = uiState==="cam";
-  const sel  = uiState==="sel";
-  const proc = uiState==="processing";
-  const awt  = uiState==="await";
-  const sub  = uiState==="submitting";
-
-  camWrap.style.display  = cam?"flex":"none";
-  btnFixed.style.display = cam?"block":"none";
-
-  btnCap.style.display    = sel?"block":"none";
-  btnSub.style.display    = (awt||sub)?"block":"none";
-  btnSubRst.style.display = awt?"block":"none";
-
-  if(sub){
-    btnSub.textContent = "⏳ SUBMITTING...";
-    btnSub.disabled    = true;
-  } else {
-    btnSub.textContent = "✅ SUBMIT";
-    btnSub.disabled    = false;
-  }
-}
-
-/* ── Camera ── (mirrors old app exactly) */
 async function startCamera(){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)
     throw new Error("Camera API not available in this browser/webview.");
   if(!window.isSecureContext)
-    throw new Error("Camera blocked: page is not HTTPS. Open using https://");
+    throw new Error("Camera blocked: page is not HTTPS.");
 
-  try{ video.muted = true; }catch(e){}
-
-  try{
-    if(navigator.permissions && navigator.permissions.query){
-      const st = await navigator.permissions.query({name:"camera"});
-      if(st && st.state === "denied")
-        throw new Error("Camera permission is DENIED in browser settings. Allow camera for this site and reload.");
-    }
-  }catch(e){
-    if(e.message && e.message.includes("DENIED")) throw e;
-  }
-
-  const preferred = {
-    video:{
-      facingMode:{ ideal:"environment" },
-      width:{ min:1280, ideal:1920, max:1920 },
-      height:{ min:720,  ideal:1080, max:1080 },
-      aspectRatio:{ ideal:16/9 }
-    },
-    audio:false
-  };
+  try{video.muted=true;}catch(e){}
 
   try{
-    stream = await navigator.mediaDevices.getUserMedia(preferred);
-  }catch(e1){
-    try{
-      stream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode:{ ideal:"environment" }, aspectRatio:{ ideal:16/9 } },
-        audio:false
-      });
-    }catch(e2){
-      try{
-        stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:"environment" } }, audio:false });
-      }catch(e3){
-        try{
-          stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-        }catch(e4){
-          throw new Error("Camera not available: "+(e4.message||String(e4)));
-        }
-      }
+    if(navigator.permissions&&navigator.permissions.query){
+      const st=await navigator.permissions.query({name:"camera"});
+      if(st&&st.state==="denied")
+        throw new Error("Camera permission DENIED. Allow camera in browser settings then reload.");
     }
-  }
+  }catch(e){if(e.message&&e.message.includes("DENIED")) throw e;}
 
-  video.srcObject = stream;
+  const attempts=[
+    {video:{facingMode:{ideal:"environment"},width:{min:1280,ideal:1920,max:1920},height:{min:720,ideal:1080,max:1080},aspectRatio:{ideal:16/9}},audio:false},
+    {video:{facingMode:{ideal:"environment"},aspectRatio:{ideal:16/9}},audio:false},
+    {video:{facingMode:{ideal:"environment"}},audio:false},
+    {video:{facingMode:"environment"},audio:false},
+    {video:true,audio:false}
+  ];
+
+  let lastErr=null;
+  for(const c of attempts){
+    try{stream=await navigator.mediaDevices.getUserMedia(c);lastErr=null;break;}
+    catch(e){lastErr=e;}
+  }
+  if(lastErr) throw new Error("Camera not available: "+(lastErr.message||String(lastErr)));
+
+  video.srcObject=stream;
 
   // Camera tuning
   try{
-    const track = stream.getVideoTracks()[0];
-    const caps  = track?.getCapabilities?.() ?? null;
-    const adv   = [];
-    if(caps?.focusMode?.includes("continuous")) adv.push({focusMode:"continuous"});
-    if(caps?.zoom) adv.push({zoom:Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.3))});
-    if(caps?.exposureMode?.includes("continuous")) adv.push({exposureMode:"continuous"});
+    const track=stream.getVideoTracks()[0];
+    const caps=track&&track.getCapabilities?track.getCapabilities():null;
+    const adv=[];
+    if(caps&&caps.focusMode&&Array.isArray(caps.focusMode)){
+      if(caps.focusMode.includes("continuous")) adv.push({focusMode:"continuous"});
+      else if(caps.focusMode.includes("auto")) adv.push({focusMode:"auto"});
+    }
+    if(caps&&caps.zoom&&typeof caps.zoom.min==="number")
+      adv.push({zoom:Math.min(caps.zoom.max,Math.max(caps.zoom.min,1.3))});
+    if(caps&&caps.exposureMode&&Array.isArray(caps.exposureMode)&&caps.exposureMode.includes("continuous"))
+      adv.push({exposureMode:"continuous"});
     if(adv.length) await track.applyConstraints({advanced:adv});
   }catch(e){}
 
@@ -776,68 +428,61 @@ async function startCamera(){
 }
 
 function stopCamera(){
-  try{
-    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
-  }catch(e){}
-  video.srcObject = null;
-  camWrap.style.display  = "none";
-  btnFixed.style.display = "none";
+  try{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}catch(e){}
+  video.srcObject=null;
+  camWrap.style.display="none";
+  btnFixedWrap.style.display="none";
 }
 
-/* ── Capture frame (ROI crop) ── */
 function captureROI(){
-  const roi   = document.getElementById("roiVP");
-  const vw    = video.videoWidth;
-  const vh    = video.videoHeight;
+  const roi=document.getElementById("roiViewport");
+  if(!roi) throw new Error("ROI viewport not found");
+  const vw=video.videoWidth,vh=video.videoHeight;
   if(!vw||!vh) throw new Error("Video not ready");
 
-  const vRect = video.getBoundingClientRect();
-  const rRect = roi.getBoundingClientRect();
+  const vRect=video.getBoundingClientRect();
+  const rRect=roi.getBoundingClientRect();
+  const scale=Math.max(vRect.width/vw,vRect.height/vh);
+  const dw=vw*scale,dh=vh*scale;
+  const offX=(dw-vRect.width)/2,offY=(dh-vRect.height)/2;
 
-  const scale = Math.max(vRect.width/vw, vRect.height/vh);
-  const dw    = vw*scale, dh = vh*scale;
-  const offX  = (dw-vRect.width)/2;
-  const offY  = (dh-vRect.height)/2;
-
-  let sx = (rRect.left-vRect.left+offX)/scale;
-  let sy = (rRect.top -vRect.top +offY)/scale;
-  let sw = rRect.width /scale;
-  let sh = rRect.height/scale;
+  let sx=(rRect.left-vRect.left+offX)/scale;
+  let sy=(rRect.top-vRect.top+offY)/scale;
+  let sw=rRect.width/scale,sh=rRect.height/scale;
 
   if(sx<0){sw+=sx;sx=0;} if(sy<0){sh+=sy;sy=0;}
   if(sx+sw>vw) sw=vw-sx; if(sy+sh>vh) sh=vh-sy;
 
-  const maxW = 1600;
-  const outW = Math.min(Math.round(sw), maxW);
-  const outH = Math.round(sh*(outW/Math.round(sw)));
+  const maxW=1600;
+  let outW=Math.round(sw),outH=Math.round(sh);
+  if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
 
-  canvas.width=outW; canvas.height=outH;
+  canvas.width=outW;canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
   ctx.imageSmoothingEnabled=false;
   ctx.drawImage(video,sx,sy,sw,sh,0,0,outW,outH);
-  return canvas.toDataURL("image/jpeg", 0.88);
+  return canvas.toDataURL("image/jpeg",0.88);
 }
 
-/* ── Clarity meter ── */
 async function measureClarity(dataUrl){
   return new Promise(resolve=>{
     const img=new Image();
     img.onload=function(){
       try{
         const sc=document.createElement("canvas");
-        const sw=Math.round(img.width*0.70), sh=Math.round(img.height*0.45);
-        const sx=Math.round((img.width-sw)/2), sy=Math.round(img.height*0.50);
-        sc.width=sw; sc.height=sh;
+        const sw2=Math.round(img.width*0.70),sh2=Math.round(img.height*0.45);
+        const sx2=Math.round((img.width-sw2)/2),sy2=Math.round(img.height*0.50);
+        sc.width=sw2;sc.height=sh2;
         const ctx=sc.getContext("2d",{willReadFrequently:true});
-        ctx.drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
-        const d=ctx.getImageData(0,0,sw,sh).data;
-        const g=new Float32Array(sw*sh);
+        ctx.drawImage(img,sx2,sy2,sw2,sh2,0,0,sw2,sh2);
+        const d=ctx.getImageData(0,0,sw2,sh2).data;
+        const g=new Float32Array(sw2*sh2);
         for(let i=0,p=0;i<d.length;i+=4,p++) g[p]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
         let s=0,s2=0,n=0;
-        for(let y=1;y<sh-1;y++) for(let x=1;x<sw-1;x++){
-          const p=y*sw+x;
-          const l=-g[p-sw]-g[p-1]+4*g[p]-g[p+1]-g[p+sw];
-          s+=l; s2+=l*l; n++;
+        for(let y=1;y<sh2-1;y++) for(let x=1;x<sw2-1;x++){
+          const p=y*sw2+x;
+          const l=-g[p-sw2]-g[p-1]+4*g[p]-g[p+1]-g[p+sw2];
+          s+=l;s2+=l*l;n++;
         }
         const v=(s2-(s*s)/n)/n;
         resolve(Math.min(100,Math.max(0,Math.round((Math.sqrt(v)/45)*100))));
@@ -848,278 +493,247 @@ async function measureClarity(dataUrl){
   });
 }
 
-/* ── Server call ── */
-async function callServer(action, payload){
+async function callServer(action,payload){
   const body=Object.assign({action},payload||{});
+  if(body.imageDataUrl!==undefined){
+    const du=String(body.imageDataUrl||"").trim();
+    if(!du||!du.startsWith("data:image"))
+      throw new Error("Invalid image — please try again.");
+    body.imageDataUrl=du;
+  }
   const ctrl=new AbortController();
-  const to=setTimeout(()=>ctrl.abort(),30000);
+  const to=setTimeout(()=>ctrl.abort(),35000);
   let res,text;
   try{
     res=await fetch(BACKEND_URL,{method:"POST",body:JSON.stringify(body),signal:ctrl.signal});
     text=await res.text();
+  }catch(fetchErr){
+    clearTimeout(to);
+    if(fetchErr.name==="AbortError") throw new Error("Request timed out. Check internet connection.");
+    throw new Error("Network error: "+(fetchErr.message||String(fetchErr)));
   }finally{clearTimeout(to);}
-  if(!res||!res.ok) throw new Error("HTTP "+(res?.status||0)+"\n"+(text||"").slice(0,400));
+  if(!res||!res.ok) throw new Error("HTTP "+(res?.status||0)+" - "+(text||"").slice(0,300));
   try{return JSON.parse(text);}
-  catch(e){throw new Error("JSON parse error: "+(text||"").slice(0,400));}
+  catch(e){throw new Error("Server error: "+(text||"").slice(0,300));}
 }
 
-/* ── Sound ── */
-function tick(){
-  try{
-    const ac=new (window.AudioContext||window.webkitAudioContext)();
-    const o=ac.createOscillator(), g=ac.createGain();
-    o.type="square"; o.frequency.value=1200; g.gain.value=0.06;
-    o.connect(g); g.connect(ac.destination);
-    o.start(); setTimeout(()=>{o.stop();ac.close();},90);
-  }catch(e){}
-}
-
-/* ── Overlay ── */
-function showOverlay(title,sub){
-  document.getElementById("overlayTitle").textContent=title||"LOGGED";
-  document.getElementById("overlaySub").textContent=sub||"";
-  const el=document.getElementById("overlay");
-  el.style.display="flex";
-  setTimeout(()=>el.style.display="none",1800);
-}
-
-/* ══════════════════════════════════
-   CAPTURE FLOW
-══════════════════════════════════ */
 async function onCapture(){
   if(!stage){
-    setStatus("⚠️ Select a stage first.", "err");
+    setStatus("⚠️ Select a stage first (IN / READY / OUT / EXTRA WEIGHT / BOXES).","err");
     return;
   }
 
-  /* Start camera */
   if(uiState==="sel"){
-    setStatus("Opening camera...", "info");
+    setStatus("Opening camera...","info");
     try{
       await startCamera();
-      setStatus("Camera ON ✅\nAlign card (top) + scale (bottom), then press CAPTURE FRAME.", "ok");
+      setStatus("Camera ON ✅\nAlign: Member Card (top) + Scale (bottom)\nThen press CAPTURE FRAME.","ok");
     }catch(err){
-      setStatus("Camera error: "+(err?.message||String(err)), "err");
-      uiState="sel"; showUI();
+      setStatus("Camera error: "+(err?.message||String(err)),"err");
+      uiState="sel";showUI();
     }
     return;
   }
 
-  /* Freeze + OCR */
   if(uiState==="cam"){
-    const sess = ++capSess;
-    uiState="processing";
-    showUI();
+    const sess=++capSess;
+    uiState="processing";showUI();
 
     let dataUrl;
-    try{ dataUrl=captureROI(); }
+    try{dataUrl=captureROI();}
     catch(err){
-      setStatus("Capture error: "+(err?.message||String(err)), "err");
-      uiState="cam"; showUI(); return;
+      setStatus("Capture error: "+(err?.message||String(err)),"err");
+      uiState="cam";showUI();return;
     }
 
     stopCamera();
 
-    // Show preview
     const prevWrap=document.getElementById("prevWrap");
-    const prevImg=document.getElementById("prevImg");
-    prevImg.src=dataUrl;
+    document.getElementById("prevImg").src=dataUrl;
     prevWrap.style.display="block";
     document.getElementById("prevTag").textContent="📸 Captured — OCR Running...";
     document.getElementById("clarityTag").textContent="";
 
-    // Measure clarity
     measureClarity(dataUrl).then(pct=>{
       if(pct!==null) document.getElementById("clarityTag").textContent="Clarity: "+pct+"%";
     });
 
-    setStatus("Image captured ✅\nRunning OCR — please wait...", "info");
+    tx("dCapW","...");
+    setStatus("Image captured ✅\nRunning OCR — please wait...","info");
 
     const tOcr=performance.now();
     let r;
-    try{ r=await callServer("visionExtract",{imageDataUrl:dataUrl}); }
+    try{r=await callServer("visionExtract",{imageDataUrl:dataUrl});}
     catch(err){
       if(sess!==capSess) return;
-      setStatus("OCR call failed:\n"+(err?.message||String(err)), "err");
       document.getElementById("prevTag").textContent="❌ OCR Failed";
-      uiState="sel"; showUI(); return;
+      tx("dCapW","-");
+      setStatus("OCR call failed:\n"+(err?.message||String(err)),"err");
+      uiState="sel";showUI();return;
     }
 
-    if(sess!==capSess) return; // user reset during OCR
+    if(sess!==capSess) return;
     const msOcr=_ms_(tOcr);
 
     if(!r?.ok){
-      setStatus("OCR failed: "+(r?.message||"Unknown error")+"\nRAW: "+(r?.rawText||"")+"\n["+msOcr+"ms]", "err");
       document.getElementById("prevTag").textContent="❌ OCR Failed";
+      tx("dCapW","-");
+      setStatus(
+        "OCR FAILED: "+(r?.message||"Unknown error")+
+        "\nRAW: "+(r?.rawText||"")+
+        "\n["+msOcr+"ms]","err"
+      );
       callServer("postFailTasks",{imageDataUrl:dataUrl,failMessage:r?.message||"OCR failed",rawText:r?.rawText||""}).catch(()=>{});
-      uiState="sel"; showUI(); return;
+      uiState="sel";showUI();return;
     }
 
     document.getElementById("prevTag").textContent="📸 Captured";
 
-    const isBoxes = stage==="BOXES";
-    const isExtra = stage==="EXTRA_WEIGHT";
+    tx("dMid",   r.memberId||"-");
+    tx("dMname", r.memberName||"-");
+    tx("dItem",  r.itemName||"-");
 
-    tx("rMid",   r.memberId||"-");
-    tx("rMname", r.memberName||"-");
-    tx("rItem",  r.itemName||"-");
-
+    const isBoxes=(stage==="BOXES");
+    const isExtra=(stage==="EXTRA_WEIGHT");
     const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
-    document.getElementById("wtLbl").textContent = isBoxes?"SCALE READ (ref)":"CAPTURED WEIGHT (kg)";
-    tx("rWt", wtStr);
+    tx("dCapW",wtStr);
 
-    document.getElementById("wtOverrideWrap").style.display = isBoxes?"none":"block";
-    if(!isBoxes) document.getElementById("wtInput").value = r.weight||"";
-
-    document.getElementById("boxesWrap").style.display = isBoxes?"block":"none";
+    if(!isBoxes&&r.weight!==null&&r.weight!==undefined)
+      document.getElementById("wtInput").value=r.weight;
 
     if(isExtra){
-      const info=document.getElementById("extraInfo");
-      info.style.display="block";
-      info.textContent="ℹ️ EXTRA WEIGHT mode — "+wtStr+" kg will be ADDED to the last OUT WEIGHT for this member.";
-    } else {
-      document.getElementById("extraInfo").style.display="none";
+      const ei=document.getElementById("extraInfo");
+      ei.style.display="block";
+      ei.textContent="ℹ️ EXTRA WEIGHT: "+wtStr+" kg will be ADDED to last OUT WEIGHT for this member.";
     }
 
-    resCard.style.display="block";
-
-    pending={memberId:r.memberId, itemName:r.itemName, weight:r.weight, dataUrl};
-
+    pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl};
     uiState="await";
-    setStatus("OCR done ✅  Verify data below, then press SUBMIT.\n[OCR: "+msOcr+"ms]", "ok");
+    setStatus(
+      "OCR DONE ✅\n"+
+      "Member: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+" | Weight: "+wtStr+" kg\n\n"+
+      "Verify above → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok"
+    );
     showUI();
   }
 }
 
-/* ══════════════════════════════════
-   SUBMIT FLOW
-══════════════════════════════════ */
 async function onSubmit(){
   if(uiState!=="await"||!pending){
-    setStatus("No pending capture. Capture first.", "err"); return;
+    setStatus("No captured data. Please CAPTURE first.","err");return;
   }
 
-  const isBoxes = stage==="BOXES";
+  const isBoxes=(stage==="BOXES");
   let value;
 
   if(isBoxes){
     const cnt=parseInt(document.getElementById("boxesInput").value,10);
     if(!cnt||cnt<1){
-      setStatus("⚠️ Enter a valid Boxes Count.", "err");
-      document.getElementById("boxesInput").focus();
-      return;
+      setStatus("⚠️ Please enter a valid Boxes Count.","err");
+      document.getElementById("boxesInput").focus();return;
     }
     value=cnt;
-  } else {
+  }else{
     const ov=document.getElementById("wtInput").value.trim();
     const n=parseFloat(ov);
-    if(ov!==""&&isFinite(n)&&n>0){ value=n; }
-    else { value=pending.weight; }
+    value=(ov!==""&&isFinite(n)&&n>0)?n:pending.weight;
   }
 
   if(value===null||value===undefined){
-    setStatus("⚠️ Weight value missing or invalid.", "err"); return;
+    setStatus("⚠️ Weight missing. Try capturing again.","err");return;
   }
 
-  uiState="submitting"; showUI();
-  setStatus("Submitting to sheet...", "info");
+  uiState="submitting";showUI();
+  setStatus("Submitting to Google Sheet...","info");
 
   const tSub=performance.now();
   let resp;
   try{
     resp=await callServer("stageSubmit",{
       stage,
-      memberId: pending.memberId,
-      itemName: pending.itemName,
+      memberId:pending.memberId,
+      itemName:pending.itemName,
       value,
-      imageDataUrl: pending.dataUrl
+      imageDataUrl:pending.dataUrl
     });
   }catch(err){
-    setStatus("Submit failed:\n"+(err?.message||String(err)), "err");
-    uiState="await"; showUI(); return;
+    setStatus("Submit failed:\n"+(err?.message||String(err)),"err");
+    uiState="await";showUI();return;
   }
 
   const msSub=_ms_(tSub);
 
-  /* Lock error */
   if(resp?.locked){
-    lockBox.style.display="block";
-    document.getElementById("lockTitle").textContent=
-      (STAGES[stage]?.label||stage)+" is LOCKED for this member";
-    document.getElementById("lockTime").textContent=
-      "🕐 "+resp.remainingMinutes+" min remaining";
-    setStatus("🔒 "+resp.message+"\n["+msSub+"ms]", "lock");
-    uiState="await"; showUI(); return;
+    document.getElementById("lockBox").style.display="block";
+    document.getElementById("lockTitle").textContent=(STAGE_CFG[stage]?.label||stage)+" LOCKED for this member";
+    document.getElementById("lockTime").textContent="🕐 "+resp.remainingMinutes+" min remaining";
+    setStatus("🔒 "+resp.message+"\n["+msSub+"ms]","lock");
+    uiState="await";showUI();return;
   }
 
   if(!resp?.ok){
-    setStatus("ERROR: "+(resp?.message||"Unknown error"), "err");
-    uiState="await"; showUI(); return;
+    setStatus("ERROR: "+(resp?.message||"Unknown error"),"err");
+    uiState="await";showUI();return;
   }
 
-  /* Success */
-  tick();
+  tickSound();
   const d=resp.data||{};
-  tx("sMid",   d.memberId||pending.memberId||"-");
-  tx("sMname", d.memberName||"-");
-  tx("sItem",  d.itemName||pending.itemName||"-");
-  tx("dOutW",   d.outWeight!==null&&d.outWeight!==""?d.outWeight:"-");
-  tx("dInW",   d.inWeight!==null&&d.inWeight!==""?d.inWeight:"-");
 
-  // READY / BOXES display
+  tx("dMid",  d.memberId||pending.memberId||"-");
+  tx("dMname",d.memberName||"-");
+  tx("dItem", d.itemName||pending.itemName||"-");
+  tx("dCapW", "-");
+
+  tx("dOutW", (d.outWeight!==null&&d.outWeight!==undefined&&d.outWeight!=="")?d.outWeight:"-");
+  tx("dInW",  (d.inWeight !==null&&d.inWeight !==undefined&&d.inWeight  !=="")?d.inWeight :"-");
+
   if(stage==="BOXES"&&resp.boxesCount!==undefined){
     tx("dReadyW","📦 "+resp.boxesCount+" boxes");
-  } else {
-    const rw=d.readyWeight;
-    if(rw!==null&&rw!==undefined&&rw!==""){
-      const s=String(rw);
-      tx("dReadyW", s.startsWith("BOXES:")?("📦 "+s.replace("BOXES:","")):s);
-    } else {
-      tx("dReadyW","-");
-    }
+  }else{
+    const rdW=d.readyWeight;
+    if(rdW!==null&&rdW!==undefined&&rdW!==""){
+      const rs=String(rdW);
+      tx("dReadyW",rs.startsWith("BOXES:")?("📦 "+rs.replace("BOXES:","")):rs);
+    }else tx("dReadyW","-");
   }
 
   setShortage(d.shortage!==undefined?d.shortage:null);
 
-  let stLbl = resp.stage||stage;
+  let stLbl=resp.stage||stage;
   if(stage==="EXTRA_WEIGHT"&&resp.newOutWeight!==undefined)
-    stLbl="EXTRA ✅ ("+resp.previousOutWeight+" → "+resp.newOutWeight+")";
-  tx("sStage", stLbl);
+    stLbl="EXTRA ✅  "+resp.previousOutWeight+" → "+resp.newOutWeight+" kg";
+  else if(stLbl==="OUT")   stLbl="OUT ✅";
+  else if(stLbl==="IN")    stLbl="IN ✅";
+  else if(stLbl==="READY") stLbl="READY ✅";
+  else if(stLbl==="BOXES") stLbl="BOXES ✅";
+  else if(d.completed)     stLbl="COMPLETED ✅";
+  tx("dStage",stLbl);
 
-  subCard.style.display="block";
-  resCard.style.display="none";
-  lockBox.style.display="none";
+  document.getElementById("lockBox").style.display="none";
 
-  const OVL={
-    OUT:"OUT SAVED ✅",
-    IN:"IN SAVED ✅",
-    READY:"READY SAVED ✅",
-    BOXES:"BOXES LOGGED ✅",
-    EXTRA_WEIGHT:"EXTRA WEIGHT ADDED ✅"
-  };
-  showOverlay(OVL[stage]||"LOGGED ✅", resp.message||"");
+  const OVL={OUT:"OUT SAVED ✅",IN:"IN SAVED ✅",READY:"READY SAVED ✅",BOXES:"BOXES LOGGED ✅",EXTRA_WEIGHT:"EXTRA WEIGHT ADDED ✅"};
+  showOverlay(OVL[stage]||"LOGGED ✅",resp.message||"");
 
-  setStatus("SUCCESS ✅  "+(resp.message||"")+" ["+msSub+"ms]", "ok");
+  setStatus("SUCCESS ✅  "+(resp.message||stLbl)+" ["+msSub+"ms]","ok");
 
   pending=null;
   uiState="sel";
   showUI();
 }
 
-/* ── Wire up events ── */
-Object.entries(STAGES).forEach(([k,v])=>{
+// Wire up
+Object.entries(STAGE_CFG).forEach(([k,v])=>{
   document.getElementById(v.id).addEventListener("click",()=>selectStage(k));
 });
-document.getElementById("btnReset").addEventListener("click",doReset);
-document.getElementById("btnCapture").addEventListener("click",onCapture);
-document.getElementById("btnFixed").addEventListener("click",onCapture);
-document.getElementById("btnSubmit").addEventListener("click",onSubmit);
-document.getElementById("btnSubReset").addEventListener("click",doReset);
+document.getElementById("sReset").addEventListener("click",doReset);
+btnCapture.addEventListener("click",onCapture);
+btnCapFixed.addEventListener("click",onCapture);
+btnSubmit.addEventListener("click",onSubmit);
+btnResetA.addEventListener("click",doReset);
 
-/* ── Init ── */
-resetResults();
+// Init
 showUI();
-setStatus("Select a stage above, then press CAPTURE.", "info");
+setStatus("Select a stage above, then press CAPTURE.","info");
 </script>
 </body>
 </html>
