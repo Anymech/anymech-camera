@@ -26,7 +26,7 @@
     /* STAGE BUTTONS */
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .sbtn{padding:15px 6px;border-radius:13px;font-size:13px;font-weight:900;letter-spacing:0.3px;text-transform:uppercase;border:2.5px solid transparent;background:#fff;cursor:pointer;transition:transform 0.1s,background 0.12s,color 0.12s;user-select:none;line-height:1.2}
+    .sbtn{padding:20px 6px;border-radius:13px;font-size:16px;font-weight:900;letter-spacing:0.3px;text-transform:uppercase;border:2.5px solid transparent;background:#fff;cursor:pointer;transition:transform 0.1s,background 0.12s,color 0.12s;user-select:none;line-height:1.2}
     .sbtn:active{transform:scale(0.93)}
     .s-in{color:var(--blue);border-color:var(--blue)}
     .s-ready{color:var(--pink);border-color:var(--pink)}
@@ -116,7 +116,7 @@
     @media(max-width:420px){
       body{padding:8px 8px 32px}
       .appTitle{font-size:22px}
-      .sbtn{padding:12px 4px;font-size:11px;border-radius:11px}
+      .sbtn{padding:18px 4px;font-size:15px;border-radius:11px}
       .kv{grid-template-columns:120px 1fr}
       .kv-val.capW{font-size:26px}
       .btn{font-size:18px;padding:20px}
@@ -128,11 +128,11 @@
 <div class="frame">
 
   <div class="appTitle">Anymech Products</div>
-  <div class="appSub">Live Weight Capture · V2</div>
+
 
   <!-- STAGE BUTTONS -->
   <div class="card">
-    <div class="card-title">Select Stage</div>
+
     <div class="row2" style="margin-bottom:8px">
       <button class="sbtn s-in"    id="sIn">IN</button>
       <button class="sbtn s-out"   id="sOut">OUT</button>
