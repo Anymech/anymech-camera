@@ -1,1102 +1,766 @@
-// ═══════════════════════════════════════════════════════════════
-//  ANYMECH V2 — Apps Script Backend (Code.gs)
-//  Paste this into a NEW Apps Script project linked to a NEW Sheet.
-//  Then deploy as Web App (Execute as: Me, Access: Anyone).
-// ═══════════════════════════════════════════════════════════════
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+  <title>Anymech Products V2</title>
+  <style>
+    :root{
+      --blue:#1a56db;--green:#16a34a;--pink:#c026d3;
+      --orange:#d97706;--dark:#111827;--red:#dc2626;
+      --bg:#f1f4f9;--card:#fff;--border:#e2e8f0;
+      --text:#0f172a;--muted:#64748b;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:system-ui,Arial,sans-serif;background:var(--bg);min-height:100vh;padding:10px 10px 40px;color:var(--text)}
+    .frame{max-width:600px;margin:0 auto}
 
-// ── ⚠️ REPLACE THESE TWO VALUES ─────────────────────────────────
-const SPREADSHEET_ID       = "1hh-Zc1BH7dhFYabwk5LSYgYFSPfBixFD_wsIeHzU8rY";
-const DRIVE_PARENT_FOLDER  = "1xXKRH83GjiPh-zsX_zeY7r4SlqJ2EFzf";
-// ────────────────────────────────────────────────────────────────
+    /* HEADER */
+    .appTitle{text-align:center;font-size:26px;font-weight:900;color:var(--blue);letter-spacing:2px;padding:14px 0 4px;text-transform:uppercase}
+    .appSub{text-align:center;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
 
-const SHEET_MASTER   = "QR MASTER";
-const SHEET_ENTRIES  = "ENTRIES";
-const SHEET_LOCK     = "LOCK_LOG";
-const SHEET_OCR_DATA = "OCR DATA";
-const SHEET_FAILED   = "FAILED OCR";
-const SHEET_QUEUE    = "UPLOAD_QUEUE";
+    /* CARD */
+    .card{background:var(--card);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:1px solid var(--border)}
+    .card-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+
+    /* STAGE BUTTONS */
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .sbtn{padding:20px 6px;border-radius:13px;font-size:16px;font-weight:900;letter-spacing:0.3px;text-transform:uppercase;border:2.5px solid transparent;background:#fff;cursor:pointer;transition:transform 0.1s,background 0.12s,color 0.12s;user-select:none;line-height:1.2}
+    .sbtn:active{transform:scale(0.93)}
+    .s-in{color:var(--blue);border-color:var(--blue)}
+    .s-ready{color:var(--pink);border-color:var(--pink)}
+    .s-out{color:var(--green);border-color:var(--green)}
+    .s-extra{color:var(--dark);border-color:var(--dark)}
+    .s-boxes{color:var(--orange);border-color:var(--orange)}
+    .sbtn.sel{color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(0,0,0,0.18)}
+    .s-in.sel{background:var(--blue)}
+    .s-ready.sel{background:var(--pink)}
+    .s-out.sel{background:var(--green)}
+    .s-extra.sel{background:var(--dark)}
+    .s-boxes.sel{background:var(--orange)}
+
+    /* CAMERA FULLSCREEN */
+    .camWrap{display:none;position:fixed;inset:0;background:#000;z-index:9990;align-items:center;justify-content:center;padding-bottom:120px}
+    .roiViewport{width:min(99vw,600px);aspect-ratio:1.65/1;border-radius:14px;overflow:hidden;position:relative;background:#111;z-index:9991}
+    .roiViewport video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;aspect-ratio:auto;border-radius:0}
+    .roiBorder{position:absolute;inset:0;border:3px solid rgba(255,255,255,0.85);border-radius:14px;pointer-events:none;z-index:2}
+    .guideLine{position:absolute;left:0;right:0;height:2px;background:rgba(255,80,80,0.9);top:50%;pointer-events:none;z-index:3}
+    .guideLabel{position:absolute;left:10px;top:calc(50% - 26px);background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;pointer-events:none;z-index:3}
+    .stagePill{position:absolute;top:10px;right:10px;font-size:11px;font-weight:900;letter-spacing:1px;padding:5px 12px;border-radius:20px;pointer-events:none;z-index:3;text-transform:uppercase;color:#fff}
+
+    /* FIXED CAPTURE BUTTON */
+    .btnFixed{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:min(92vw,420px);z-index:9992}
+    .btnFixedInner{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;background:linear-gradient(160deg,#2563eb,#1a40c4);color:#fff;box-shadow:0 8px 0 rgba(0,0,0,0.28),0 16px 32px rgba(0,0,0,0.22);transition:transform 0.08s,box-shadow 0.08s;user-select:none}
+    .btnFixedInner:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,0.28),0 6px 12px rgba(0,0,0,0.14)}
+
+    /* STATUS */
+    .status{font-size:13px;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border-radius:12px;padding:12px 14px;color:#334155;border-left:3px solid var(--border);min-height:44px;font-family:monospace}
+    .status.ok{background:#f0fdf4;border-left-color:var(--green);color:#14532d}
+    .status.err{background:#fff1f2;border-left-color:var(--red);color:#7f1d1d}
+    .status.info{background:#eff6ff;border-left-color:var(--blue);color:#1e3a5f}
+
+    /* CAPTURED PREVIEW */
+    .prevWrap{display:none;position:relative;border-radius:12px;overflow:hidden;margin-bottom:10px;background:#000;max-height:220px}
+    .prevWrap img{width:100%;max-height:220px;object-fit:contain;display:block}
+    .prevTag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+    .clarityTag{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.65);color:#fbbf24;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px}
+
+    /* DATA TABLE */
+    .kv{display:grid;grid-template-columns:150px 1fr;gap:0}
+    .kv-lbl{font-size:13px;font-weight:700;color:var(--muted);padding:11px 0;border-bottom:1px solid #f1f5f9}
+    .kv-val{font-size:14px;font-weight:800;color:var(--text);padding:11px 0;border-bottom:1px solid #f1f5f9;word-break:break-all}
+    .kv-val.capW{font-size:32px;font-weight:900;color:var(--blue);letter-spacing:2px;line-height:1.1;padding-left:12px}
+    .kv-lbl.capW-lbl{color:var(--blue);font-weight:900}
+    .kv-val.stage-ok{color:var(--green);font-weight:900}
+    .hl-red{background:#fee2e2;border-radius:6px;padding:2px 8px;color:#991b1b;display:inline-block}
+    .hl-grn{background:#dcfce7;border-radius:6px;padding:2px 8px;color:#14532d;display:inline-block}
+
+    /* WEIGHT OVERRIDE */
+    .overrideWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .overrideLbl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
+    .overrideInput{width:100%;padding:12px;font-size:22px;font-weight:700;font-family:monospace;border:2px solid var(--border);border-radius:12px;text-align:center;color:var(--blue);outline:none;background:#f8fafc}
+    .overrideInput:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,0.12)}
+
+    /* BOXES COUNT INPUT */
+    .boxesWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+    .boxesLbl{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:8px;display:block}
+    .boxesInput{width:100%;padding:16px;font-size:40px;font-weight:900;font-family:monospace;border:2.5px solid var(--orange);border-radius:14px;text-align:center;color:var(--orange);outline:none;background:#fffbeb}
+    .boxesInput:focus{box-shadow:0 0 0 3px rgba(217,119,6,0.2)}
+
+    /* EXTRA INFO */
+    .extraInfo{display:none;margin-top:10px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.6}
 
 
-// ENTRIES columns (1-based)
-const COL = {
-  TIMESTAMP   : 1,
-  NEW_MNO     : 2,
-  MEMBER_NAME : 3,
-  ITEM_NAME   : 4,
-  TYPE        : 5,
-  OUT_WEIGHT  : 6,
-  IN_WEIGHT   : 7,
-  READY_WEIGHT: 8,   // also holds BOXES COUNT as "BOXES:<n>"
-  IN_DATE     : 9,
-  SHORTAGE    : 10,
-  OUT_IMAGE   : 11,
-  IN_IMAGE    : 12,
-  READY_IMAGE : 13
+
+    /* ACTION BUTTONS */
+    .btn{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;user-select:none;box-shadow:0 8px 0 rgba(0,0,0,0.18),0 14px 28px rgba(0,0,0,0.10);transition:transform 0.08s,box-shadow 0.08s;margin-bottom:10px;display:none}
+    .btn:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,0.18),0 6px 12px rgba(0,0,0,0.10)}
+    .btn-reset-a{background:linear-gradient(160deg,#dc2626,#a81c1c);color:#fff}
+    .btn-submit{background:linear-gradient(160deg,#16a34a,#0f7a36);color:#fff}
+
+    /* SUCCESS OVERLAY */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.22);z-index:9999;align-items:center;justify-content:center}
+    .overlayCard{background:#fff;border-radius:22px;padding:28px 24px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.22);width:min(300px,86vw)}
+    .overlayTick{font-size:56px;line-height:1;margin-bottom:10px}
+    .overlayTitle{font-size:18px;font-weight:900;letter-spacing:0.5px;color:var(--green)}
+    .overlaySub{font-size:13px;color:var(--muted);margin-top:5px}
+
+    canvas{display:none}
+
+    @media(max-width:420px){
+      body{padding:8px 8px 32px}
+      .appTitle{font-size:22px}
+      .sbtn{padding:18px 4px;font-size:15px;border-radius:11px}
+      .kv{grid-template-columns:120px 1fr}
+      .kv-val.capW{font-size:26px}
+      .btn{font-size:18px;padding:20px}
+      .btnFixedInner{font-size:18px;padding:20px}
+    }
+  </style>
+</head>
+<body>
+<div class="frame">
+
+  <div class="appTitle">Anymech Products</div>
+
+
+  <!-- STAGE BUTTONS -->
+  <div class="card">
+
+    <div class="row2" style="margin-bottom:8px">
+      <button class="sbtn s-in"    id="sIn">IN</button>
+      <button class="sbtn s-out"   id="sOut">OUT</button>
+    </div>
+    <div class="row2">
+      <button class="sbtn s-ready" id="sReady">READY</button>
+      <button class="sbtn s-boxes" id="sBoxes">BOXES COUNT</button>
+    </div>
+  </div>
+
+  <!-- CAMERA / STATUS -->
+  <div class="card">
+    <div class="prevWrap" id="prevWrap">
+      <img id="prevImg" src="" alt="Captured frame"/>
+      <div class="prevTag" id="prevTag">📸 Captured</div>
+      <div class="clarityTag" id="clarityTag"></div>
+    </div>
+    <div class="status info" id="status">Select a stage above to open camera.</div>
+  </div>
+
+
+
+  <!-- DATA CARD -->
+  <div class="card">
+    <div class="card-title">Capture Data</div>
+    <div class="kv">
+      <div class="kv-lbl">NEW M.NO</div>
+      <div class="kv-val" id="dMid">-</div>
+      <div class="kv-lbl">MEMBER NAME</div>
+      <div class="kv-val" id="dMname">-</div>
+      <div class="kv-lbl">ITEM NAME</div>
+      <div class="kv-val" id="dItem">-</div>
+      <div class="kv-lbl capW-lbl" id="capWLbl">CAPTURED WEIGHT</div>
+      <div class="kv-val capW" id="dCapW">-</div>
+      <div class="kv-lbl">OUT WEIGHT</div>
+      <div class="kv-val" id="dOutW">-</div>
+      <div class="kv-lbl">IN WEIGHT</div>
+      <div class="kv-val" id="dInW">-</div>
+      <div class="kv-lbl">READY / BOXES</div>
+      <div class="kv-val" id="dReadyW">-</div>
+      <div class="kv-lbl">SHORT MATERIAL</div>
+      <div class="kv-val" id="dShort">-</div>
+      <div class="kv-lbl">STATUS</div>
+      <div class="kv-val stage-ok" id="dStage">-</div>
+    </div>
+
+    <!-- Weight override (hidden for BOXES COUNT) -->
+    <div class="overrideWrap" id="overrideWrap">
+      <label class="overrideLbl">✏️ Weight wrong? Correct it here:</label>
+      <input type="number" step="0.001" min="0" class="overrideInput" id="wtInput"
+             placeholder="e.g. 58.500"
+             oninput="this.dataset.edited=(parseFloat(this.value)!==parseFloat(this.dataset.original))?'true':'false';
+                      this.style.borderColor=this.dataset.edited==='true'?'#d97706':'';
+                      this.style.background=this.dataset.edited==='true'?'#fff7ed':''"/>
+    </div>
+
+    <!-- Boxes count (only for BOXES COUNT stage) -->
+    <div class="boxesWrap" id="boxesWrap">
+      <label class="boxesLbl">📦 Enter Boxes Count:</label>
+      <input type="number" min="1" step="1" class="boxesInput" id="boxesInput" placeholder="0"/>
+    </div>
+
+    <!-- Extra weight note -->
+    <div class="extraInfo" id="extraInfo"></div>
+
+    <!-- EXTRA WEIGHT — small button at bottom of data card -->
+    <button class="sbtn s-extra" id="sExtra"
+            style="width:100%;margin-top:14px;padding:11px;font-size:12px;border-radius:11px">
+      ➕ EXTRA WEIGHT
+    </button>
+  </div>
+
+  <!-- ACTION BUTTONS: RESET above SUBMIT -->
+  <button class="btn btn-reset-a" id="btnResetA">↺ RESET</button>
+  <button class="btn btn-submit"  id="btnSubmit">✅ SUBMIT</button>
+
+</div>
+
+<!-- FULLSCREEN CAMERA -->
+<div class="camWrap" id="camWrap">
+  <div class="roiViewport" id="roiViewport">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="roiBorder"></div>
+    <div class="guideLine"></div>
+    <div class="guideLabel">Top: Member Card · Bottom: Scale</div>
+    <div class="stagePill" id="stagePill"></div>
+  </div>
+</div>
+
+<div class="btnFixed" id="btnFixedWrap">
+  <button class="btnFixedInner" id="btnCaptureFixed">CAPTURE FRAME</button>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlayCard">
+    <div class="overlayTick">✅</div>
+    <div class="overlayTitle" id="overlayTitle">LOGGED</div>
+    <div class="overlaySub"   id="overlaySub"></div>
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+window.onerror=function(msg,s,l,c){
+  try{setStatus("JS ERROR: "+msg+" (line "+l+")","err");}catch(e){}
+  return false;
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  WEB APP ENTRY
-// ═══════════════════════════════════════════════════════════════
-function doPost(e) {
-  try {
-    const raw  = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
-    Logger.log("doPost raw length: " + (raw ? raw.length : 0));
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbwxPyasVZ8_gXXN78qd3AKAL1GezwxGy2NwuZkV7nliAXash5zihG8iTVaJeFHqta2eWQ/exec";
 
-    if (!raw) return _jsonOut_({ ok: false, message: "Empty request body received" });
+/* ── STATE ── */
+let uiState="idle"; // idle | cam | processing | await | submitting
+let stage=null;
+let stream=null;
+let pending=null;
+let capSess=0;
 
-    let body;
-    try { body = JSON.parse(raw); }
-    catch(pe) { return _jsonOut_({ ok: false, message: "JSON parse error in doPost", error: String(pe), rawLength: raw.length }); }
+/* ── ELEMENTS ── */
+const video       =document.getElementById("video");
+const canvas      =document.getElementById("canvas");
+const camWrap     =document.getElementById("camWrap");
+const btnFixedWrap=document.getElementById("btnFixedWrap");
+const btnCapFixed =document.getElementById("btnCaptureFixed");
+const btnSubmit   =document.getElementById("btnSubmit");
+const btnResetA   =document.getElementById("btnResetA");
 
-    const act = String(body.action || "");
-    Logger.log("doPost action: " + act);
+/* ── STAGE CONFIG ── */
+const STAGE_CFG={
+  IN:          {id:"sIn",    color:"#1a56db", label:"IN"},
+  READY:       {id:"sReady", color:"#c026d3", label:"READY"},
+  OUT:         {id:"sOut",   color:"#16a34a", label:"OUT"},
+  EXTRA_WEIGHT:{id:"sExtra", color:"#111827", label:"EXTRA WEIGHT"},
+  BOXES:       {id:"sBoxes", color:"#d97706", label:"BOXES COUNT"},
+};
 
-    // Validate imageDataUrl if present
-    if (body.imageDataUrl !== undefined) {
-      const du = String(body.imageDataUrl || "").trim();
-      if (!du) return _jsonOut_({ ok: false, message: "imageDataUrl is empty" });
-      if (!du.match(/^data:image\/(png|jpeg|jpg);base64,/i)) {
-        Logger.log("Bad dataUrl prefix: " + du.slice(0, 50));
-        return _jsonOut_({ ok: false, message: "Invalid image dataUrl", preview: du.slice(0, 50) });
-      }
-      body.imageDataUrl = du;
-    }
+/* ── HELPERS ── */
+function _ms_(t0){return Math.round(performance.now()-t0);}
+function tx(id,v){const e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?"-":String(v);}
+function setStatus(msg,cls){const el=document.getElementById("status");el.textContent=msg||"";el.className="status "+(cls||"info");}
 
-    if (act === "visionExtract")    return _jsonOut_(_visionExtractObj(body.imageDataUrl));
-    if (act === "stageSubmit")      return _jsonOut_(_stageSubmit_(body));
-    if (act === "getMemberState")   return _jsonOut_(_getMemberStateAction_(body.memberId));
-    if (act === "postFailTasks")    return _jsonOut_(_postFailTasks_(body.imageDataUrl, body.failMessage, body.rawText));
+function setShortage(v){
+  const el=document.getElementById("dShort");el.className="kv-val";
+  if(v===null||v===undefined||v===""){el.textContent="-";return;}
+  const n=Number(v);if(isNaN(n)){el.textContent="-";return;}
+  el.textContent=n.toFixed(3);
+  if(n<-0.200) el.innerHTML='<span class="hl-red">▼ '+n.toFixed(3)+'</span>';
+  else if(n>0.200) el.innerHTML='<span class="hl-grn">▲ '+n.toFixed(3)+'</span>';
+}
 
-    return _jsonOut_({ ok: false, message: "Unknown action: " + act });
-  } catch (err) {
-    return _jsonOut_({ ok: false, message: "doPost error", error: String(err) });
+function tickSound(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type="square";o.frequency.value=1200;g.gain.value=0.06;
+    o.connect(g);g.connect(ac.destination);
+    o.start();setTimeout(()=>{o.stop();ac.close();},90);
+  }catch(e){}
+}
+
+function showOverlay(title,sub){
+  document.getElementById("overlayTitle").textContent=title||"LOGGED";
+  document.getElementById("overlaySub").textContent=sub||"";
+  const el=document.getElementById("overlay");
+  el.style.display="flex";
+  setTimeout(()=>el.style.display="none",1800);
+}
+
+/* ── SHOW UI ── */
+function showUI(){
+  const isCam  =uiState==="cam";
+  const isAwait=uiState==="await";
+  const isSub  =uiState==="submitting";
+  const isBoxes=(stage==="BOXES");
+
+  camWrap.style.display      =isCam?"flex":"none";
+  btnFixedWrap.style.display =isCam?"block":"none";
+  btnResetA.style.display    =isAwait?"block":"none";
+  btnSubmit.style.display    =(isAwait||isSub)?"block":"none";
+
+  if(isSub){btnSubmit.textContent="⏳ SUBMITTING...";btnSubmit.disabled=true;}
+  else{btnSubmit.textContent="✅ SUBMIT";btnSubmit.disabled=false;}
+
+  // BOXES COUNT: hide captured weight row, show count input
+  const capWRow=document.getElementById("capWLbl");
+  const capWVal=document.getElementById("dCapW");
+  if(isAwait&&isBoxes){
+    if(capWRow) capWRow.style.display="none";
+    if(capWVal) capWVal.style.display="none";
+    document.getElementById("overrideWrap").style.display="none";
+    document.getElementById("boxesWrap").style.display="block";
+  } else {
+    if(capWRow) capWRow.style.display="";
+    if(capWVal) capWVal.style.display="";
+    document.getElementById("overrideWrap").style.display=isAwait?"block":"none";
+    document.getElementById("boxesWrap").style.display="none";
+  }
+  document.getElementById("extraInfo").style.display=(isAwait&&stage==="EXTRA_WEIGHT")?"block":"none";
+}
+
+/* ── SELECT STAGE → open camera immediately ── */
+async function selectStage(s){
+  if(["processing","submitting"].includes(uiState)) return;
+  stopCamera();
+  stage=s;
+  pending=null;
+  capSess++;
+
+  // Highlight selected button
+  Object.entries(STAGE_CFG).forEach(([k,v])=>{
+    document.getElementById(v.id).classList.toggle("sel",k===s);
+  });
+
+  // Camera pill
+  const cfg=STAGE_CFG[s];
+  const pill=document.getElementById("stagePill");
+  pill.textContent=cfg.label;pill.style.background=cfg.color;
+
+  // Clear inputs
+  document.getElementById("wtInput").value="";
+  document.getElementById("wtInput").dataset.original="";
+  document.getElementById("wtInput").dataset.edited="false";
+  document.getElementById("wtInput").style.borderColor="";
+  document.getElementById("wtInput").style.background="";
+  document.getElementById("boxesInput").value="";
+  document.getElementById("extraInfo").style.display="none";
+  document.getElementById("prevWrap").style.display="none";
+  document.getElementById("prevImg").src="";
+  document.getElementById("clarityTag").textContent="";
+  tx("dCapW","-");
+
+  // Open camera immediately
+  uiState="cam";
+  showUI();
+  setStatus("Opening camera for "+cfg.label+"...","info");
+  try{
+    await startCamera();
+    setStatus("Camera ON ✅  ["+cfg.label+"]\nAlign: Member Card (top) + Scale (bottom)\nPress CAPTURE FRAME.","ok");
+  }catch(err){
+    setStatus("Camera error: "+(err&&err.message?err.message:String(err)),"err");
+    uiState="idle";showUI();
   }
 }
 
-function _jsonOut_(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+/* ── RESET ── */
+function doReset(){
+  stopCamera();
+  stage=null;pending=null;capSess++;uiState="idle";
+
+  Object.values(STAGE_CFG).forEach(v=>document.getElementById(v.id).classList.remove("sel"));
+  ["dMid","dMname","dItem","dCapW","dOutW","dInW","dReadyW","dStage"].forEach(id=>tx(id,"-"));
+  setShortage(null);
+  document.getElementById("prevWrap").style.display="none";
+  document.getElementById("prevImg").src="";
+  document.getElementById("clarityTag").textContent="";
+  document.getElementById("wtInput").value="";
+  document.getElementById("wtInput").style.borderColor="";
+  document.getElementById("wtInput").style.background="";
+  document.getElementById("boxesInput").value="";
+  document.getElementById("extraInfo").style.display="none";
+  showUI();
+  setStatus("Reset ✓  Select a stage to begin.","info");
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  STAGE SUBMIT — main router with full flow validation
-//  Rules:
-//  - OUT: only allowed if member has NO open (incomplete) row
-//         i.e. last entry for this member must be fully completed
-//         (has OUT+IN+READY) OR no entry exists at all
-//  - IN:  only allowed if member has an open row with OUT but no IN
-//  - READY/BOXES: only allowed if member has OUT+IN but no READY
-//  - If a stage is already filled, reject immediately
-//  - EXTRA_WEIGHT: allowed anytime there is an existing OUT row
-// ═══════════════════════════════════════════════════════════════
-function _stageSubmit_(body) {
-  const mid          = _clean(body.memberId);
-  const itn          = _clean(body.itemName);
-  const stg          = String(body.stage || "").toUpperCase().trim();
-  const val          = (stg === "BOXES") ? Number(body.value) : _toNumber(body.value);
-  const dataUrl      = String(body.imageDataUrl || "").trim();
-  const weightEdited = (body.weightEdited === true || body.weightEdited === "true");
+/* ── CAMERA ── */
+async function startCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)
+    throw new Error("Camera API not available.");
+  if(!window.isSecureContext)
+    throw new Error("Camera requires HTTPS.");
 
-  if (!mid)     return { ok: false, message: "Member ID missing" };
-  if (!itn)     return { ok: false, message: "Item Name missing" };
-  if (!stg)     return { ok: false, message: "Stage missing" };
-  if (val === null || (stg !== "BOXES" && val === null)) return { ok: false, message: "Value (weight/count) is invalid" };
-  if (!dataUrl) return { ok: false, message: "Photo required" };
-
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sh = ss.getSheetByName(SHEET_ENTRIES);
-  if (!sh) return { ok: false, message: "ENTRIES sheet not found" };
-
-  // ── PRE-FLIGHT: flow validation (uses direct sheet reads below) ──
-  // ── Flow validation using direct sheet reads (same logic as old app) ──
-  // OUT: only if no open row exists (last entry must be complete OR no entry at all)
-  // IN:  only if open row has OUT but no IN
-  // READY/BOXES: only if open row has OUT+IN but no READY
-
-  if (stg === "OUT") {
-    // Check if any incomplete row exists for this member
-    const openForIn    = _findOpenRow_(sh, mid, "needsIn");    // has OUT, no IN
-    const openForReady = _findOpenRow_(sh, mid, "needsReady"); // has OUT+IN, no READY
-    if (openForIn || openForReady) {
-      const nextStage = openForIn ? "IN" : "READY / BOXES";
-      return {
-        ok: false,
-        message: "OUT rejected ❌  Member has an incomplete entry. Submit " + nextStage + " next."
-      };
-    }
-  }
-
-  if (stg === "IN") {
-    const openForIn = _findOpenRow_(sh, mid, "needsIn");
-    if (!openForIn) {
-      // Check if OUT exists at all
-      const lastOut = _findLastOutRow_(sh, mid);
-      if (!lastOut) return { ok: false, message: "IN rejected ❌  No OUT weight found. Submit OUT first." };
-      return { ok: false, message: "IN rejected ❌  IN weight already recorded for this member." };
-    }
-  }
-
-  if (stg === "READY" || stg === "BOXES") {
-    const openForReady = _findOpenRow_(sh, mid, "needsReady");
-    if (!openForReady) {
-      const openForIn = _findOpenRow_(sh, mid, "needsIn");
-      if (openForIn) return { ok: false, message: stg + " rejected ❌  IN weight not yet recorded. Submit IN first." };
-      const lastOut = _findLastOutRow_(sh, mid);
-      if (!lastOut) return { ok: false, message: stg + " rejected ❌  No OUT found. Submit OUT first." };
-      return { ok: false, message: stg + " rejected ❌  READY / BOXES already recorded for this member." };
-    }
-  }
-
-  if (stg === "EXTRA_WEIGHT") {
-    const lastOut = _findLastOutRow_(sh, mid);
-    if (!lastOut) return { ok: false, message: "EXTRA WEIGHT rejected ❌  No OUT weight found for this member." };
-  }
-
-
-
-  let result;
-  if      (stg === "OUT")          result = _handleOut_(sh, mid, itn, val, dataUrl, weightEdited);
-  else if (stg === "IN")           result = _handleIn_(sh, mid, itn, val, dataUrl, weightEdited);
-  else if (stg === "READY")        result = _handleReady_(sh, mid, itn, val, dataUrl, weightEdited);
-  else if (stg === "BOXES")        result = _handleBoxes_(sh, mid, itn, val, dataUrl, false);
-  else if (stg === "EXTRA_WEIGHT") result = _handleExtraWeight_(sh, mid, itn, val, dataUrl, weightEdited);
-  else return { ok: false, message: "Unknown stage: " + stg };
-
-
-  return result;
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  GET MEMBER STATE — public action callable from frontend
-// ═══════════════════════════════════════════════════════════════
-function _getMemberStateAction_(memberId) {
-  try {
-    const mid = _clean(memberId);
-    if (!mid) return { ok: false, message: "memberId missing" };
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sh = ss.getSheetByName(SHEET_ENTRIES);
-    if (!sh) return { ok: false, message: "ENTRIES sheet not found" };
-    const state = _getMemberState_(sh, mid);
-    return { ok: true, state };
-  } catch(e) {
-    return { ok: false, message: "getMemberState error: " + String(e) };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  GET MEMBER CURRENT STATE
-//  Reads directly using COL constants — no index math errors
-// ═══════════════════════════════════════════════════════════════
-function _getMemberState_(sh, memberId) {
-  const empty = { hasAnyRow:false, lastRowComplete:true, hasOut:false, hasIn:false, hasReady:false, rowIndex:null };
+  try{video.muted=true;}catch(e){}
 
   try{
-    const last = sh.getLastRow();
-    Logger.log("_getMemberState_ memberId=" + memberId + " lastRow=" + last);
-    if (last < 2) return empty;
-
-    const target = _idKey_(memberId);
-
-    // Read only the columns we need: B(2)=NEW_MNO, F(6)=OUT, G(7)=IN, H(8)=READY
-    // Fetch each column separately to avoid index confusion
-    const numRows = last - 1;
-    const midCol   = sh.getRange(2, COL.NEW_MNO,     numRows, 1).getValues(); // col B
-    const outCol   = sh.getRange(2, COL.OUT_WEIGHT,  numRows, 1).getValues(); // col F
-    const inCol    = sh.getRange(2, COL.IN_WEIGHT,   numRows, 1).getValues(); // col G
-    const readyCol = sh.getRange(2, COL.READY_WEIGHT,numRows, 1).getValues(); // col H
-
-    // Find LAST row belonging to this member
-    let foundIdx = -1;
-    for (let i = numRows - 1; i >= 0; i--) {
-      const rowMid = _idKey_(String(midCol[i][0] || ""));
-      if (rowMid === target) { foundIdx = i; break; }
+    if(navigator.permissions&&navigator.permissions.query){
+      const st=await navigator.permissions.query({name:"camera"});
+      if(st&&st.state==="denied")
+        throw new Error("Camera permission DENIED. Allow camera in browser settings then reload.");
     }
+  }catch(e){if(e.message&&e.message.includes("DENIED")) throw e;}
 
-    Logger.log("_getMemberState_ foundIdx=" + foundIdx);
-    if (foundIdx === -1) return empty;
-
-    const outVal   = outCol[foundIdx][0];
-    const inVal    = inCol[foundIdx][0];
-    const readyVal = readyCol[foundIdx][0];
-
-    const hasOut   = (outVal   !== "" && outVal   !== null && outVal   !== undefined);
-    const hasIn    = (inVal    !== "" && inVal    !== null && inVal    !== undefined);
-    const hasReady = (readyVal !== "" && readyVal !== null && readyVal !== undefined);
-    const lastRowComplete = hasOut && hasIn && hasReady;
-
-    Logger.log("_getMemberState_ hasOut=" + hasOut + " hasIn=" + hasIn + " hasReady=" + hasReady + " complete=" + lastRowComplete);
-    Logger.log("_getMemberState_ outVal=[" + outVal + "] inVal=[" + inVal + "] readyVal=[" + readyVal + "]");
-
-    return {
-      hasAnyRow       : true,
-      lastRowComplete,
-      hasOut,
-      hasIn,
-      hasReady,
-      rowIndex        : foundIdx + 2
-    };
-  } catch(e) {
-    Logger.log("_getMemberState_ ERROR: " + String(e));
-    // Fail open — do not block if state check crashes
-    return { hasAnyRow:false, lastRowComplete:true, hasOut:false, hasIn:false, hasReady:false, rowIndex:null };
+  const attempts=[
+    {video:{facingMode:{ideal:"environment"},width:{min:1280,ideal:1920,max:1920},height:{min:720,ideal:1080,max:1080},aspectRatio:{ideal:16/9}},audio:false},
+    {video:{facingMode:{ideal:"environment"},aspectRatio:{ideal:16/9}},audio:false},
+    {video:{facingMode:{ideal:"environment"}},audio:false},
+    {video:{facingMode:"environment"},audio:false},
+    {video:true,audio:false}
+  ];
+  let lastErr=null;
+  for(const c of attempts){
+    try{stream=await navigator.mediaDevices.getUserMedia(c);lastErr=null;break;}
+    catch(e){lastErr=e;}
   }
-}
+  if(lastErr) throw new Error("Camera not available: "+(lastErr.message||String(lastErr)));
 
-// ═══════════════════════════════════════════════════════════════
-//  STAGE HANDLERS
-// ═══════════════════════════════════════════════════════════════
-
-const ORANGE_EDITED = "#ff9800"; // cell fill for manually edited weights
-
-function _handleOut_(sh, mid, itn, weight, dataUrl, weightEdited) {
-  const master = _getMaster_();
-  const mname  = _getMemberName_(master, mid);
-  const now    = new Date();
-
-  sh.appendRow([now, mid, mname, itn, "", weight, "", "", "", "", "", "", ""]);
-  const newRow = sh.getLastRow();
-
-  // Orange highlight if weight was manually edited
-  if (weightEdited) {
-    sh.getRange(newRow, COL.OUT_WEIGHT).setBackground(ORANGE_EDITED);
-  }
-
-  _enqueueImageSave_(newRow, "OUT", mid, dataUrl);
-
-  const snap = _getSnap_(sh, newRow);
-  return { ok: true, stage: "OUT", message: "OUT saved" + (weightEdited ? " (weight edited ✏️)" : ""), data: _snapData_(snap) };
-}
-
-function _handleIn_(sh, mid, itn, weight, dataUrl, weightEdited) {
-  const rowIdx = _findOpenRow_(sh, mid, "needsIn");
-  if (!rowIdx) return { ok: false, message: "No open OUT entry for this member. Submit OUT first." };
-
-  const outW = _toNumber(sh.getRange(rowIdx, COL.OUT_WEIGHT).getValue());
-  if (outW === null) return { ok: false, message: "Open row is missing OUT WEIGHT." };
-
-  sh.getRange(rowIdx, COL.IN_WEIGHT).setValue(weight);
-
-  // Orange highlight if weight was manually edited
-  if (weightEdited) {
-    sh.getRange(rowIdx, COL.IN_WEIGHT).setBackground(ORANGE_EDITED);
-  }
-
-  _enqueueImageSave_(rowIdx, "IN", mid, dataUrl);
-
-  // Write live formula in col J: =G-F (auto-updates if F or G changes)
-  const sc = sh.getRange(rowIdx, COL.SHORTAGE);
-  sc.setFormula('=IF(AND(F' + rowIdx + '<>"",G' + rowIdx + '<>""),G' + rowIdx + '-F' + rowIdx + ',"")');
-
-  // Apply background based on current calculated value
-  const shortage = weight - outW;
-  sc.setBackground(Math.abs(shortage) > 0.200 ? "#ffcccc" : "#ccffcc");
-
-  const snap = _getSnap_(sh, rowIdx);
-  return { ok: true, stage: "IN", message: "IN saved" + (weightEdited ? " (weight edited ✏️)" : ""), data: _snapData_(snap) };
-}
-
-function _handleReady_(sh, mid, itn, weight, dataUrl, weightEdited) {
-  const rowIdx = _findOpenRow_(sh, mid, "needsReady");
-  if (!rowIdx) return { ok: false, message: "No open IN entry for this member. Submit IN first." };
-
-  sh.getRange(rowIdx, COL.READY_WEIGHT).setValue(weight);
-
-  // Orange highlight if weight was manually edited
-  if (weightEdited) {
-    sh.getRange(rowIdx, COL.READY_WEIGHT).setBackground(ORANGE_EDITED);
-  }
-
-  _enqueueImageSave_(rowIdx, "READY", mid, dataUrl);
-  _setInDate_(sh, rowIdx);
-
-  const snap = _getSnap_(sh, rowIdx);
-  return { ok: true, stage: "READY", message: "READY saved" + (weightEdited ? " (weight edited ✏️)" : ""), data: _snapData_(snap) };
-}
-
-// BOXES: stores boxes count into READY_WEIGHT column as "BOXES:<n>"
-function _handleBoxes_(sh, mid, itn, boxCount, dataUrl, weightEdited) {
-  const rowIdx = _findOpenRow_(sh, mid, "needsReady");
-  if (!rowIdx) return { ok: false, message: "No open IN entry for this member. Submit IN first." };
-
-  const count = Math.max(1, Math.round(boxCount));
-  sh.getRange(rowIdx, COL.READY_WEIGHT).setValue(count);
-  _enqueueImageSave_(rowIdx, "READY", mid, dataUrl);
-  _setInDate_(sh, rowIdx);
-
-  const snap = _getSnap_(sh, rowIdx);
-  return {
-    ok: true,
-    stage: "BOXES",
-    message: "BOXES COUNT saved (" + count + " boxes)",
-    boxesCount: count,
-    data: _snapData_(snap)
-  };
-}
-
-// EXTRA WEIGHT: adds weight to LAST OUT WEIGHT for this member
-// Also inserts a cell note with date and added weight
-function _handleExtraWeight_(sh, mid, itn, weight, dataUrl, weightEdited) {
-  const rowIdx = _findLastOutRow_(sh, mid);
-  if (!rowIdx) return { ok: false, message: "No OUT entry found for this member." };
-
-  const prevOut = _toNumber(sh.getRange(rowIdx, COL.OUT_WEIGHT).getValue());
-  if (prevOut === null) return { ok: false, message: "Existing OUT WEIGHT is invalid." };
-
-  const newOut  = Math.round((prevOut + weight) * 1000) / 1000; // avoid float drift
-  const outCell = sh.getRange(rowIdx, COL.OUT_WEIGHT);
-  outCell.setValue(newOut);
-
-  // Orange highlight (always for extra weight, to flag the change)
-  outCell.setBackground(ORANGE_EDITED);
-
-  // ── Cell note: append each extra weight addition ──
-  try {
-    const tz       = Session.getScriptTimeZone() || "Asia/Kolkata";
-    const dateStr  = Utilities.formatDate(new Date(), tz, "dd/MM/yyyy HH:mm");
-    const existing = outCell.getNote() || "";
-    const entry    = "EXTRA WEIGHT ADDED\nDate  : " + dateStr + "\nAdded : +" + weight + " kg";
-    outCell.setNote(existing ? existing + "\n\n" + entry : entry);
-  } catch(e) {
-    Logger.log("Note insert error: " + String(e));
-  }
-
-  // Refresh shortage formula and highlight after OUT changes
-  const inW = _toNumber(sh.getRange(rowIdx, COL.IN_WEIGHT).getValue());
-  const sc  = sh.getRange(rowIdx, COL.SHORTAGE);
-  // Re-write formula so it stays live
-  sc.setFormula('=IF(AND(F' + rowIdx + '<>"",G' + rowIdx + '<>""),G' + rowIdx + '-F' + rowIdx + ',"")');
-  if (inW !== null) {
-    const shortage = inW - newOut;
-    sc.setBackground(Math.abs(shortage) > 0.200 ? "#ffcccc" : "#ccffcc");
-  }
-
-  _enqueueImageSave_(rowIdx, "EXTRA", mid, dataUrl);
-
-  const snap = _getSnap_(sh, rowIdx);
-  return {
-    ok              : true,
-    stage           : "EXTRA_WEIGHT",
-    message         : "EXTRA WEIGHT added. OUT: " + prevOut + " kg → " + newOut + " kg" + (weightEdited ? " (edited ✏️)" : ""),
-    addedWeight     : weight,
-    previousOutWeight: prevOut,
-    newOutWeight    : newOut,
-    data            : _snapData_(snap)
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  ROW FINDERS
-// ═══════════════════════════════════════════════════════════════
-
-// Returns row index (1-based) of the most recent open row for memberId
-// need = "needsIn"    → has OUT, no IN
-// need = "needsReady" → has OUT + IN, no READY
-function _findOpenRow_(sh, memberId, need) {
-  const last = sh.getLastRow();
-  if (last < 2) return null;
-
-  const target = _idKey_(memberId);
-  const vals   = sh.getRange(2, 2, last - 1, 7).getValues();
-  // [0]=NEW_MNO [4]=OUT_WEIGHT [5]=IN_WEIGHT [6]=READY_WEIGHT
-
-  for (let i = vals.length - 1; i >= 0; i--) {
-    if (_idKey_(String(vals[i][0])) !== target) continue;
-    const hasOut   = _clean(vals[i][4]) !== "";
-    const hasIn    = _clean(vals[i][5]) !== "";
-    const hasReady = _clean(vals[i][6]) !== "";
-
-    if (need === "needsIn"    && hasOut && !hasIn)             return i + 2;
-    if (need === "needsReady" && hasOut && hasIn && !hasReady) return i + 2;
-  }
-  return null;
-}
-
-// Returns row index of the most recent row that has an OUT_WEIGHT for this member
-function _findLastOutRow_(sh, memberId) {
-  const last = sh.getLastRow();
-  if (last < 2) return null;
-
-  const target = _idKey_(memberId);
-  const vals   = sh.getRange(2, 2, last - 1, 5).getValues();
-  // [0]=NEW_MNO [4]=OUT_WEIGHT
-
-  for (let i = vals.length - 1; i >= 0; i--) {
-    if (_idKey_(String(vals[i][0])) !== target) continue;
-    if (_clean(vals[i][4]) !== "") return i + 2;
-  }
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  SNAPSHOT HELPERS
-// ═══════════════════════════════════════════════════════════════
-function _getSnap_(sh, rowIdx) {
-  return {
-    rowIndex   : rowIdx,
-    memberId   : _clean(sh.getRange(rowIdx, COL.NEW_MNO).getValue()),
-    memberName : _clean(sh.getRange(rowIdx, COL.MEMBER_NAME).getValue()),
-    itemName   : _clean(sh.getRange(rowIdx, COL.ITEM_NAME).getValue()),
-    outWeight  : sh.getRange(rowIdx, COL.OUT_WEIGHT).getValue(),
-    inWeight   : sh.getRange(rowIdx, COL.IN_WEIGHT).getValue(),
-    readyWeight: sh.getRange(rowIdx, COL.READY_WEIGHT).getValue(),
-    shortage   : sh.getRange(rowIdx, COL.SHORTAGE).getValue()
-  };
-}
-function _snapData_(snap) {
-  return {
-    memberId   : snap.memberId,
-    memberName : snap.memberName,
-    itemName   : snap.itemName,
-    outWeight  : snap.outWeight,
-    inWeight   : snap.inWeight,
-    readyWeight: snap.readyWeight,
-    shortage   : snap.shortage,
-    rowIndex   : snap.rowIndex
-  };
-}
-function _getMemberName_(master, memberId) { return ""; }
-function _setInDate_(sh, row) {
-  try {
-    const g = sh.getRange(row, COL.IN_WEIGHT).getValue();
-    const h = sh.getRange(row, COL.READY_WEIGHT).getValue();
-    const i = sh.getRange(row, COL.IN_DATE).getValue();
-    if (g !== "" && h !== "" && (i === "" || i === null || i === undefined)) {
-      const tz = Session.getScriptTimeZone() || "Asia/Kolkata";
-      sh.getRange(row, COL.IN_DATE).setValue(Utilities.formatDate(new Date(), tz, "dd/MM/yyyy"));
+  video.srcObject=stream;
+  try{
+    const track=stream.getVideoTracks()[0];
+    const caps=track&&track.getCapabilities?track.getCapabilities():null;
+    const adv=[];
+    if(caps&&caps.focusMode&&Array.isArray(caps.focusMode)){
+      if(caps.focusMode.includes("continuous")) adv.push({focusMode:"continuous"});
+      else if(caps.focusMode.includes("auto")) adv.push({focusMode:"auto"});
     }
-  } catch (e) {}
+    if(caps&&caps.zoom&&typeof caps.zoom.min==="number")
+      adv.push({zoom:Math.min(caps.zoom.max,Math.max(caps.zoom.min,1.3))});
+    if(caps&&caps.exposureMode&&Array.isArray(caps.exposureMode)&&caps.exposureMode.includes("continuous"))
+      adv.push({exposureMode:"continuous"});
+    if(adv.length) await track.applyConstraints({advanced:adv});
+  }catch(e){}
+
+  await new Promise(r=>{
+    if(video.videoWidth&&video.videoHeight) return r();
+    video.onloadedmetadata=()=>r();
+  });
+  await video.play();
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>requestAnimationFrame(r));
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  VISION OCR  (same logic as original, unchanged)
-// ═══════════════════════════════════════════════════════════════
-function _visionExtractObj(imageDataUrl) {
-  try {
-    const t0 = Date.now();
-    let visionMs = "", openaiMs = "", ocrSource = "VISION", rawLog = "", matchLog = "", errLog = "";
-    const imgSize = _imgB64Len_(imageDataUrl);
+function stopCamera(){
+  try{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}catch(e){}
+  video.srcObject=null;
+  camWrap.style.display="none";
+  btnFixedWrap.style.display="none";
+}
 
-    function _log_(o){ try{_safeLogOcr_(o);}catch(e){} }
-
-    const master = _getMaster_();
-
-    const apiKey = PropertiesService.getScriptProperties().getProperty("VISION_API_KEY");
-    if (!apiKey) {
-      _log_({ts:new Date(),rawText:"",memberId:"",itemName:"",weight:null,ocrSource:"VISION",visionMs:"",openaiMs:"",totalMs:Date.now()-t0,matchStatus:"OCR_EMPTY",imgSize,errorMsg:"VISION_API_KEY missing"});
-      return { ok: false, message: "VISION_API_KEY missing in Script Properties" };
-    }
-
-    const m = String(imageDataUrl||"").match(/^data:image\/(png|jpeg|jpg);base64,(.+)$/i);
-    if (!m) return { ok: false, message: "Invalid image dataUrl" };
-
-    const url = "https://vision.googleapis.com/v1/images:annotate?key=" + encodeURIComponent(apiKey);
-    const t1  = Date.now();
-    const res = UrlFetchApp.fetch(url, {
-      method:"post", contentType:"application/json", muteHttpExceptions:true,
-      payload: JSON.stringify({ requests:[{ image:{content:m[2]}, features:[{type:"TEXT_DETECTION"}] }] })
-    });
-    visionMs = Date.now() - t1;
-    Logger.log("PERF vision.fetch ms=" + visionMs);
-
-    const code = res.getResponseCode();
-    let json;
-    try { json = JSON.parse(res.getContentText()); } catch(e) {
-      _log_({ts:new Date(),rawText:"",memberId:"",itemName:"",weight:null,ocrSource:"VISION",visionMs,openaiMs:"",totalMs:Date.now()-t0,matchStatus:"OCR_EMPTY",imgSize,errorMsg:"Vision JSON parse failed"});
-      return { ok: false, message: "Vision response not JSON", httpCode: code };
-    }
-
-    const r0 = json?.responses?.[0] ?? null;
-    if (!r0 || r0.error) {
-      const msg = r0?.error?.message || "Vision empty response";
-      _log_({ts:new Date(),rawText:"",memberId:"",itemName:"",weight:null,ocrSource:"VISION",visionMs,openaiMs:"",totalMs:Date.now()-t0,matchStatus:"OCR_EMPTY",imgSize,errorMsg:msg});
-      return { ok: false, message: msg, httpCode: code };
-    }
-
-    let ocrText = String(r0.fullTextAnnotation?.text || "").replace(/\r/g,"").trim();
-    rawLog = ocrText;
-
-    if (!ocrText) {
-      _log_({ts:new Date(),rawText:"",memberId:"",itemName:"",weight:null,ocrSource:"VISION",visionMs,openaiMs:"",totalMs:Date.now()-t0,matchStatus:"OCR_EMPTY",imgSize,errorMsg:"No text detected"});
-      return { ok: false, message: "No text detected", rawText:"" };
-    }
-
-    let exact = _exactMatchFromText_(ocrText, master);
-
-    const ctx = { visionTextLen: ocrText.length, foundMemberId: exact.foundMemberId, foundItemName: exact.foundItemName };
-    if (!exact.foundMemberId || !exact.foundItemName) {
-      // OpenAI fallback for text
-      const gpt = _openaiText_(imageDataUrl);
-      ocrSource = "OPENAI_FALLBACK";
-      openaiMs  = gpt?.ms ?? "";
-      if (gpt?.ok && gpt.rawText) {
-        ocrText = gpt.rawText;
-        rawLog  = ocrText;
-        exact   = _exactMatchFromText_(ocrText, master);
+/* ── CAPTURE ROI ── */
+function captureROI(){
+  const vw=video.videoWidth,vh=video.videoHeight;
+  if(!vw||!vh) throw new Error("Video not ready.");
+  const roi=document.getElementById("roiViewport");
+  let sx=0,sy=0,sw=vw,sh=vh;
+  try{
+    if(roi){
+      const vRect=video.getBoundingClientRect();
+      const rRect=roi.getBoundingClientRect();
+      if(vRect.width>0&&rRect.width>0){
+        const scale=Math.max(vRect.width/vw,vRect.height/vh);
+        const offX=((vw*scale)-vRect.width)/2,offY=((vh*scale)-vRect.height)/2;
+        let _sx=(rRect.left-vRect.left+offX)/scale;
+        let _sy=(rRect.top-vRect.top+offY)/scale;
+        let _sw=rRect.width/scale,_sh=rRect.height/scale;
+        if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
+        if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
+        if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
       }
     }
-
-    if (!exact.foundMemberId && !exact.foundItemName) {
-      _log_({ts:new Date(),rawText:rawLog,memberId:"",itemName:"",weight:null,ocrSource,visionMs,openaiMs,totalMs:Date.now()-t0,matchStatus:"MEMBER_NOT_MATCHED",imgSize,errorMsg:"Both not matched"});
-      return { ok: false, message: "NEW M.NO and ITEM NAME not matched", rawText: ocrText };
-    }
-    if (!exact.foundMemberId) {
-      _log_({ts:new Date(),rawText:rawLog,memberId:"",itemName:exact.itemName,weight:null,ocrSource,visionMs,openaiMs,totalMs:Date.now()-t0,matchStatus:"MEMBER_NOT_MATCHED",imgSize,errorMsg:"Member not matched"});
-      return { ok: false, message: "NEW M.NO not matched", rawText: ocrText };
-    }
-    if (!exact.foundItemName) {
-      _log_({ts:new Date(),rawText:rawLog,memberId:exact.memberId,itemName:"",weight:null,ocrSource,visionMs,openaiMs,totalMs:Date.now()-t0,matchStatus:"ITEM_NOT_MATCHED",imgSize,errorMsg:"Item not matched"});
-      return { ok: false, message: "ITEM NAME not matched", rawText: ocrText };
-    }
-
-    const w = _getWeightFallback_(r0, ocrText, imageDataUrl);
-    if (w.weight === null) {
-      _log_({ts:new Date(),rawText:rawLog,memberId:exact.memberId,itemName:exact.itemName,weight:null,ocrSource,visionMs,openaiMs,totalMs:Date.now()-t0,matchStatus:"WEIGHT_NOT_FOUND",imgSize,errorMsg:"Weight not found"});
-      const gptW = _openaiWeight_(imageDataUrl);
-      return { ok: false, message: "Weight not found. OpenAI weight attempt done.", rawText: ocrText, openAiWeight: gptW?.ok?gptW.weight:null };
-    }
-
-    _log_({ts:new Date(),rawText:rawLog,memberId:exact.memberId,itemName:exact.itemName,weight:w.weight,ocrSource,visionMs,openaiMs,totalMs:Date.now()-t0,matchStatus:"SUCCESS",imgSize,errorMsg:""});
-    return { ok:true, memberId:exact.memberId, memberName:exact.memberName, itemName:exact.itemName, weight:w.weight, rawText:ocrText };
-
-  } catch (err) {
-    try{_safeLogOcr_({ts:new Date(),rawText:"",memberId:"",itemName:"",weight:null,ocrSource:"VISION",visionMs:"",openaiMs:"",totalMs:"",matchStatus:"OCR_EMPTY",imgSize:_imgB64Len_(imageDataUrl),errorMsg:String(err)});}catch(e){}
-    return { ok: false, message: "OCR server error", error: String(err) };
+  }catch(e){}
+  const maxW=1600;
+  let outW=Math.round(sw),outH=Math.round(sh);
+  if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
+  canvas.width=outW;canvas.height=outH;
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
+  let dataUrl="";
+  try{dataUrl=canvas.toDataURL("image/jpeg",0.88);}catch(e){}
+  if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
+    try{dataUrl=canvas.toDataURL("image/png");}catch(e){}
   }
+  if(!dataUrl||dataUrl.length<100) throw new Error("Image capture failed. Please try again.");
+  return dataUrl;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  QR MASTER
-// ═══════════════════════════════════════════════════════════════
-function _getMaster_() {
-  const cache  = CacheService.getScriptCache();
-  const cached = cache.get("ANYMECH_V2_MASTER_V1");
-  if (cached) return JSON.parse(cached);
-
-  const ss   = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sh   = ss.getSheetByName(SHEET_MASTER);
-  if (!sh) throw new Error("QR MASTER sheet not found");
-
-  const last = sh.getLastRow();
-  if (last < 2) {
-    const empty = { ids:[], items:[], idKeyByAadhaar12:{}, idKeyByColK:{}, colKByIdKey:{} };
-    cache.put("ANYMECH_V2_MASTER_V1", JSON.stringify(empty), 300);
-    return empty;
-  }
-
-  const vals = sh.getRange(2, 1, last - 1, 11).getValues(); // A:K
-  const ids  = [], items = [], idKeyByAadhaar12 = {};
-  // idKeyByColK: maps normalized col K ID → col A idKey
-  // so a card showing Y21/0835 will resolve to the col A Member ID (XA1125)
-  const idKeyByColK = {};
-  const colKByIdKey  = {}; // col A idKey → col K raw value
-
-  for (const row of vals) {
-    const idRaw   = _clean(row[0]);   // col A = Member ID  (e.g. XA1125)
-    const aadRawB = _clean(row[1]);   // col B = Aadhaar    (e.g. 6262 5851 0835)
-    const itRaw   = _clean(row[2]);   // col C = Item Name
-    const colKRaw = _clean(row[10]);  // col K = 2nd Member ID (e.g. Y21/0835)
-
-    if (idRaw) {
-      const idKey = _idKey_(idRaw);
-      ids.push(idRaw);
-
-      // Aadhaar col B → col A idKey (primary lookup)
-      const a12B = _aadhaar12_(aadRawB);
-      if (a12B) idKeyByAadhaar12[a12B] = idKey;
-
-      // Store col K raw value keyed by col A idKey
-      // So after Aadhaar match we can retrieve col K for that member
-      if (colKRaw) colKByIdKey[idKey] = colKRaw;
-    }
-    if (itRaw) items.push(itRaw);
-  }
-
-  const out = { ids, items, idKeyByAadhaar12, idKeyByColK, colKByIdKey };
-  cache.put("ANYMECH_V2_MASTER_V1", JSON.stringify(out), 300);
-  return out;
-}
-
-function CLEAR_MASTER_CACHE() {
-  CacheService.getScriptCache().remove("ANYMECH_V2_MASTER_V1");
-  Logger.log("Master cache cleared.");
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  EXACT MATCH
-// ═══════════════════════════════════════════════════════════════
-function _exactMatchFromText_(ocrText, master) {
-  const ocrIdText   = _idKey_(ocrText);
-  const ocrItemText = _normItemKey_(ocrText);
-
-  let memberId = "";
-
-  // STEP 1: Find 12-digit Aadhaar in OCR text → look up col B → get matched row
-  const a12 = _aadhaar12FromText_(ocrText);
-  if (a12 && master.idKeyByAadhaar12 && master.idKeyByAadhaar12[a12]) {
-    const matchedKey = master.idKeyByAadhaar12[a12]; // col A idKey of the matched member
-
-    // STEP 2: From the matched row, check which ID is visible in OCR text
-    // First find the col A raw value for this member
-    let colAValue = "";
-    for (const idRaw of master.ids) {
-      if (_idKey_(idRaw) === matchedKey) { colAValue = _clean(idRaw); break; }
-    }
-
-    // Check if col K value for this member is in the OCR text
-    const colKValue = (master.colKByIdKey && master.colKByIdKey[matchedKey]) || "";
-    const colKKey   = _idKey_(colKValue);
-
-    const colAInOcr = colAValue && ocrIdText.includes(_idKey_(colAValue));
-    const colKInOcr = colKKey   && ocrIdText.includes(colKKey);
-
-    if (colAInOcr) {
-      // col A ID found on card → return col A
-      memberId = colAValue;
-      Logger.log("[MATCH] Aadhaar -> col A on card: " + memberId);
-    } else if (colKInOcr) {
-      // col K ID found on card → return col K value as the member ID
-      memberId = colKValue;
-      Logger.log("[MATCH] Aadhaar -> col K on card: " + memberId);
-    } else {
-      // Neither ID visible on card, but Aadhaar matched → default to col A
-      memberId = colAValue;
-      Logger.log("[MATCH] Aadhaar only, default col A: " + memberId);
-    }
-  }
-
-  // Item name
-  let itemName = "";
-  for (const itRaw of master.items) {
-    const itKey = _normItemKey_(itRaw);
-    if (itKey && ocrItemText.includes(itKey)) { itemName = _clean(itRaw); break; }
-  }
-
-  return {
-    foundMemberId : !!memberId,
-    foundItemName : !!itemName,
-    memberId,
-    memberName : "",
-    itemName
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  WEIGHT EXTRACTION
-// ═══════════════════════════════════════════════════════════════
-function _getWeightFallback_(r0, rawText, imageDataUrl) {
-  const v = _weightFromRegionDebug_(r0, 0.50);
-  if (v.weight !== null) return { weight: v.weight, debug: { source:"VISION_BOTTOM_50", candidates:v.candidates, chosen:v.chosen } };
-
-  const g = _openaiWeight_(imageDataUrl);
-  return { weight: g.ok ? g.weight : null, debug: { source: g.ok?"OPENAI_WEIGHT":"OPENAI_FAILED", openai:g } };
-}
-
-function _weightFromRegionDebug_(r0, yRatioStart) {
-  const ann = Array.isArray(r0?.textAnnotations) ? r0.textAnnotations : null;
-  if (!ann || ann.length < 2) return { weight:null, candidates:[], chosen:null };
-
-  let maxY = 0;
-  for (let i = 1; i < ann.length; i++) {
-    const v = ann[i].boundingPoly?.vertices;
-    if (!v) continue;
-    for (const p of v) { const y=Number(p?.y); if(Number.isFinite(y)&&y>maxY) maxY=y; }
-  }
-  if (!maxY) return { weight:null, candidates:[], chosen:null };
-
-  const yMin = maxY * Number(yRatioStart || 0);
-  const candidates = [];
-
-  for (let i = 1; i < ann.length; i++) {
-    const t = String(ann[i].description || "").trim();
-    if (!t) continue;
-    const v = ann[i].boundingPoly?.vertices;
-    if (!v || !v.length) continue;
-    let sumY=0, c=0;
-    for (const p of v) { const y=Number(p?.y); if(Number.isFinite(y)){sumY+=y;c++;} }
-    if (!c || sumY/c < yMin) continue;
-    if (/^\d{1,3}[.,]\d{3}$/.test(t)||/^\d{1,3}[.,]\d+$/.test(t)||/^\d{5,6}$/.test(t)) candidates.push(t);
-  }
-
-  for (let i = candidates.length-1; i >= 0; i--) {
-    const x = candidates[i].replace(",",".");
-    const n = _toNumber(x);
-    if (n !== null && n > 0 && n < 100) return { weight:n, candidates, chosen:candidates[i] };
-  }
-  for (let i = candidates.length-1; i >= 0; i--) {
-    if (!/^\d{5,6}$/.test(candidates[i])) continue;
-    const w=candidates[i].slice(0,-3), d=candidates[i].slice(-3);
-    const n=_toNumber(w+"."+d);
-    if (n !== null && n > 0 && n < 100) return { weight:n, candidates, chosen:candidates[i]+"->"+w+"."+d };
-  }
-  return { weight:null, candidates, chosen:null };
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  OPENAI HELPERS
-// ═══════════════════════════════════════════════════════════════
-function _openaiText_(imageDataUrl) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!apiKey) return { ok:false, message:"OPENAI_API_KEY missing" };
-  const t0 = Date.now();
-  const res = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
-    method:"post", contentType:"application/json", muteHttpExceptions:true,
-    headers:{ Authorization:"Bearer "+apiKey },
-    payload: JSON.stringify({
-      model:"gpt-4.1-mini", temperature:0,
-      input:[{ role:"user", content:[
-        {type:"input_text", text:"Extract ALL visible text from this image exactly as written. Return only raw text."},
-        {type:"input_image", image_url:imageDataUrl}
-      ]}]
-    })
-  });
-  const ms = Date.now()-t0;
-  Logger.log("PERF openai.text.fetch ms="+ms);
-  const code = res.getResponseCode();
-  let json; try{json=JSON.parse(res.getContentText());}catch(e){return{ok:false,message:"OpenAI JSON error",ms};}
-  if (code>=400) return{ok:false,message:"OpenAI API error",httpCode:code,ms};
-  const text = String(json?.output_text||"").trim() || _pullOutputText_(json);
-  if (!text) return{ok:false,message:"OpenAI empty",ms};
-  return{ok:true,rawText:text,ms};
-}
-
-function _openaiWeight_(imageDataUrl) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!apiKey) return{ok:false,message:"OPENAI_API_KEY missing"};
-  const t0 = Date.now();
-  const res = UrlFetchApp.fetch("https://api.openai.com/v1/responses",{
-    method:"post",contentType:"application/json",muteHttpExceptions:true,
-    headers:{Authorization:"Bearer "+apiKey},
-    payload:JSON.stringify({
-      model:"gpt-4.1-mini",temperature:0,
-      input:[{role:"user",content:[
-        {type:"input_text",text:"Read ONLY the weighing scale display in the LOWER HALF of the image. Return ONLY the weight number in kg as digits with a decimal (example: 58.480). If you cannot read it, return ONLY: NONE"},
-        {type:"input_image",image_url:imageDataUrl}
-      ]}]
-    })
-  });
-  const ms = Date.now()-t0;
-  Logger.log("PERF openai.weight.fetch ms="+ms);
-  const code = res.getResponseCode();
-  let json; try{json=JSON.parse(res.getContentText());}catch(e){return{ok:false,message:"JSON error",ms};}
-  if (code>=400) return{ok:false,message:"OpenAI API error",ms};
-  const text = (String(json?.output_text||"").trim()||_pullOutputText_(json)).trim();
-  if (!text||text==="NONE") return{ok:true,weight:null,ms};
-  const mw = text.match(/(\d{1,3}\.\d{1,3})/);
-  if (!mw) return{ok:false,message:"No decimal weight in response",rawText:text,ms};
-  const n = _toNumber(mw[1]);
-  if (!n||n<=0) return{ok:false,message:"Weight out of range",ms};
-  return{ok:true,weight:n,ms};
-}
-
-function _pullOutputText_(json) {
-  let s="";
-  if (Array.isArray(json?.output)) {
-    for (const item of json.output) {
-      if (item?.type==="message"&&item.content) {
-        for (const part of item.content) {
-          if (part?.type==="output_text"&&part.text) s+=String(part.text)+"\n";
+/* ── CLARITY ── */
+async function measureClarity(dataUrl){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=function(){
+      try{
+        const sc=document.createElement("canvas");
+        const sw2=Math.round(img.width*0.7),sh2=Math.round(img.height*0.45);
+        const sx2=Math.round((img.width-sw2)/2),sy2=Math.round(img.height*0.5);
+        sc.width=sw2;sc.height=sh2;
+        const ctx=sc.getContext("2d",{willReadFrequently:true});
+        ctx.drawImage(img,sx2,sy2,sw2,sh2,0,0,sw2,sh2);
+        const d=ctx.getImageData(0,0,sw2,sh2).data;
+        const g=new Float32Array(sw2*sh2);
+        for(let i=0,p=0;i<d.length;i+=4,p++) g[p]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+        let s=0,s2=0,n=0;
+        for(let y=1;y<sh2-1;y++) for(let x=1;x<sw2-1;x++){
+          const p=y*sw2+x;const l=-g[p-sw2]-g[p-1]+4*g[p]-g[p+1]-g[p+sw2];
+          s+=l;s2+=l*l;n++;
         }
-      }
-    }
-  }
-  return s.trim();
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  DRIVE + QUEUE
-// ═══════════════════════════════════════════════════════════════
-function _saveImageToDrive(dataUrl, folderName, memberId) {
-  dataUrl = String(dataUrl||"").trim();
-  if (!dataUrl) throw new Error("Missing dataUrl");
-  const match = dataUrl.match(/^data:(image\/(png|jpeg|jpg));base64,(.+)$/i);
-  if (!match) throw new Error("Invalid dataUrl");
-  const mime=match[1], ext=match[2].toLowerCase()==="jpeg"?"jpg":match[2].toLowerCase(), b64=match[3];
-  const bytes = Utilities.base64Decode(b64);
-  const fname = folderName.replace(/\s+/g,"_")+"_"+_idKey_(memberId)+"_"+Date.now()+"."+ext;
-  const blob  = Utilities.newBlob(bytes, mime, fname);
-  const parent = DriveApp.getFolderById(DRIVE_PARENT_FOLDER);
-  let sf; const fi=parent.getFoldersByName(folderName);
-  if (fi.hasNext()) sf=fi.next(); else sf=parent.createFolder(folderName);
-  const file = sf.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return file.getUrl();
-}
-
-function _enqueueImageSave_(rowIdx, stage, memberId, dataUrl) {
-  dataUrl = String(dataUrl||"").trim();
-  if (!dataUrl) return;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let q = ss.getSheetByName(SHEET_QUEUE);
-  if (!q) { q=ss.insertSheet(SHEET_QUEUE); q.appendRow(["Timestamp","Row","Stage","MemberID","DataUrl"]); }
-  q.appendRow([new Date(), rowIdx, String(stage||""), String(memberId||""), dataUrl]);
-}
-
-function processUploadQueue_() {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const en = ss.getSheetByName(SHEET_ENTRIES);
-    const q  = ss.getSheetByName(SHEET_QUEUE);
-    if (!en||!q) return;
-    const last = q.getLastRow();
-    if (last<2) return;
-    const num  = Math.min(5, last-1);
-    const rows = q.getRange(2,1,num,5).getValues();
-    for (let i=0;i<rows.length;i++) {
-      const rowIdx   = Number(rows[i][1]);
-      const stage    = String(rows[i][2]||"").toUpperCase();
-      const memberId = String(rows[i][3]||"");
-      const dataUrl  = String(rows[i][4]||"");
-      if (!rowIdx||!stage||!dataUrl) { q.deleteRow(2); continue; }
-      const folderMap = {
-        OUT  : "OUT WEIGHT",
-        IN   : "IN WEIGHT",
-        READY: "READY WEIGHT",
-        EXTRA: "EXTRA WEIGHT",
-        BOXES: "BOXES COUNT"
-      };
-      const colMap = {
-        OUT  : COL.OUT_IMAGE,
-        IN   : COL.IN_IMAGE,
-        READY: COL.READY_IMAGE,
-        EXTRA: COL.OUT_IMAGE,   // extra weight updates OUT cell image
-        BOXES: COL.READY_IMAGE  // boxes count goes in READY image col
-      };
-      const folder = folderMap[stage];
-      if (!folder) { q.deleteRow(2); continue; }
-      let link = "";
-      try {
-        link = _saveImageToDrive(dataUrl, folder, memberId);
-      } catch(saveErr) {
-        Logger.log("Image save error row=" + rowIdx + " stage=" + stage + " err=" + String(saveErr));
-        q.deleteRow(2);
-        continue;
-      }
-      if (link && colMap[stage]) {
-        try { en.getRange(rowIdx, colMap[stage]).setValue(link); } catch(e) {}
-      }
-      q.deleteRow(2);
-    }
-  } finally { lock.releaseLock(); }
-}
-
-function INSTALL_QUEUE_TRIGGER() {
-  ScriptApp.newTrigger("processUploadQueue_").timeBased().everyMinutes(1).create();
-}
-function RUN_QUEUE_NOW() { processUploadQueue_(); }
-
-// ── Run once from editor to apply conditional formatting on col J ──
-// This makes col J highlight automatically for ALL rows, even future ones
-function SETUP_SHORTAGE_CONDITIONAL_FORMAT() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sh = ss.getSheetByName(SHEET_ENTRIES);
-  if (!sh) { Logger.log("ENTRIES sheet not found"); return; }
-
-  // Remove existing rules on col J first
-  const existingRules = sh.getConditionalFormatRules();
-  const colJRange = sh.getRange("J2:J");
-  const filtered  = existingRules.filter(rule => {
-    const ranges = rule.getRanges();
-    return !ranges.some(r => r.getColumn() === 10);
+        const v=(s2-(s*s)/n)/n;
+        resolve(Math.min(100,Math.max(0,Math.round((Math.sqrt(v)/45)*100))));
+      }catch(e){resolve(null);}
+    };
+    img.onerror=()=>resolve(null);
+    img.src=dataUrl;
   });
-  sh.setConditionalFormatRules(filtered);
-
-  // RED: shortage < -0.200 (weight short by more than 200g)
-  const redRule = SpreadsheetApp.newConditionalFormatRule()
-    .whenNumberLessThan(-0.200)
-    .setBackground("#ffcccc")
-    .setFontColor("#7f1d1d")
-    .setBold(true)
-    .setRanges([colJRange])
-    .build();
-
-  // GREEN: shortage > 0.200 (excess more than 200g)
-  const greenRule = SpreadsheetApp.newConditionalFormatRule()
-    .whenNumberGreaterThan(0.200)
-    .setBackground("#ccffcc")
-    .setFontColor("#14532d")
-    .setBold(true)
-    .setRanges([colJRange])
-    .build();
-
-  // YELLOW: between -0.200 and 0.200 (within tolerance)
-  const yellowRule = SpreadsheetApp.newConditionalFormatRule()
-    .whenNumberBetween(-0.200, 0.200)
-    .setBackground("#fff9c4")
-    .setFontColor("#78350f")
-    .setRanges([colJRange])
-    .build();
-
-  filtered.push(redRule, greenRule, yellowRule);
-  sh.setConditionalFormatRules(filtered);
-  Logger.log("Conditional formatting applied to col J (SHORTAGE).");
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  FAILED OCR LOG
-// ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-//  2-HOUR LOCK SYSTEM
-//  Lock is bypassed if data was manually deleted from ENTRIES sheet
-// ═══════════════════════════════════════════════════════════════
-
-// Check if this member+stage is within the 2-hour lock window
-function _checkLock_(mid, stg) {
-  try {
-    const ss   = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sh     = ss.getSheetByName(SHEET_LOCK);
-    if (!sh) {
-      sh = ss.insertSheet(SHEET_LOCK);
-      sh.appendRow(["Timestamp", "Member ID", "Stage"]);
-      return { locked: false };
-    }
-    const last = sh.getLastRow();
-    if (last < 2) return { locked: false };
-
-    const data   = sh.getRange(2, 1, last - 1, 3).getValues();
-    const now    = new Date();
-    const lockMs = LOCK_HOURS * 3600 * 1000;
-    const midKey = _idKey_(mid);
-    const stgUp  = stg.toUpperCase();
-
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (_idKey_(String(data[i][1] || "")) !== midKey) continue;
-      if (String(data[i][2] || "").toUpperCase() !== stgUp) continue;
-      const elapsed = now - new Date(data[i][0]);
-      if (elapsed < lockMs) {
-        return { locked: true, remainingMinutes: Math.ceil((lockMs - elapsed) / 60000) };
-      }
-      return { locked: false }; // most recent entry already expired
-    }
-    return { locked: false };
-  } catch(e) {
-    Logger.log("_checkLock_ error: " + String(e));
-    return { locked: false }; // fail open
+/* ── SERVER CALL ── */
+async function callServer(action,payload){
+  const body=Object.assign({action},payload||{});
+  if(body.imageDataUrl!==undefined){
+    const du=String(body.imageDataUrl||"").trim();
+    if(!du||du==="data:,"||du.length<50) throw new Error("Captured image is blank — tap RESET and try again.");
+    body.imageDataUrl=du;
   }
+  const ctrl=new AbortController();
+  const to=setTimeout(()=>ctrl.abort(),35000);
+  let res,text;
+  try{
+    res=await fetch(BACKEND_URL,{method:"POST",body:JSON.stringify(body),signal:ctrl.signal});
+    text=await res.text();
+  }catch(err){
+    clearTimeout(to);
+    if(err.name==="AbortError") throw new Error("Request timed out. Check internet.");
+    throw new Error("Network error: "+(err.message||String(err)));
+  }finally{clearTimeout(to);}
+  if(!res||!res.ok) throw new Error("HTTP "+(res&&res.status?res.status:0)+" - "+(text||"").slice(0,300));
+  try{return JSON.parse(text);}
+  catch(e){throw new Error("Server error: "+(text||"").slice(0,300));}
 }
 
-// Record a lock entry after successful submit
-function _recordLock_(mid, stg) {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sh   = ss.getSheetByName(SHEET_LOCK);
-    if (!sh) {
-      sh = ss.insertSheet(SHEET_LOCK);
-      sh.appendRow(["Timestamp", "Member ID", "Stage"]);
-    }
-    sh.appendRow([new Date(), mid, stg.toUpperCase()]);
-  } catch(e) {
-    Logger.log("_recordLock_ error: " + String(e));
+/* ── CAPTURE FRAME (called from fixed button) ── */
+async function onCaptureFrame(){
+  if(uiState!=="cam") return;
+  const sess=++capSess;
+  uiState="processing";showUI();
+
+  let dataUrl;
+  try{dataUrl=captureROI();}
+  catch(err){
+    setStatus("Capture error: "+(err&&err.message?err.message:String(err)),"err");
+    uiState="cam";showUI();return;
   }
-}
 
-// Remove the most recent lock for this member+stage (called when data deleted)
-function _clearLock_(mid, stg) {
-  try {
-    const ss  = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sh  = ss.getSheetByName(SHEET_LOCK);
-    if (!sh) return;
-    const last = sh.getLastRow();
-    if (last < 2) return;
-    const data   = sh.getRange(2, 1, last - 1, 3).getValues();
-    const midKey = _idKey_(mid);
-    const stgUp  = stg.toUpperCase();
-    for (let i = data.length - 1; i >= 0; i--) {
-      if (_idKey_(String(data[i][1] || "")) === midKey &&
-          String(data[i][2] || "").toUpperCase() === stgUp) {
-        sh.deleteRow(i + 2);
-        Logger.log("Lock cleared for " + mid + " " + stg);
-        return;
-      }
-    }
-  } catch(e) {
-    Logger.log("_clearLock_ error: " + String(e));
+  stopCamera();
+
+  // Show preview
+  document.getElementById("prevImg").src=dataUrl;
+  document.getElementById("prevWrap").style.display="block";
+  document.getElementById("prevTag").textContent="📸 Captured — OCR Running...";
+  document.getElementById("clarityTag").textContent="";
+  measureClarity(dataUrl).then(pct=>{
+    if(pct!==null) document.getElementById("clarityTag").textContent="Clarity: "+pct+"%";
+  });
+
+  tx("dCapW","...");
+  setStatus("Image captured ✅\nRunning OCR — please wait...","info");
+
+  const tOcr=performance.now();
+  let r;
+  try{r=await callServer("visionExtract",{imageDataUrl:dataUrl});}
+  catch(err){
+    if(sess!==capSess) return;
+    document.getElementById("prevTag").textContent="❌ OCR Failed";
+    tx("dCapW","-");
+    setStatus("OCR call failed:\n"+(err&&err.message?err.message:String(err)),"err");
+    uiState="idle";showUI();return;
   }
-}
 
-// Check if the stage data actually exists in ENTRIES sheet
-// Returns false if data was manually deleted → lock gets bypassed
-function _stageDataExists_(sh, mid, stg) {
-  try {
-    const last = sh.getLastRow();
-    if (last < 2) return false;
-    const target  = _idKey_(mid);
-    const numRows = last - 1;
-    const midCol   = sh.getRange(2, COL.NEW_MNO,      numRows, 1).getValues();
-    const outCol   = sh.getRange(2, COL.OUT_WEIGHT,   numRows, 1).getValues();
-    const inCol    = sh.getRange(2, COL.IN_WEIGHT,    numRows, 1).getValues();
-    const readyCol = sh.getRange(2, COL.READY_WEIGHT, numRows, 1).getValues();
+  if(sess!==capSess) return;
+  const msOcr=_ms_(tOcr);
 
-    for (let i = numRows - 1; i >= 0; i--) {
-      if (_idKey_(String(midCol[i][0] || "")) !== target) continue;
-      const hasOut   = outCol[i][0]   !== "" && outCol[i][0]   !== null && outCol[i][0]   !== undefined;
-      const hasIn    = inCol[i][0]    !== "" && inCol[i][0]    !== null && inCol[i][0]    !== undefined;
-      const hasReady = readyCol[i][0] !== "" && readyCol[i][0] !== null && readyCol[i][0] !== undefined;
-
-      if (stg === "OUT")          return hasOut && (!hasIn || !hasReady);
-      if (stg === "IN")           return hasIn;
-      if (stg === "READY")        return hasReady;
-      if (stg === "BOXES")        return hasReady;
-      if (stg === "EXTRA_WEIGHT") return hasOut;
-      return false;
-    }
-    return false; // no row found at all — data deleted
-  } catch(e) {
-    Logger.log("_stageDataExists_ error: " + String(e));
-    return false; // fail open
+  if(!r||!r.ok){
+    document.getElementById("prevTag").textContent="❌ OCR Failed";
+    tx("dCapW","-");
+    setStatus("OCR FAILED: "+(r&&r.message?r.message:"Unknown")+"\nRAW: "+(r&&r.rawText?r.rawText:"")+"\n["+msOcr+"ms]","err");
+    callServer("postFailTasks",{imageDataUrl:dataUrl,failMessage:(r&&r.message)||"OCR failed",rawText:(r&&r.rawText)||""}).catch(()=>{});
+    uiState="idle";showUI();return;
   }
+
+  document.getElementById("prevTag").textContent="📸 Captured";
+
+  // Fill member/item data
+  tx("dMid",  r.memberId||"-");
+  tx("dMname",r.memberName||"-");
+  tx("dItem", r.itemName||"-");
+
+  const isBoxes=(stage==="BOXES");
+  const isExtra=(stage==="EXTRA_WEIGHT");
+
+  if(isBoxes){
+    // BOXES COUNT: do NOT show weight, show count input only
+    tx("dCapW","-");
+    document.getElementById("boxesInput").value="";
+    document.getElementById("boxesInput").focus();
+  } else {
+    // All other stages: show captured weight + override input
+    const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
+    tx("dCapW",wtStr);
+    if(r.weight!==null&&r.weight!==undefined){
+      document.getElementById("wtInput").value=r.weight;
+      document.getElementById("wtInput").dataset.original=String(r.weight);
+      document.getElementById("wtInput").dataset.edited="false";
+    }
+  }
+
+  if(isExtra){
+    const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
+    const ei=document.getElementById("extraInfo");
+    ei.style.display="block";
+    ei.textContent="ℹ️ EXTRA WEIGHT: "+wtStr+" kg will be ADDED to last OUT WEIGHT for this member.";
+  }
+
+  pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl};
+
+  uiState="await";
+  if(isBoxes){
+    setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+"\n\nEnter Boxes Count below → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
+  } else {
+    const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
+    setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+" | Weight: "+wtStr+" kg\n\nVerify → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
+  }
+  showUI();
 }
 
-function _postFailTasks_(imageDataUrl, failMessage, rawText) {
-  try {
-    const dataUrl = String(imageDataUrl||"").trim();
-    if (!dataUrl) return { ok:false, message:"Missing imageDataUrl" };
-    const link = _saveImageToDrive(dataUrl, "FAILED OCR", "NO_ID");
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sh = ss.getSheetByName(SHEET_FAILED)||ss.insertSheet(SHEET_FAILED);
-    sh.appendRow([new Date(), String(failMessage||""), String(rawText||""), link]);
-    return { ok:true, link };
-  } catch(e) { return { ok:false, message:"postFailTasks error", error:String(e) }; }
+/* ── SUBMIT ── */
+async function onSubmit(){
+  if(uiState!=="await"||!pending){
+    setStatus("No captured data. Select a stage to capture.","err");return;
+  }
+
+  const isBoxes=(stage==="BOXES");
+  let value;
+  let weightEdited=false;
+
+  if(isBoxes){
+    // BOXES COUNT: get count from input
+    const cnt=parseInt(document.getElementById("boxesInput").value,10);
+    if(!cnt||cnt<1){
+      setStatus("⚠️ Please enter a valid Boxes Count.","err");
+      document.getElementById("boxesInput").focus();return;
+    }
+    value=cnt;
+  } else {
+    // All other stages: get weight (possibly overridden)
+    const ov=document.getElementById("wtInput").value.trim();
+    const n=parseFloat(ov);
+    if(ov!==""&&isFinite(n)&&n>0){
+      value=n;
+      const ocrVal=pending.weight;
+      weightEdited=(ocrVal===null||ocrVal===undefined||Math.abs(n-Number(ocrVal))>0.0005);
+    } else {
+      value=pending.weight;
+      weightEdited=false;
+    }
+  }
+
+  if(value===null||value===undefined){
+    setStatus("⚠️ Weight missing. Try capturing again.","err");return;
+  }
+
+  uiState="submitting";showUI();
+  setStatus("Submitting to Google Sheet...","info");
+
+  const tSub=performance.now();
+  let resp;
+  try{
+    resp=await callServer("stageSubmit",{
+      stage,
+      memberId:pending.memberId,
+      itemName:pending.itemName,
+      value,
+      weightEdited,
+      imageDataUrl:pending.dataUrl
+    });
+  }catch(err){
+    setStatus("Submit failed:\n"+(err&&err.message?err.message:String(err)),"err");
+    uiState="await";showUI();return;
+  }
+
+  const msSub=_ms_(tSub);
+
+
+
+  if(!resp||!resp.ok){
+    const msg=resp&&resp.message?resp.message:"Unknown error";
+    setStatus("❌ "+msg+"\n["+msSub+"ms]","err");
+    if(msg.includes("rejected")||msg.includes("already")||msg.includes("first")){
+      pending=null;uiState="idle";
+    } else {
+      uiState="await";
+    }
+    showUI();return;
+  }
+
+  // Success
+  tickSound();
+  const d=resp.data||{};
+  tx("dMid",  d.memberId||pending.memberId||"-");
+  tx("dMname",d.memberName||"-");
+  tx("dItem", d.itemName||pending.itemName||"-");
+  tx("dCapW", "-");
+  tx("dOutW", (d.outWeight!==null&&d.outWeight!==undefined&&d.outWeight!=="")?d.outWeight:"-");
+  tx("dInW",  (d.inWeight !==null&&d.inWeight !==undefined&&d.inWeight  !=="")?d.inWeight :"-");
+
+  if(stage==="BOXES"&&resp.boxesCount!==undefined){
+    tx("dReadyW","📦 "+resp.boxesCount+" boxes");
+  } else {
+    const rdW=d.readyWeight;
+    tx("dReadyW",(rdW!==null&&rdW!==undefined&&rdW!=="")?String(rdW):"-");
+  }
+
+  setShortage(d.shortage!==undefined?d.shortage:null);
+
+  let stLbl=resp.stage||stage;
+  if(stage==="EXTRA_WEIGHT"&&resp.newOutWeight!==undefined)
+    stLbl="EXTRA ✅  "+resp.previousOutWeight+" → "+resp.newOutWeight+" kg";
+  else if(stLbl==="OUT")   stLbl="OUT ✅";
+  else if(stLbl==="IN")    stLbl="IN ✅";
+  else if(stLbl==="READY") stLbl="READY ✅";
+  else if(stLbl==="BOXES") stLbl="BOXES COUNT ✅";
+  else if(d.completed)     stLbl="COMPLETED ✅";
+  tx("dStage",stLbl);
+
+
+  const OVL={OUT:"OUT SAVED ✅",IN:"IN SAVED ✅",READY:"READY SAVED ✅",BOXES:"BOXES COUNT LOGGED ✅",EXTRA_WEIGHT:"EXTRA WEIGHT ADDED ✅"};
+  showOverlay(OVL[stage]||"LOGGED ✅",resp.message||"");
+  setStatus("SUCCESS ✅  "+(resp.message||stLbl)+" ["+msSub+"ms]","ok");
+
+  pending=null;
+  uiState="idle";
+  showUI();
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  OCR DATA LOG
-// ═══════════════════════════════════════════════════════════════
-const OCR_HEADER = ["Timestamp","Raw OCR Text","Member ID","Item Name","Weight","OCR Source","Vision ms","OpenAI ms","Total ms","Match Status","Image Size","Error"];
+/* ── WIRE UP ── */
+Object.entries(STAGE_CFG).forEach(([k,v])=>{
+  document.getElementById(v.id).addEventListener("click",()=>selectStage(k));
+});
+btnCapFixed.addEventListener("click",onCaptureFrame);
+btnSubmit.addEventListener("click",onSubmit);
+btnResetA.addEventListener("click",doReset);
 
-function _safeLogOcr_(o) {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sh = ss.getSheetByName(SHEET_OCR_DATA);
-    if (!sh) { sh=ss.insertSheet(SHEET_OCR_DATA); sh.getRange(1,1,1,OCR_HEADER.length).setValues([OCR_HEADER]); }
-    sh.appendRow([o.ts||new Date(),o.rawText||"",o.memberId||"",o.itemName||"",o.weight??""
-                 ,o.ocrSource||"",o.visionMs||"",o.openaiMs||"",o.totalMs||"",o.matchStatus||"",o.imgSize||"",o.errorMsg||""]);
-  } catch(e) {}
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  UTILITIES
-// ═══════════════════════════════════════════════════════════════
-function _clean(v)      { return String(v??  "").trim(); }
-function _idKey_(v)     { return _clean(v).replace(/\s+/g,"").toUpperCase(); }
-function _normItemKey_(v){ return _clean(v).toUpperCase().replace(/[^A-Z0-9]/g,""); }
-function _toNumber(v)   {
-  const s=_clean(v).replace(",",".");
-  if(!s) return null;
-  const n=Number(s);
-  return Number.isFinite(n)?n:null;
-}
-function _imgB64Len_(dataUrl) {
-  try{ const m=String(dataUrl||"").match(/^data:image\/[^;]+;base64,(.+)$/i); return m?(m[1]||"").length:""; }catch(e){return "";}
-}
-function _aadhaar12_(v) { const d=String(v??"").replace(/\D/g,""); return d.length===12?d:""; }
-function _aadhaar12FromText_(text) {
-  const s=String(text??"");
-  const m=s.match(/A(?:ADH|DH)(?:AAR|AR)\s*NO\.?\s*[:.]?\s*([0-9\s-]{10,})/i);
-  if (m&&m[1]) { const d=String(m[1]).replace(/\D/g,""); if(d.length===12) return d; }
-  const d=s.replace(/\D/g,"");
-  const all=d.match(/\d{12}/g);
-  return (all&&all.length)?all[0]:"";
-}
+/* ── INIT ── */
+showUI();
+setStatus("Select a stage above to open camera.","info");
+</script>
+</body>
+</html>
