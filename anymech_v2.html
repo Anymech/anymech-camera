@@ -58,7 +58,6 @@
     .status{font-size:13px;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border-radius:12px;padding:12px 14px;color:#334155;border-left:3px solid var(--border);min-height:44px;font-family:monospace}
     .status.ok{background:#f0fdf4;border-left-color:var(--green);color:#14532d}
     .status.err{background:#fff1f2;border-left-color:var(--red);color:#7f1d1d}
-    .status.lock{background:#fffbeb;border-left-color:var(--orange);color:#78350f}
     .status.info{background:#eff6ff;border-left-color:var(--blue);color:#1e3a5f}
 
     /* CAPTURED PREVIEW */
@@ -92,11 +91,7 @@
     /* EXTRA INFO */
     .extraInfo{display:none;margin-top:10px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.6}
 
-    /* LOCK BOX */
-    .lockBox{display:none;background:#fffbeb;border:2px solid #fbbf24;border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:12px}
-    .lockIcon{font-size:40px;line-height:1;margin-bottom:6px}
-    .lockTitle{font-size:15px;font-weight:900;color:#92400e;margin-bottom:4px}
-    .lockTime{font-size:26px;font-weight:700;color:var(--orange);font-family:monospace}
+
 
     /* ACTION BUTTONS */
     .btn{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;user-select:none;box-shadow:0 8px 0 rgba(0,0,0,0.18),0 14px 28px rgba(0,0,0,0.10);transition:transform 0.08s,box-shadow 0.08s;margin-bottom:10px;display:none}
@@ -153,12 +148,7 @@
     <div class="status info" id="status">Select a stage above to open camera.</div>
   </div>
 
-  <!-- LOCK BOX -->
-  <div class="lockBox" id="lockBox">
-    <div class="lockIcon">🔒</div>
-    <div class="lockTitle" id="lockTitle">LOCKED</div>
-    <div class="lockTime"  id="lockTime">— min remaining</div>
-  </div>
+
 
   <!-- DATA CARD -->
   <div class="card">
@@ -248,7 +238,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbyLjoOoRZ2bMHi2Mp8rzPGzcT3DqENDv-zza7AUOGPg6vgOnx2LRzslLTEob2a7YDdDig/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbwoYB_xVVp3wgTBaDzDNwnOj6rkb9WImzXTCJPE4xclGdr--VT2PETpNJ-IVekO2gBYcQ/exec";
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -364,7 +354,6 @@ async function selectStage(s){
   document.getElementById("wtInput").style.borderColor="";
   document.getElementById("wtInput").style.background="";
   document.getElementById("boxesInput").value="";
-  document.getElementById("lockBox").style.display="none";
   document.getElementById("extraInfo").style.display="none";
   document.getElementById("prevWrap").style.display="none";
   document.getElementById("prevImg").src="";
@@ -392,7 +381,6 @@ function doReset(){
   Object.values(STAGE_CFG).forEach(v=>document.getElementById(v.id).classList.remove("sel"));
   ["dMid","dMname","dItem","dCapW","dOutW","dInW","dReadyW","dStage"].forEach(id=>tx(id,"-"));
   setShortage(null);
-  document.getElementById("lockBox").style.display="none";
   document.getElementById("prevWrap").style.display="none";
   document.getElementById("prevImg").src="";
   document.getElementById("clarityTag").textContent="";
@@ -710,14 +698,7 @@ async function onSubmit(){
 
   const msSub=_ms_(tSub);
 
-  // Lock
-  if(resp&&resp.locked){
-    document.getElementById("lockBox").style.display="block";
-    document.getElementById("lockTitle").textContent=(STAGE_CFG[stage]&&STAGE_CFG[stage].label?STAGE_CFG[stage].label:stage)+" LOCKED for this member";
-    document.getElementById("lockTime").textContent="🕐 "+resp.remainingMinutes+" min remaining";
-    setStatus("🔒 "+resp.message+"\n["+msSub+"ms]","lock");
-    uiState="await";showUI();return;
-  }
+
 
   if(!resp||!resp.ok){
     const msg=resp&&resp.message?resp.message:"Unknown error";
@@ -759,7 +740,6 @@ async function onSubmit(){
   else if(d.completed)     stLbl="COMPLETED ✅";
   tx("dStage",stLbl);
 
-  document.getElementById("lockBox").style.display="none";
 
   const OVL={OUT:"OUT SAVED ✅",IN:"IN SAVED ✅",READY:"READY SAVED ✅",BOXES:"BOXES COUNT LOGGED ✅",EXTRA_WEIGHT:"EXTRA WEIGHT ADDED ✅"};
   showOverlay(OVL[stage]||"LOGGED ✅",resp.message||"");
