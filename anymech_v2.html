@@ -497,44 +497,57 @@ function stopCamera(){
   btnFixedWrap.style.display="none";
 }
 
-/* ── CAPTURE ROI — full object-fit:cover math (matches old app) ── */
+/* ── CAPTURE ROI — full object-fit:cover math with safe fallback ── */
 function captureROI(){
-  const roi=document.getElementById("roiViewport");
-  if(!roi) throw new Error("roiViewport not found");
-
   const vw=video.videoWidth, vh=video.videoHeight;
   if(!vw||!vh) throw new Error("Video not ready.");
 
   const jpegQuality=0.88;
   const maxW=1600;
 
-  const vRect=video.getBoundingClientRect();
-  const rRect=roi.getBoundingClientRect();
-
-  console.log("[CAP] video DOM rect =",{left:vRect.left,top:vRect.top,width:vRect.width,height:vRect.height});
-  console.log("[CAP] ROI DOM rect   =",{left:rRect.left,top:rRect.top,width:rRect.width,height:rRect.height});
+  // Start with full-frame fallback — used if cover math produces bad values
+  let sx=0, sy=0, sw=vw, sh=vh;
 
   try{
-    const tr=getComputedStyle(video).transform;
-    console.log("[CAP] video computed transform =",tr);
-  }catch(e){}
+    const roi=document.getElementById("roiViewport");
+    if(roi){
+      const vRect=video.getBoundingClientRect();
+      const rRect=roi.getBoundingClientRect();
 
-  // object-fit:cover math — map ROI DOM pixels → source video pixels
-  const scale=Math.max(vRect.width/vw, vRect.height/vh);
-  const drawnW=vw*scale, drawnH=vh*scale;
-  const offX=(drawnW-vRect.width)/2, offY=(drawnH-vRect.height)/2;
+      console.log("[CAP] video DOM rect =",{left:vRect.left,top:vRect.top,width:vRect.width,height:vRect.height});
+      console.log("[CAP] ROI DOM rect   =",{left:rRect.left,top:rRect.top,width:rRect.width,height:rRect.height});
 
-  console.log("[CAP] cover math =",{scale,drawnW,drawnH,offX,offY});
+      try{
+        const tr=getComputedStyle(video).transform;
+        console.log("[CAP] video computed transform =",tr);
+      }catch(e){}
 
-  const roiX=rRect.left-vRect.left, roiY=rRect.top-vRect.top;
-  let sx=(roiX+offX)/scale, sy=(roiY+offY)/scale;
-  let sw=rRect.width/scale,  sh=rRect.height/scale;
+      if(vRect.width>0&&rRect.width>0){
+        // object-fit:cover math — map ROI DOM pixels → source video pixels
+        const scale=Math.max(vRect.width/vw, vRect.height/vh);
+        const drawnW=vw*scale, drawnH=vh*scale;
+        const offX=(drawnW-vRect.width)/2, offY=(drawnH-vRect.height)/2;
 
-  // clamp to source bounds
-  if(sx<0){sw+=sx;sx=0;} if(sy<0){sh+=sy;sy=0;}
-  if(sx+sw>vw) sw=vw-sx; if(sy+sh>vh) sh=vh-sy;
+        console.log("[CAP] cover math =",{scale,drawnW,drawnH,offX,offY});
 
-  console.log("[CAP] source crop sx/sy/sw/sh =",{sx,sy,sw,sh});
+        const roiX=rRect.left-vRect.left, roiY=rRect.top-vRect.top;
+        let _sx=(roiX+offX)/scale, _sy=(roiY+offY)/scale;
+        let _sw=rRect.width/scale,  _sh=rRect.height/scale;
+
+        // clamp to source bounds
+        if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
+        if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
+
+        console.log("[CAP] source crop sx/sy/sw/sh =",{sx:_sx,sy:_sy,sw:_sw,sh:_sh});
+
+        // Only use cover-math result if dimensions are valid (>10px)
+        if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
+        else console.log("[CAP] cover math gave invalid dims — using full frame fallback");
+      } else {
+        console.log("[CAP] DOM rects not ready — using full frame fallback");
+      }
+    }
+  }catch(e){ console.log("[CAP] cover math error:",e,"— using full frame fallback"); }
 
   let outW=Math.round(sw), outH=Math.round(sh);
   if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
@@ -543,8 +556,8 @@ function captureROI(){
 
   canvas.width=outW; canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
-  ctx.imageSmoothingEnabled=false; // no smoothing = sharper digits
-  ctx.drawImage(video,sx,sy,sw,sh,0,0,outW,outH);
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
 
   let dataUrl="";
   try{dataUrl=canvas.toDataURL("image/jpeg",jpegQuality);}catch(e){}
