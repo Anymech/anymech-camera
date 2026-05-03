@@ -238,7 +238,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbwPbTfnqWVdmb8YyRuYP59ZeO_-HxT1HfNUkufqQ6mHqKzErzScuVLDPYuml0Q6f3OLrw/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbxKA9Zi7ACn_3e3a-1nb53nQ0iVzh4Mrhne3_38-qfMbnfNFNmnNTd6yFew8V8lRYBrtQ/exec";
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -675,6 +675,15 @@ async function onSubmit(){
 
   if(value===null||value===undefined){
     setStatus("⚠️ Weight missing. Try capturing again.","err");return;
+  }
+
+  // BOXES: validate item name contains (BOX) or (BOXES) in brackets
+  if(isBoxes){
+    const itn=String(pending.itemName||"");
+    if(!/\(BOX(?:ES)?\)/i.test(itn)){
+      setStatus("⚠️ BOXES COUNT not allowed ❌\nItem name must contain (BOX) or (BOXES) in brackets.\nFound: \""+itn+"\"","err");
+      uiState="await";showUI();return;
+    }
   }
 
   uiState="submitting";showUI();
