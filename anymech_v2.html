@@ -42,7 +42,7 @@
 
     /* CAMERA FULLSCREEN */
     .camWrap{display:none;position:fixed;inset:0;background:#000;z-index:9990;align-items:center;justify-content:center;padding-bottom:120px}
-    .roiViewport{width:min(99vw,600px);aspect-ratio:1.65/1;border-radius:14px;overflow:hidden;position:relative;background:#111;z-index:9991}
+    .roiViewport{width:min(99vw,1080px);aspect-ratio:1.65/1;border-radius:14px;overflow:hidden;position:relative;background:#111;z-index:9991}
     .roiViewport video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;aspect-ratio:auto;border-radius:0}
     .roiBorder{position:absolute;inset:0;border:3px solid rgba(255,255,255,0.85);border-radius:14px;pointer-events:none;z-index:2}
     .guideLine{position:absolute;left:0;right:0;height:2px;background:rgba(255,80,80,0.9);top:50%;pointer-events:none;z-index:3}
@@ -238,7 +238,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbxKA9Zi7ACn_3e3a-1nb53nQ0iVzh4Mrhne3_38-qfMbnfNFNmnNTd6yFew8V8lRYBrtQ/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbyLjoOoRZ2bMHi2Mp8rzPGzcT3DqENDv-zza7AUOGPg6vgOnx2LRzslLTEob2a7YDdDig/exec";
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -428,17 +428,58 @@ async function startCamera(){
   try{
     const track=stream.getVideoTracks()[0];
     const caps=track&&track.getCapabilities?track.getCapabilities():null;
+    console.log("[CAM] capabilities =",caps);
     const adv=[];
+
+    // Focus mode
     if(caps&&caps.focusMode&&Array.isArray(caps.focusMode)){
       if(caps.focusMode.includes("continuous")) adv.push({focusMode:"continuous"});
       else if(caps.focusMode.includes("auto")) adv.push({focusMode:"auto"});
     }
-    if(caps&&caps.zoom&&typeof caps.zoom.min==="number")
+    // Focus distance — closest focus for near objects (scale/card)
+    if(caps&&caps.focusDistance&&typeof caps.focusDistance.min==="number"){
+      adv.push({focusDistance:caps.focusDistance.min});
+    }
+    // Zoom 1.3x for digit readability
+    if(caps&&caps.zoom&&typeof caps.zoom.min==="number"&&typeof caps.zoom.max==="number"){
       adv.push({zoom:Math.min(caps.zoom.max,Math.max(caps.zoom.min,1.3))});
-    if(caps&&caps.exposureMode&&Array.isArray(caps.exposureMode)&&caps.exposureMode.includes("continuous"))
+    }
+    // Exposure mode continuous
+    if(caps&&caps.exposureMode&&Array.isArray(caps.exposureMode)&&caps.exposureMode.includes("continuous")){
       adv.push({exposureMode:"continuous"});
-    if(adv.length) await track.applyConstraints({advanced:adv});
-  }catch(e){}
+    }
+    // Anti-flicker exposure: 50–100 Hz window prevents LED display flicker
+    // 50 Hz = 1/50s = 20000µs, 100 Hz = 1/100s = 10000µs
+    if(caps&&caps.exposureTime&&typeof caps.exposureTime.min==="number"&&typeof caps.exposureTime.max==="number"){
+      const us50hz=20000, us100hz=10000;
+      const target=Math.min(caps.exposureTime.max,Math.max(caps.exposureTime.min,us100hz));
+      if(target>=us100hz&&target<=us50hz){
+        adv.push({exposureTime:target});
+        console.log("[CAM] exposureTime =",target,"µs (",(1000000/target).toFixed(1),"Hz)");
+      } else if(caps.exposureTime.max>=us100hz&&caps.exposureTime.min<=us50hz){
+        const clamped=Math.min(us50hz,Math.max(us100hz,caps.exposureTime.min));
+        adv.push({exposureTime:clamped});
+        console.log("[CAM] exposureTime clamped =",clamped,"µs (",(1000000/clamped).toFixed(1),"Hz)");
+      } else {
+        console.log("[CAM] exposureTime range",caps.exposureTime.min,"-",caps.exposureTime.max,"µs outside 50-100Hz window");
+      }
+    }
+
+    if(adv.length){
+      await track.applyConstraints({advanced:adv});
+      console.log("[CAM] appliedConstraints.advanced =",adv);
+    } else {
+      console.log("[CAM] No advanced constraints supported on this device/browser.");
+    }
+  }catch(e){ console.log("[CAM] applyConstraints error:",e); }
+
+  // Log stream resolution
+  try{
+    const tracks=stream?stream.getVideoTracks():[];
+    const t0=tracks&&tracks[0]?tracks[0]:null;
+    console.log("[CAM] video.videoWidth/Height =",video.videoWidth,video.videoHeight);
+    if(t0&&t0.getSettings) console.log("[CAM] track.getSettings() =",t0.getSettings());
+  }catch(e){ console.log("[CAM] log error:",e); }
 
   await new Promise(r=>{
     if(video.videoWidth&&video.videoHeight) return r();
@@ -456,37 +497,57 @@ function stopCamera(){
   btnFixedWrap.style.display="none";
 }
 
-/* ── CAPTURE ROI ── */
+/* ── CAPTURE ROI — full object-fit:cover math (matches old app) ── */
 function captureROI(){
-  const vw=video.videoWidth,vh=video.videoHeight;
-  if(!vw||!vh) throw new Error("Video not ready.");
   const roi=document.getElementById("roiViewport");
-  let sx=0,sy=0,sw=vw,sh=vh;
-  try{
-    if(roi){
-      const vRect=video.getBoundingClientRect();
-      const rRect=roi.getBoundingClientRect();
-      if(vRect.width>0&&rRect.width>0){
-        const scale=Math.max(vRect.width/vw,vRect.height/vh);
-        const offX=((vw*scale)-vRect.width)/2,offY=((vh*scale)-vRect.height)/2;
-        let _sx=(rRect.left-vRect.left+offX)/scale;
-        let _sy=(rRect.top-vRect.top+offY)/scale;
-        let _sw=rRect.width/scale,_sh=rRect.height/scale;
-        if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
-        if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
-        if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
-      }
-    }
-  }catch(e){}
+  if(!roi) throw new Error("roiViewport not found");
+
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) throw new Error("Video not ready.");
+
+  const jpegQuality=0.88;
   const maxW=1600;
-  let outW=Math.round(sw),outH=Math.round(sh);
+
+  const vRect=video.getBoundingClientRect();
+  const rRect=roi.getBoundingClientRect();
+
+  console.log("[CAP] video DOM rect =",{left:vRect.left,top:vRect.top,width:vRect.width,height:vRect.height});
+  console.log("[CAP] ROI DOM rect   =",{left:rRect.left,top:rRect.top,width:rRect.width,height:rRect.height});
+
+  try{
+    const tr=getComputedStyle(video).transform;
+    console.log("[CAP] video computed transform =",tr);
+  }catch(e){}
+
+  // object-fit:cover math — map ROI DOM pixels → source video pixels
+  const scale=Math.max(vRect.width/vw, vRect.height/vh);
+  const drawnW=vw*scale, drawnH=vh*scale;
+  const offX=(drawnW-vRect.width)/2, offY=(drawnH-vRect.height)/2;
+
+  console.log("[CAP] cover math =",{scale,drawnW,drawnH,offX,offY});
+
+  const roiX=rRect.left-vRect.left, roiY=rRect.top-vRect.top;
+  let sx=(roiX+offX)/scale, sy=(roiY+offY)/scale;
+  let sw=rRect.width/scale,  sh=rRect.height/scale;
+
+  // clamp to source bounds
+  if(sx<0){sw+=sx;sx=0;} if(sy<0){sh+=sy;sy=0;}
+  if(sx+sw>vw) sw=vw-sx; if(sy+sh>vh) sh=vh-sy;
+
+  console.log("[CAP] source crop sx/sy/sw/sh =",{sx,sy,sw,sh});
+
+  let outW=Math.round(sw), outH=Math.round(sh);
   if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
-  canvas.width=outW;canvas.height=outH;
+
+  console.log("[CAP] canvas output size =",{outW,outH});
+
+  canvas.width=outW; canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
-  ctx.imageSmoothingEnabled=true;
-  ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
+  ctx.imageSmoothingEnabled=false; // no smoothing = sharper digits
+  ctx.drawImage(video,sx,sy,sw,sh,0,0,outW,outH);
+
   let dataUrl="";
-  try{dataUrl=canvas.toDataURL("image/jpeg",0.88);}catch(e){}
+  try{dataUrl=canvas.toDataURL("image/jpeg",jpegQuality);}catch(e){}
   if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
     try{dataUrl=canvas.toDataURL("image/png");}catch(e){}
   }
@@ -681,7 +742,7 @@ async function onSubmit(){
   if(isBoxes){
     const itn=String(pending.itemName||"");
     if(!/\(BOX(?:ES)?\)/i.test(itn)){
-      setStatus("⚠️ BOXES COUNT not allowed ❌\nItem name must contain (BOX).\nFound: \""+itn+"\"","err");
+      setStatus("⚠️ BOXES COUNT not allowed ❌\nItem name must contain (BOX) or (BOXES) in brackets.\nFound: \""+itn+"\"","err");
       uiState="await";showUI();return;
     }
   }
