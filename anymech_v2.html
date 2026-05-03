@@ -556,7 +556,8 @@ function captureROI(){
 
   canvas.width=outW; canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
-  ctx.imageSmoothingEnabled=false;
+  ctx.imageSmoothingEnabled=true;
+  try{ctx.imageSmoothingQuality="high";}catch(e){}
   ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
 
   let dataUrl="";
