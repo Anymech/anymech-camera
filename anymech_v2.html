@@ -681,7 +681,7 @@ async function onSubmit(){
   if(isBoxes){
     const itn=String(pending.itemName||"");
     if(!/\(BOX(?:ES)?\)/i.test(itn)){
-      setStatus("⚠️ BOXES COUNT not allowed ❌\nItem name must contain (BOX) or (BOXES) in brackets.\nFound: \""+itn+"\"","err");
+      setStatus("⚠️ BOXES COUNT not allowed ❌\nItem name must contain (BOX).\nFound: \""+itn+"\"","err");
       uiState="await";showUI();return;
     }
   }
