@@ -238,7 +238,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbxgvxIRIOqaEJD2DGZ496H6FX2OE1JS_UKwconmaPsG278X6VufFPCm89e-75MMQid9yQ/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbwxma7dJWU38HUDjNLESo4PmQ_4R5QJwG7ZA6LBgfizpcxJGQ0_xrUl7LlvtuPrSx7ENQ/exec";
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -448,8 +448,22 @@ async function startCamera(){
     if(caps&&caps.exposureMode&&Array.isArray(caps.exposureMode)&&caps.exposureMode.includes("continuous")){
       adv.push({exposureMode:"continuous"});
     }
-    // NOTE: exposureTime NOT forced — letting camera auto-expose
-    // Manual exposure can darken/brighten unpredictably across devices
+    // Anti-flicker exposure: 50–100 Hz window prevents LED display flicker
+    // 50 Hz = 1/50s = 20000µs, 100 Hz = 1/100s = 10000µs
+    if(caps&&caps.exposureTime&&typeof caps.exposureTime.min==="number"&&typeof caps.exposureTime.max==="number"){
+      const us50hz=20000, us100hz=10000;
+      const target=Math.min(caps.exposureTime.max,Math.max(caps.exposureTime.min,us100hz));
+      if(target>=us100hz&&target<=us50hz){
+        adv.push({exposureTime:target});
+        console.log("[CAM] exposureTime =",target,"µs (",(1000000/target).toFixed(1),"Hz)");
+      } else if(caps.exposureTime.max>=us100hz&&caps.exposureTime.min<=us50hz){
+        const clamped=Math.min(us50hz,Math.max(us100hz,caps.exposureTime.min));
+        adv.push({exposureTime:clamped});
+        console.log("[CAM] exposureTime clamped =",clamped,"µs (",(1000000/clamped).toFixed(1),"Hz)");
+      } else {
+        console.log("[CAM] exposureTime range",caps.exposureTime.min,"-",caps.exposureTime.max,"µs outside 50-100Hz window — skipping");
+      }
+    }
 
     if(adv.length){
       await track.applyConstraints({advanced:adv});
@@ -483,38 +497,70 @@ function stopCamera(){
   btnFixedWrap.style.display="none";
 }
 
-/* ── CAPTURE ROI ── */
+/* ── CAPTURE ROI — full object-fit:cover math with debug logs ── */
 function captureROI(){
-  const vw=video.videoWidth,vh=video.videoHeight;
-  if(!vw||!vh) throw new Error("Video not ready.");
   const roi=document.getElementById("roiViewport");
-  let sx=0,sy=0,sw=vw,sh=vh;
-  try{
-    if(roi){
-      const vRect=video.getBoundingClientRect();
-      const rRect=roi.getBoundingClientRect();
-      if(vRect.width>0&&rRect.width>0){
-        const scale=Math.max(vRect.width/vw,vRect.height/vh);
-        const offX=((vw*scale)-vRect.width)/2,offY=((vh*scale)-vRect.height)/2;
-        let _sx=(rRect.left-vRect.left+offX)/scale;
-        let _sy=(rRect.top-vRect.top+offY)/scale;
-        let _sw=rRect.width/scale,_sh=rRect.height/scale;
-        if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
-        if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
-        if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
-      }
-    }
-  }catch(e){}
+  if(!roi) throw new Error("roiViewport not found");
+
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) throw new Error("Video not ready.");
+
+  const jpegQuality=0.88;
   const maxW=1600;
-  let outW=Math.round(sw),outH=Math.round(sh);
+
+  // Default: full frame fallback if cover math fails
+  let sx=0, sy=0, sw=vw, sh=vh;
+
+  try{
+    const vRect=video.getBoundingClientRect();
+    const rRect=roi.getBoundingClientRect();
+
+    console.log("[CAP] video DOM rect =",{left:vRect.left,top:vRect.top,width:vRect.width,height:vRect.height});
+    console.log("[CAP] ROI DOM rect   =",{left:rRect.left,top:rRect.top,width:rRect.width,height:rRect.height});
+
+    try{
+      const tr=getComputedStyle(video).transform;
+      console.log("[CAP] video computed transform =",tr);
+    }catch(e){}
+
+    if(vRect.width>0&&rRect.width>0){
+      // object-fit:cover math — map ROI DOM pixels → source video pixels
+      const scale=Math.max(vRect.width/vw, vRect.height/vh);
+      const drawnW=vw*scale, drawnH=vh*scale;
+      const offX=(drawnW-vRect.width)/2, offY=(drawnH-vRect.height)/2;
+
+      console.log("[CAP] cover math =",{scale,drawnW,drawnH,offX,offY});
+
+      const roiX=rRect.left-vRect.left, roiY=rRect.top-vRect.top;
+      let _sx=(roiX+offX)/scale, _sy=(roiY+offY)/scale;
+      let _sw=rRect.width/scale,  _sh=rRect.height/scale;
+
+      // clamp to source bounds
+      if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
+      if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
+
+      console.log("[CAP] source crop sx/sy/sw/sh =",{sx:_sx,sy:_sy,sw:_sw,sh:_sh});
+
+      if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
+      else console.log("[CAP] cover math gave invalid dims — using full frame fallback");
+    } else {
+      console.log("[CAP] DOM rects not ready — using full frame fallback");
+    }
+  }catch(e){ console.log("[CAP] cover math error:",e,"— using full frame fallback"); }
+
+  let outW=Math.round(sw), outH=Math.round(sh);
   if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
-  canvas.width=outW;canvas.height=outH;
+
+  console.log("[CAP] canvas output size =",{outW,outH});
+
+  canvas.width=outW; canvas.height=outH;
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;
   try{ctx.imageSmoothingQuality="high";}catch(e){}
   ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
+
   let dataUrl="";
-  try{dataUrl=canvas.toDataURL("image/jpeg",0.92);}catch(e){}
+  try{dataUrl=canvas.toDataURL("image/jpeg",jpegQuality);}catch(e){}
   if(!dataUrl||dataUrl==="data:,"||dataUrl.length<100){
     try{dataUrl=canvas.toDataURL("image/png");}catch(e){}
   }
