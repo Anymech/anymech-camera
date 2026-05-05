@@ -238,7 +238,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbwxma7dJWU38HUDjNLESo4PmQ_4R5QJwG7ZA6LBgfizpcxJGQ0_xrUl7LlvtuPrSx7ENQ/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbxKA9Zi7ACn_3e3a-1nb53nQ0iVzh4Mrhne3_38-qfMbnfNFNmnNTd6yFew8V8lRYBrtQ/exec";
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -497,58 +497,44 @@ function stopCamera(){
   btnFixedWrap.style.display="none";
 }
 
-/* ── CAPTURE ROI — full object-fit:cover math with debug logs ── */
+/* ── CAPTURE ROI ──
+   Video is INSIDE roiViewport (not full-screen), so DOM rect math gives
+   vRect ≈ rRect and produces no crop. Instead we use pure aspect-ratio
+   math: roiViewport is 1.65:1, video is object-fit:cover inside it, so
+   the visible crop is exactly the 1.65:1 centre portion of the video frame.
+── */
 function captureROI(){
-  const roi=document.getElementById("roiViewport");
-  if(!roi) throw new Error("roiViewport not found");
-
   const vw=video.videoWidth, vh=video.videoHeight;
   if(!vw||!vh) throw new Error("Video not ready.");
 
   const jpegQuality=0.88;
   const maxW=1600;
 
-  // Default: full frame fallback if cover math fails
-  let sx=0, sy=0, sw=vw, sh=vh;
+  // roiViewport aspect ratio (must match CSS aspect-ratio:1.65/1)
+  const viewAspect=1.65;
+  const videoAspect=vw/vh;
 
-  try{
-    const vRect=video.getBoundingClientRect();
-    const rRect=roi.getBoundingClientRect();
+  let sx, sy, sw, sh;
 
-    console.log("[CAP] video DOM rect =",{left:vRect.left,top:vRect.top,width:vRect.width,height:vRect.height});
-    console.log("[CAP] ROI DOM rect   =",{left:rRect.left,top:rRect.top,width:rRect.width,height:rRect.height});
+  if(videoAspect > viewAspect){
+    // Video is wider than viewport → crop left & right, keep full height
+    sh=vh;
+    sw=Math.round(vh*viewAspect);
+    sx=Math.round((vw-sw)/2);
+    sy=0;
+  } else {
+    // Video is taller than viewport → crop top & bottom, keep full width
+    sw=vw;
+    sh=Math.round(vw/viewAspect);
+    sx=0;
+    sy=Math.round((vh-sh)/2);
+  }
 
-    try{
-      const tr=getComputedStyle(video).transform;
-      console.log("[CAP] video computed transform =",tr);
-    }catch(e){}
+  console.log("[CAP] video =",{vw,vh,videoAspect});
+  console.log("[CAP] viewAspect =",viewAspect);
+  console.log("[CAP] source crop sx/sy/sw/sh =",{sx,sy,sw,sh});
 
-    if(vRect.width>0&&rRect.width>0){
-      // object-fit:cover math — map ROI DOM pixels → source video pixels
-      const scale=Math.max(vRect.width/vw, vRect.height/vh);
-      const drawnW=vw*scale, drawnH=vh*scale;
-      const offX=(drawnW-vRect.width)/2, offY=(drawnH-vRect.height)/2;
-
-      console.log("[CAP] cover math =",{scale,drawnW,drawnH,offX,offY});
-
-      const roiX=rRect.left-vRect.left, roiY=rRect.top-vRect.top;
-      let _sx=(roiX+offX)/scale, _sy=(roiY+offY)/scale;
-      let _sw=rRect.width/scale,  _sh=rRect.height/scale;
-
-      // clamp to source bounds
-      if(_sx<0){_sw+=_sx;_sx=0;} if(_sy<0){_sh+=_sy;_sy=0;}
-      if(_sx+_sw>vw) _sw=vw-_sx; if(_sy+_sh>vh) _sh=vh-_sy;
-
-      console.log("[CAP] source crop sx/sy/sw/sh =",{sx:_sx,sy:_sy,sw:_sw,sh:_sh});
-
-      if(_sw>10&&_sh>10){sx=_sx;sy=_sy;sw=_sw;sh=_sh;}
-      else console.log("[CAP] cover math gave invalid dims — using full frame fallback");
-    } else {
-      console.log("[CAP] DOM rects not ready — using full frame fallback");
-    }
-  }catch(e){ console.log("[CAP] cover math error:",e,"— using full frame fallback"); }
-
-  let outW=Math.round(sw), outH=Math.round(sh);
+  let outW=sw, outH=sh;
   if(outW>maxW){const sc=maxW/outW;outW=Math.round(outW*sc);outH=Math.round(outH*sc);}
 
   console.log("[CAP] canvas output size =",{outW,outH});
@@ -557,7 +543,7 @@ function captureROI(){
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;
   try{ctx.imageSmoothingQuality="high";}catch(e){}
-  ctx.drawImage(video,sx,sy,Math.round(sw),Math.round(sh),0,0,outW,outH);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
 
   let dataUrl="";
   try{dataUrl=canvas.toDataURL("image/jpeg",jpegQuality);}catch(e){}
