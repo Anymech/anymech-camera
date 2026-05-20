@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -680,6 +679,12 @@ async function onCaptureFrame(){
       document.getElementById("wtInput").value=r.weight;
       document.getElementById("wtInput").dataset.original=String(r.weight);
       document.getElementById("wtInput").dataset.edited="false";
+    } else {
+      document.getElementById("wtInput").value="";
+      document.getElementById("wtInput").dataset.original="";
+      document.getElementById("wtInput").dataset.edited="false";
+      document.getElementById("wtInput").style.borderColor="var(--red)";
+      document.getElementById("wtInput").style.background="#fff1f2";
     }
   }
 
@@ -690,11 +695,17 @@ async function onCaptureFrame(){
     ei.textContent="ℹ️ EXTRA WEIGHT: "+wtStr+" kg will be ADDED to last OUT WEIGHT for this member.";
   }
 
-  pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl};
+  // Weight missing warning — member+item matched but scale unreadable
+
+  pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl,weightMissing:!!r.weightMissing};
 
   uiState="await";
   if(isBoxes){
     setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+"\n\nEnter Boxes Count below → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
+  } else if(r.weightMissing){
+    // Member + item matched but weight not readable — prompt manual entry
+    setStatus("Member & Item matched ✅  |  Weight not read ⚠️\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+"\n\nScale was unclear — enter weight manually below → press SUBMIT.\n[OCR: "+msOcr+"ms]","info");
+    setTimeout(()=>{ document.getElementById("wtInput").focus(); }, 300);
   } else {
     const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
     setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+" | Weight: "+wtStr+" kg\n\nVerify → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
@@ -728,6 +739,10 @@ async function onSubmit(){
       value=n;
       const ocrVal=pending.weight;
       weightEdited=(ocrVal===null||ocrVal===undefined||Math.abs(n-Number(ocrVal))>0.0005);
+    } else if(pending.weightMissing){
+      setStatus("⚠️ Weight not detected. Enter weight manually before submitting.","err");
+      document.getElementById("wtInput").focus();
+      return;
     } else {
       value=pending.weight;
       weightEdited=false;
@@ -735,7 +750,13 @@ async function onSubmit(){
   }
 
   if(value===null||value===undefined){
-    setStatus("⚠️ Weight missing. Try capturing again.","err");return;
+    if(pending&&pending.weightMissing){
+      setStatus("⚠️ Please enter the weight manually in the field above.","err");
+      document.getElementById("wtInput").focus();
+    } else {
+      setStatus("⚠️ Weight missing. Try capturing again.","err");
+    }
+    return;
   }
 
   // BOXES: validate item name contains (BOX) or (BOXES) in brackets
