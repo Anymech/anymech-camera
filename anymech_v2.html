@@ -238,7 +238,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbyeV_qIFm1Bxe9yjeBIMXzc0rhpmXqXjof6HHXr5iALn62lUJfAGpy8WCm-0kFQnzdGkw/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbyRQWI5t8zf1gU0xV5_X_5Lhv7tBvZv5lbCGNUnXqnlTo50s732ezo-j8I0hhGmuiV7Zw/exec";
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -689,11 +689,29 @@ async function onCaptureFrame(){
     ei.textContent="ℹ️ EXTRA WEIGHT: "+wtStr+" kg will be ADDED to last OUT WEIGHT for this member.";
   }
 
-  pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl};
+  // Weight missing warning — member+item matched but scale unreadable
+  if(r.weightMissing){
+    setStatus("⚠️ WEIGHT NOT READ — Scale unclear (Clarity: "+
+      (document.getElementById("clarityTag").textContent||"low")+
+      ")
+Member: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+
+      "
+
+Enter weight manually below → press SUBMIT.","err");
+    document.getElementById("wtInput").value="";
+    document.getElementById("wtInput").placeholder="Enter weight manually";
+    document.getElementById("wtInput").focus();
+  }
+
+  pending={memberId:r.memberId,itemName:r.itemName,weight:r.weight,dataUrl,weightMissing:!!r.weightMissing};
 
   uiState="await";
   if(isBoxes){
     setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+"\n\nEnter Boxes Count below → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
+  } else if(r.weightMissing){
+    // Member + item matched but weight not readable — prompt manual entry
+    setStatus("Member & Item matched ✅  |  Weight not read ⚠️\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+"\n\nScale was unclear — enter weight manually below → press SUBMIT.\n[OCR: "+msOcr+"ms]","info");
+    setTimeout(()=>{ document.getElementById("wtInput").focus(); }, 300);
   } else {
     const wtStr=(r.weight!==null&&r.weight!==undefined)?String(r.weight):"-";
     setStatus("OCR DONE ✅\nMember: "+(r.memberId||"-")+" | Item: "+(r.itemName||"-")+" | Weight: "+wtStr+" kg\n\nVerify → press SUBMIT.\n[OCR: "+msOcr+"ms]","ok");
@@ -734,7 +752,13 @@ async function onSubmit(){
   }
 
   if(value===null||value===undefined){
-    setStatus("⚠️ Weight missing. Try capturing again.","err");return;
+    if(pending&&pending.weightMissing){
+      setStatus("⚠️ Please enter the weight manually in the field above.","err");
+      document.getElementById("wtInput").focus();
+    } else {
+      setStatus("⚠️ Weight missing. Try capturing again.","err");
+    }
+    return;
   }
 
   // BOXES: validate item name contains (BOX) or (BOXES) in brackets
