@@ -79,8 +79,12 @@
     /* WEIGHT OVERRIDE */
     .overrideWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
     .overrideLbl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
+    .overrideLockNote{font-size:11px;font-weight:700;margin-bottom:6px;display:block;letter-spacing:0.2px}
+    .overrideLockNote.locked{color:var(--red)}
+    .overrideLockNote.unlocked{color:var(--green)}
     .overrideInput{width:100%;padding:12px;font-size:22px;font-weight:700;font-family:monospace;border:2px solid var(--border);border-radius:12px;text-align:center;color:var(--blue);outline:none;background:#f8fafc}
     .overrideInput:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,0.12)}
+    .overrideInput:disabled{background:#eef0f3;color:#94a3b8;cursor:not-allowed;border-color:#e2e8f0}
 
     /* BOXES COUNT INPUT */
     .boxesWrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
@@ -177,6 +181,7 @@
     <!-- Weight override (hidden for BOXES COUNT) -->
     <div class="overrideWrap" id="overrideWrap">
       <label class="overrideLbl">✏️ Weight wrong? Correct it here:</label>
+      <span class="overrideLockNote" id="overrideLockNote"></span>
       <input type="number" step="0.001" min="0" class="overrideInput" id="wtInput"
              placeholder="e.g. 58.500"
              oninput="this.dataset.edited=(parseFloat(this.value)!==parseFloat(this.dataset.original))?'true':'false';
@@ -238,7 +243,13 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbzmZlpim_o0v7s2rAsv5H4KuNDlAIADwCROOkk1sUTwcUZFw-XBLHfGo5jRLo8_tsttIQ/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbxYt7Mv0prS2O0-NbVmuqJzAa4XpDUIU6dEC3RlD6YAfsbvJSuKsrz4llV9byULhFh7-A/exec";
+
+/* ── WEIGHT-CORRECTION LOCK ──
+   The "Weight wrong? Correct it here" box stays locked (not editable)
+   until the operator has RESET-and-recaptured this many times total.
+   To change 3 → 2 (or any number), just edit this one line. */
+const TRIALS_BEFORE_EDIT = 3;
 
 /* ── STATE ── */
 let uiState="idle"; // idle | cam | processing | await | submitting
@@ -246,6 +257,7 @@ let stage=null;
 let stream=null;
 let pending=null;
 let capSess=0;
+let resetCount=0; // counts RESET presses since the last successful SUBMIT
 
 /* ── ELEMENTS ── */
 const video       =document.getElementById("video");
@@ -325,8 +337,38 @@ function showUI(){
     if(capWVal) capWVal.style.display="";
     document.getElementById("overrideWrap").style.display=isAwait?"block":"none";
     document.getElementById("boxesWrap").style.display="none";
+    if(isAwait) updateOverrideLock();
   }
   document.getElementById("extraInfo").style.display=(isAwait&&stage==="EXTRA_WEIGHT")?"block":"none";
+}
+
+/* ── WEIGHT-CORRECTION LOCK ──
+   Box stays disabled until the operator has attempted this stage
+   (capture → RESET → recapture) TRIALS_BEFORE_EDIT times total.
+   Exception: if OCR could not read a weight at all (weightMissing),
+   there is nothing to "correct" — manual entry is required immediately. */
+function updateOverrideLock(){
+  const wt  =document.getElementById("wtInput");
+  const note=document.getElementById("overrideLockNote");
+  if(!wt||!note) return;
+
+  const forcedManual=!!(pending&&pending.weightMissing);
+  const attemptsSoFar=resetCount+1; // this capture counts as one attempt
+  const unlocked=forcedManual||(attemptsSoFar>=TRIALS_BEFORE_EDIT);
+
+  wt.disabled=!unlocked;
+
+  if(forcedManual){
+    note.textContent="";
+    note.className="overrideLockNote";
+  } else if(unlocked){
+    note.textContent="🔓 Open — you can correct it now";
+    note.className="overrideLockNote unlocked";
+  } else {
+    const remaining=TRIALS_BEFORE_EDIT-attemptsSoFar;
+    note.textContent="🔒 Locked — opens after "+TRIALS_BEFORE_EDIT+" tries ("+remaining+" more: press RESET, re-weigh, recapture)";
+    note.className="overrideLockNote locked";
+  }
 }
 
 /* ── SELECT STAGE → open camera immediately ── */
@@ -376,6 +418,7 @@ async function selectStage(s){
 /* ── RESET ── */
 function doReset(){
   stopCamera();
+  resetCount++; // one more trial toward unlocking the weight-correction box
   stage=null;pending=null;capSess++;uiState="idle";
 
   Object.values(STAGE_CFG).forEach(v=>document.getElementById(v.id).classList.remove("sel"));
@@ -838,6 +881,7 @@ async function onSubmit(){
 
   pending=null;
   uiState="idle";
+  resetCount=0; // next item starts with the correction box locked again
   showUI();
 }
 
