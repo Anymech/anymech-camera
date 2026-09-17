@@ -243,7 +243,7 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbxYt7Mv0prS2O0-NbVmuqJzAa4XpDUIU6dEC3RlD6YAfsbvJSuKsrz4llV9byULhFh7-A/exec";
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbynbxcJ14QPoVf4YVvtN_Eh1bJpzyZpyekK_wCFD3EkSginCHExQrORPBGaT_TcVVBDbg/exec";
 
 /* ── WEIGHT-CORRECTION LOCK ──
    The "Weight wrong? Correct it here" box stays locked (not editable)
@@ -678,9 +678,9 @@ async function onCaptureFrame(){
   setStatus("Image captured ✅\nRunning OCR — please wait...","info");
 
   const tOcr=performance.now();
-  let r;
-  try{r=await callServer("visionExtract",{imageDataUrl:dataUrl});}
-  catch(err){
+let r;
+try{r=await callServer("visionExtract",{imageDataUrl:dataUrl,stage});}
+catch(err){
     if(sess!==capSess) return;
     document.getElementById("prevTag").textContent="❌ OCR Failed";
     tx("dCapW","-");
