@@ -39,6 +39,10 @@
     .s-out.sel{background:var(--green)}
     .s-extra.sel{background:var(--dark)}
     .s-boxes.sel{background:var(--orange)}
+    /* locked stage buttons (until SUBMIT or RESET) */
+    .sbtn:disabled{opacity:.4;cursor:not-allowed}
+    .sbtn:disabled:active{transform:none}
+    .sbtn.sel:disabled{opacity:1}
 
     /* CAMERA FULLSCREEN */
     .camWrap{display:none;position:fixed;inset:0;background:#000;z-index:9990;align-items:center;justify-content:center;padding-bottom:120px}
@@ -97,9 +101,13 @@
 
 
 
-    /* ACTION BUTTONS */
-    .btn{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;user-select:none;box-shadow:0 8px 0 rgba(0,0,0,0.18),0 14px 28px rgba(0,0,0,0.10);transition:transform 0.08s,box-shadow 0.08s;margin-bottom:10px;display:none}
+    /* ACTION BUTTONS — RESET and SUBMIT are ALWAYS visible (sticky bar at the bottom of the screen) */
+    .actionBar{position:sticky;bottom:0;z-index:50;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 0 calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 75%,rgba(241,244,249,0))}
+    .btn{width:100%;padding:22px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;border:none;cursor:pointer;user-select:none;box-shadow:0 8px 0 rgba(0,0,0,0.18),0 14px 28px rgba(0,0,0,0.10);transition:transform 0.08s,box-shadow 0.08s;margin-bottom:10px;display:block}
     .btn:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,0.18),0 6px 12px rgba(0,0,0,0.10)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:0 2px 0 rgba(0,0,0,0.12)}
+    .btn:disabled:active{transform:none}
+    .actionBar .btn{margin-bottom:0;padding:18px 8px;font-size:18px}
     .btn-reset-a{background:linear-gradient(160deg,#dc2626,#a81c1c);color:#fff}
     .btn-submit{background:linear-gradient(160deg,#16a34a,#0f7a36);color:#fff}
 
@@ -205,9 +213,11 @@
     </button>
   </div>
 
-  <!-- ACTION BUTTONS: RESET above SUBMIT -->
-  <button class="btn btn-reset-a" id="btnResetA">↺ RESET</button>
-  <button class="btn btn-submit"  id="btnSubmit">✅ SUBMIT</button>
+  <!-- ACTION BAR: RESET and SUBMIT are always visible -->
+  <div class="actionBar" id="actionBar">
+    <button class="btn btn-reset-a" id="btnResetA">↺ RESET</button>
+    <button class="btn btn-submit"  id="btnSubmit">✅ SUBMIT</button>
+  </div>
 
 </div>
 
@@ -257,7 +267,8 @@ let stage=null;
 let stream=null;
 let pending=null;
 let capSess=0;
-let resetCount=0; // counts RESET presses since the last successful SUBMIT
+let resetCount=0; // counts RESET presses (after a successful scan) since the last successful SUBMIT
+let stageLocked=false; // true from the moment a stage is chosen until SUBMIT completes or RESET is pressed
 
 /* ── ELEMENTS ── */
 const video       =document.getElementById("video");
@@ -318,11 +329,19 @@ function showUI(){
 
   camWrap.style.display      =isCam?"flex":"none";
   btnFixedWrap.style.display =isCam?"block":"none";
-  btnResetA.style.display    =isAwait?"block":"none";
-  btnSubmit.style.display    =(isAwait||isSub)?"block":"none";
 
-  if(isSub){btnSubmit.textContent="⏳ SUBMITTING...";btnSubmit.disabled=true;}
-  else{btnSubmit.textContent="✅ SUBMIT";btnSubmit.disabled=false;}
+  // RESET and SUBMIT are ALWAYS visible.
+  // SUBMIT is clickable only when a scan is waiting for it; RESET is clickable except while submitting.
+  btnResetA.disabled =isSub;
+  btnSubmit.disabled =!isAwait;
+  btnSubmit.textContent=isSub?"⏳ SUBMITTING...":"✅ SUBMIT";
+
+  // Stage buttons (IN, OUT, READY, BOXES COUNT, EXTRA WEIGHT) stay locked from the moment
+  // a stage is chosen until SUBMIT completes or RESET is pressed.
+  Object.values(STAGE_CFG).forEach(v=>{
+    const b=document.getElementById(v.id);
+    if(b) b.disabled=stageLocked;
+  });
 
   // BOXES COUNT: hide captured weight row, show count input
   const capWRow=document.getElementById("capWLbl");
@@ -373,7 +392,9 @@ function updateOverrideLock(){
 
 /* ── SELECT STAGE → open camera immediately ── */
 async function selectStage(s){
-  if(["processing","submitting"].includes(uiState)) return;
+  // ignore taps while a stage is already in progress (until SUBMIT or RESET)
+  if(stageLocked||["processing","await","submitting"].includes(uiState)) return;
+  stageLocked=true;
   stopCamera();
   stage=s;
   pending=null;
@@ -411,15 +432,20 @@ async function selectStage(s){
     setStatus("Camera ON ✅  ["+cfg.label+"]\nAlign: Member Card (top) + Scale (bottom)\nPress CAPTURE FRAME.","ok");
   }catch(err){
     setStatus("Camera error: "+(err&&err.message?err.message:String(err)),"err");
-    uiState="idle";showUI();
+    uiState="idle";
+    stageLocked=false; // camera never opened, nothing started — allow choosing a stage again
+    showUI();
   }
 }
 
 /* ── RESET ── */
 function doReset(){
   stopCamera();
-  resetCount++; // one more trial toward unlocking the weight-correction box
+  // one more trial toward unlocking the weight-correction box —
+  // counted only when a scan was actually read and is being thrown away
+  if(pending) resetCount++;
   stage=null;pending=null;capSess++;uiState="idle";
+  stageLocked=false; // stage buttons become clickable again
 
   Object.values(STAGE_CFG).forEach(v=>document.getElementById(v.id).classList.remove("sel"));
   ["dMid","dMname","dItem","dCapW","dOutW","dInW","dReadyW","dStage"].forEach(id=>tx(id,"-"));
@@ -678,9 +704,9 @@ async function onCaptureFrame(){
   setStatus("Image captured ✅\nRunning OCR — please wait...","info");
 
   const tOcr=performance.now();
-let r;
-try{r=await callServer("visionExtract",{imageDataUrl:dataUrl,stage});}
-catch(err){
+  let r;
+  try{r=await callServer("visionExtract",{imageDataUrl:dataUrl,stage});}
+  catch(err){
     if(sess!==capSess) return;
     document.getElementById("prevTag").textContent="❌ OCR Failed";
     tx("dCapW","-");
@@ -839,6 +865,7 @@ async function onSubmit(){
     setStatus("❌ "+msg+"\n["+msSub+"ms]","err");
     if(msg.includes("rejected")||msg.includes("already")||msg.includes("first")){
       pending=null;uiState="idle";
+      stageLocked=false; // server closed this attempt — stage buttons usable again
     } else {
       uiState="await";
     }
@@ -882,6 +909,7 @@ async function onSubmit(){
   pending=null;
   uiState="idle";
   resetCount=0; // next item starts with the correction box locked again
+  stageLocked=false; // entry completed — stage buttons clickable again
   showUI();
 }
 
