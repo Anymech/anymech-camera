@@ -43,6 +43,21 @@
     .sbtn:disabled{opacity:.4;cursor:not-allowed}
     .sbtn:disabled:active{transform:none}
     .sbtn.sel:disabled{opacity:1}
+    .sbtn.locked{opacity:.65;border-style:dashed}
+
+    /* PIN BOX (EXTRA WEIGHT unlock) */
+    .pinModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;align-items:center;justify-content:center;padding:16px}
+    .pinCard{background:#fff;border-radius:20px;padding:22px 20px;width:min(340px,92vw);box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center}
+    .pinTitle{font-size:18px;font-weight:900;color:var(--dark);margin-bottom:6px}
+    .pinSub{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+    .pinInput{width:100%;padding:14px;font-size:34px;font-weight:900;letter-spacing:14px;text-align:center;font-family:monospace;border:2.5px solid var(--border);border-radius:14px;outline:none}
+    .pinInput:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+    .pinMsg{min-height:20px;font-size:12.5px;font-weight:700;color:var(--red);margin:10px 0 4px}
+    .pinBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+    .pbtn{padding:16px 8px;border-radius:14px;font-size:16px;font-weight:900;border:none;cursor:pointer;color:#fff;text-transform:uppercase}
+    .pbtn:disabled{opacity:.5;cursor:not-allowed}
+    .pbtn.cancel{background:#64748b}
+    .pbtn.ok{background:linear-gradient(160deg,#16a34a,#0f7a36)}
 
     /* CAMERA FULLSCREEN */
     .camWrap{display:none;position:fixed;inset:0;background:#000;z-index:9990;align-items:center;justify-content:center;padding-bottom:120px}
@@ -236,6 +251,20 @@
   <button class="btnFixedInner" id="btnCaptureFixed">CAPTURE FRAME</button>
 </div>
 
+<!-- PIN BOX: EXTRA WEIGHT needs a PIN from the head -->
+<div class="pinModal" id="pinModal">
+  <div class="pinCard">
+    <div class="pinTitle">🔒 PIN needed</div>
+    <div class="pinSub">Enter the 4-digit PIN you were given.<br/>EXTRA WEIGHT opens for 15 minutes, or until one extra weight is submitted.</div>
+    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="pinInput" class="pinInput" placeholder="••••" autocomplete="off"/>
+    <div class="pinMsg" id="pinMsg"></div>
+    <div class="pinBtns">
+      <button class="pbtn cancel" id="pinCancel">Cancel</button>
+      <button class="pbtn ok" id="pinOk">Unlock</button>
+    </div>
+  </div>
+</div>
+
 <!-- SUCCESS OVERLAY -->
 <div class="overlay" id="overlay">
   <div class="overlayCard">
@@ -269,6 +298,73 @@ let pending=null;
 let capSess=0;
 let resetCount=0; // counts RESET presses (after a successful scan) since the last successful SUBMIT
 let stageLocked=false; // true from the moment a stage is chosen until SUBMIT completes or RESET is pressed
+
+/* ── EXTRA WEIGHT: unlocked by a 4-digit PIN (open 15 min, or until ONE extra weight is submitted) ── */
+let extraKey="";
+let extraExp=0;   // device time (ms) when the unlock ends
+const EXTRA_LS="anymech_extra_unlock";
+try{
+  const sv=JSON.parse(localStorage.getItem(EXTRA_LS)||"null");
+  if(sv&&sv.key&&sv.exp>Date.now()){extraKey=sv.key;extraExp=sv.exp;}
+}catch(e){}
+function extraUnlocked(){return !!extraKey&&Date.now()<extraExp;}
+function setExtraUnlock(key,ttlSec){
+  extraKey=key;extraExp=Date.now()+ttlSec*1000;
+  try{localStorage.setItem(EXTRA_LS,JSON.stringify({key:extraKey,exp:extraExp}));}catch(e){}
+  renderExtraBtn();
+}
+function clearExtraUnlock(){
+  extraKey="";extraExp=0;
+  try{localStorage.removeItem(EXTRA_LS);}catch(e){}
+  renderExtraBtn();
+}
+function renderExtraBtn(){
+  const b=document.getElementById("sExtra");
+  if(!b) return;
+  if(extraUnlocked()){
+    const s=Math.max(0,Math.floor((extraExp-Date.now())/1000));
+    b.textContent="➕ EXTRA WEIGHT  🔓 "+String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+    b.classList.remove("locked");
+  } else {
+    if(extraKey) clearExtraUnlock();   // unlock time is over
+    b.textContent="🔒 EXTRA WEIGHT (needs PIN)";
+    b.classList.add("locked");
+  }
+}
+function onExtraClick(){
+  if(stageLocked||["processing","await","submitting"].includes(uiState)) return;
+  if(extraUnlocked()){selectStage("EXTRA_WEIGHT");return;}
+  openPinModal();
+}
+function openPinModal(){
+  document.getElementById("pinInput").value="";
+  document.getElementById("pinMsg").textContent="";
+  document.getElementById("pinModal").style.display="flex";
+  setTimeout(()=>document.getElementById("pinInput").focus(),100);
+}
+function closePinModal(){document.getElementById("pinModal").style.display="none";}
+async function submitPin(){
+  const pin=document.getElementById("pinInput").value.trim();
+  const msg=document.getElementById("pinMsg");
+  const btn=document.getElementById("pinOk");
+  if(!/^\d{4}$/.test(pin)){msg.textContent="Enter the 4-digit PIN.";return;}
+  btn.disabled=true;msg.textContent="Checking...";
+  try{
+    const r=await callServer("extraUnlock",{pin});
+    if(r&&r.ok){
+      setExtraUnlock(r.key,r.ttlSec||900);
+      closePinModal();
+      selectStage("EXTRA_WEIGHT");     // go straight to the camera
+    } else {
+      msg.textContent=(r&&r.message)||"PIN not accepted.";
+      document.getElementById("pinInput").value="";
+    }
+  }catch(err){
+    msg.textContent="Error: "+(err&&err.message?err.message:String(err));
+  }finally{
+    btn.disabled=false;
+  }
+}
 
 /* ── ELEMENTS ── */
 const video       =document.getElementById("video");
@@ -394,6 +490,7 @@ function updateOverrideLock(){
 async function selectStage(s){
   // ignore taps while a stage is already in progress (until SUBMIT or RESET)
   if(stageLocked||["processing","await","submitting"].includes(uiState)) return;
+  if(s==="EXTRA_WEIGHT"&&!extraUnlocked()){openPinModal();return;}
   stageLocked=true;
   stopCamera();
   stage=s;
@@ -705,7 +802,7 @@ async function onCaptureFrame(){
 
   const tOcr=performance.now();
   let r;
-  try{r=await callServer("visionExtract",{imageDataUrl:dataUrl,stage});}
+  try{r=await callServer("visionExtract",{imageDataUrl:dataUrl,stage,extraKey});}
   catch(err){
     if(sess!==capSess) return;
     document.getElementById("prevTag").textContent="❌ OCR Failed";
@@ -718,6 +815,7 @@ async function onCaptureFrame(){
   const msOcr=_ms_(tOcr);
 
   if(!r||!r.ok){
+    if(r&&r.message&&/approval/i.test(r.message)) clearExtraUnlock();
     document.getElementById("prevTag").textContent="❌ OCR Failed";
     tx("dCapW","-");
     setStatus("OCR FAILED: "+(r&&r.message?r.message:"Unknown")+"\nRAW: "+(r&&r.rawText?r.rawText:"")+"\n["+msOcr+"ms]","err");
@@ -849,6 +947,7 @@ async function onSubmit(){
       itemName:pending.itemName,
       value,
       weightEdited,
+      extraKey,
       imageDataUrl:pending.dataUrl
     });
   }catch(err){
@@ -863,6 +962,7 @@ async function onSubmit(){
   if(!resp||!resp.ok){
     const msg=resp&&resp.message?resp.message:"Unknown error";
     setStatus("❌ "+msg+"\n["+msSub+"ms]","err");
+    if(/approval/i.test(msg)) clearExtraUnlock();
     if(msg.includes("rejected")||msg.includes("already")||msg.includes("first")){
       pending=null;uiState="idle";
       stageLocked=false; // server closed this attempt — stage buttons usable again
@@ -874,6 +974,7 @@ async function onSubmit(){
 
   // Success
   tickSound();
+  if(stage==="EXTRA_WEIGHT") clearExtraUnlock(); // one correct extra weight uses up the unlock — button locks again
   const d=resp.data||{};
   tx("dMid",  d.memberId||pending.memberId||"-");
   tx("dMname",d.memberName||"-");
@@ -915,13 +1016,19 @@ async function onSubmit(){
 
 /* ── WIRE UP ── */
 Object.entries(STAGE_CFG).forEach(([k,v])=>{
-  document.getElementById(v.id).addEventListener("click",()=>selectStage(k));
+  document.getElementById(v.id).addEventListener("click",()=>{ if(k==="EXTRA_WEIGHT") onExtraClick(); else selectStage(k); });
 });
+document.getElementById("pinOk").addEventListener("click",submitPin);
+document.getElementById("pinCancel").addEventListener("click",closePinModal);
+document.getElementById("pinInput").addEventListener("keydown",e=>{if(e.key==="Enter")submitPin();});
+document.getElementById("pinInput").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"").slice(0,4);});
 btnCapFixed.addEventListener("click",onCaptureFrame);
 btnSubmit.addEventListener("click",onSubmit);
 btnResetA.addEventListener("click",doReset);
 
 /* ── INIT ── */
+renderExtraBtn();
+setInterval(renderExtraBtn,1000);
 showUI();
 setStatus("Select a stage above to open camera.","info");
 </script>
