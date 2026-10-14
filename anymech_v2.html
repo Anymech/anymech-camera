@@ -282,7 +282,1941 @@ window.onerror=function(msg,s,l,c){
   return false;
 };
 
-const BACKEND_URL="https://script.google.com/macros/s/AKfycbypEhv_IBvE-gf6I42Y3BIIHeyOsQVB-HAJRzN0Wbjw9X4of41cNeLB0MJfFkfalXa1tQ/exec";
+const BACKEND_URL="// ═══════════════════════════════════════════════════════════════
+//  ANYMECH — FREE ENTRIES module (FreeEntries.gs)
+//  Paste this as a NEW file into the SAME Apps Script project as
+//  Code.gs. Nothing in Code.gs is edited.
+//
+//  SETUP (one-time):
+//  1) In the Apps Script editor's file list (left sidebar), make
+//     sure this file sits BELOW / AFTER "Code" — drag it under
+//     Code.gs if needed. Apps Script resolves a function declared
+//     in two files by file order, and doPost() must resolve to
+//     the version in THIS file so the "FREE ENTRIES ID" routing
+//     works.
+//  2) Add a sheet named exactly  FREE ENTRIES  to the same
+//     spreadsheet (SPREADSHEET_ID below is read from Code.gs).
+//     Run CREATE_FREE_ENTRIES_SHEET_() once from this editor to
+//     create it with matching headers automatically.
+//  3) Run INSTALL_QUEUE_TRIGGER_FREE() once to start the image
+//     upload queue processor for FREE ENTRIES (separate from the
+//     ENTRIES queue — it will never touch UPLOAD_QUEUE or ENTRIES).
+//  4) Re-deploy the web app (Deploy → Manage deployments → Edit →
+//     new version) so the updated doPost goes live.
+//
+//  WHAT'S DIFFERENT FOR "FREE ENTRIES ID" MEMBER IDs:
+//  - A member ID is treated as a FREE ENTRY member if — and only
+//    if — that ID appears anywhere in column Q (below the header
+//    row) of the "QR MASTER" sheet. This list is read live on
+//    every request, so adding/removing IDs in QR MASTER column Q
+//    takes effect immediately, with no code change needed.
+//  - OUT: allowed at any time, no matter how many previous OUT
+//         rows are still open (no IN / no READY). No restriction.
+//  - IN, READY / BOXES, EXTRA_WEIGHT: always target the OLDEST
+//    still-open OUT row for that member ID (FIFO), via the
+//    dedicated _findFreeOpenRow_ / _findFreeLastOutRow_ functions
+//    below. These scan the FREE ENTRIES sheet top-down, so if a
+//    member has multiple open OUT rows, the earliest one is
+//    always completed first — no ambiguity, no duplicate-ID
+//    confusion.
+//  - All member IDs NOT found in QR MASTER column Q behave
+//    EXACTLY as before — they are dispatched straight to the
+//    original Code.gs functions.
+//  - COMPANY LOCATION (col T) is written on every OUT and copied
+//    into ENTRIES col T during the sync (needs LocationRule.gs).
+//    Free-entry IDs are exempt from the pending-READY location block.
+// ═══════════════════════════════════════════════════════════════
+
+const SHEET_FREE_ENTRIES = "FREE ENTRIES";
+const SHEET_QUEUE_FREE   = "UPLOAD_QUEUE_FREE";
+const SHEET_QR_MASTER    = "QR MASTER";
+const FREE_ID_COL        = 17; // Column Q
+
+// ═══════════════════════════════════════════════════════════════
+//  FREE ENTRIES ID LOOKUP — reads QR MASTER column Q
+// ═══════════════════════════════════════════════════════════════
+function _getFreeEntryIdSet_() {
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_QR_MASTER);
+
+  if (!sh) {
+    Logger.log("_getFreeEntryIdSet_: QR MASTER sheet not found");
+    return new Set();
+  }
+
+  const lastRow = sh.getLastRow();
+
+  if (lastRow < 2) return new Set();
+
+  const vals = sh.getRange(2, FREE_ID_COL, lastRow - 1, 1).getValues();
+
+  const set = new Set();
+
+  for (let i = 0; i < vals.length; i++) {
+    const key = _idKey_(vals[i][0]);
+    if (key) set.add(key);
+  }
+
+  return set;
+}
+
+function _isFreeEntryId_(memberId) {
+  const key = _idKey_(memberId);
+  if (!key) return false;
+  return _getFreeEntryIdSet_().has(key);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  FREE ENTRIES — dedicated open-row matching
+//  (does NOT depend on Code.gs's _findOpenRow_ / _findLastOutRow_)
+//
+//  Scans the FREE ENTRIES sheet from row 2 DOWNWARD (top to
+//  bottom), so when a member ID has more than one open OUT row,
+//  the OLDEST still-open one is always matched first (FIFO) —
+//  no ambiguity even if several OUT entries exist for the same ID.
+// ═══════════════════════════════════════════════════════════════
+function _findFreeOpenRow_(sh, mid, need) {
+
+  const lastRow = sh.getLastRow();
+
+  if (lastRow < 2) return null;
+
+  const key = _idKey_(mid);
+
+  if (!key) return null;
+
+  const numRows = lastRow - 1;
+
+  const midVals   = sh.getRange(2, COL.NEW_MNO,     numRows, 1).getValues();
+  const outVals   = sh.getRange(2, COL.OUT_WEIGHT,   numRows, 1).getValues();
+  const inVals    = sh.getRange(2, COL.IN_WEIGHT,    numRows, 1).getValues();
+  const readyVals = sh.getRange(2, COL.READY_WEIGHT, numRows, 1).getValues();
+
+  // Top-down: the first match found here is the OLDEST open row.
+  for (let i = 0; i < numRows; i++) {
+
+    const rowMid = _idKey_(midVals[i][0]);
+
+    if (rowMid !== key) continue;
+
+    const outW = _toNumber(outVals[i][0]);
+
+    if (outW === null) continue; // not a valid OUT row, skip
+
+    const inW    = _toNumber(inVals[i][0]);
+    const readyW = _toNumber(readyVals[i][0]);
+
+    const r = i + 2;
+
+    if (need === "needsIn") {
+      if (inW === null) return r;
+
+    } else if (need === "needsReady") {
+      if (inW !== null && readyW === null) return r;
+    }
+  }
+
+  return null;
+}
+
+
+function _findFreeLastOutRow_(sh, mid) {
+
+  const lastRow = sh.getLastRow();
+
+  if (lastRow < 2) return null;
+
+  const key = _idKey_(mid);
+
+  if (!key) return null;
+
+  const numRows = lastRow - 1;
+
+  const midVals = sh.getRange(2, COL.NEW_MNO,   numRows, 1).getValues();
+  const outVals = sh.getRange(2, COL.OUT_WEIGHT, numRows, 1).getValues();
+
+  // Bottom-up here on purpose: this helper is only used for the
+  // "no OUT found at all" / "already fully recorded" error
+  // messages, where we want to reference the most recent OUT
+  // entry regardless of the FIFO matching used above.
+  for (let i = numRows - 1; i >= 0; i--) {
+
+    const rowMid = _idKey_(midVals[i][0]);
+
+    if (rowMid !== key) continue;
+
+    const outW = _toNumber(outVals[i][0]);
+
+    if (outW !== null) return i + 2;
+  }
+
+  return null;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  WEB APP ENTRY
+// ═══════════════════════════════════════════════════════════════
+function doPost(e) {
+  try {
+    const raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
+    Logger.log("doPost raw length: " + (raw ? raw.length : 0));
+
+    if (!raw) return _jsonOut_({ ok: false, message: "Empty request body received" });
+
+    let body;
+    try { body = JSON.parse(raw); }
+    catch (pe) {
+      return _jsonOut_({
+        ok: false,
+        message: "JSON parse error in doPost",
+        error: String(pe),
+        rawLength: raw.length
+      });
+    }
+
+    const act = String(body.action || "");
+    Logger.log("doPost action: " + act);
+
+    if (body.imageDataUrl !== undefined) {
+      const du = String(body.imageDataUrl || "").trim();
+
+      if (!du)
+        return _jsonOut_({ ok: false, message: "imageDataUrl is empty" });
+
+      if (!du.match(/^data:image\/(png|jpeg|jpg);base64,/i)) {
+        Logger.log("Bad dataUrl prefix: " + du.slice(0, 50));
+        return _jsonOut_({
+          ok: false,
+          message: "Invalid image dataUrl",
+          preview: du.slice(0, 50)
+        });
+      }
+
+      body.imageDataUrl = du;
+    }
+
+    // EXTRA WEIGHT PIN actions (ExtraApproval.gs)
+    const xr = _routeExtraActions_(act, body);
+    if (xr) return _jsonOut_(xr);
+
+    if (act === "visionExtract")
+      return _jsonOut_(_visionExtractObj(body.imageDataUrl, body.stage));
+
+    if (act === "stageSubmit") {
+      const isFree = _isFreeEntryId_(body.memberId);
+      return _jsonOut_(
+        isFree ? _stageSubmitFree_(body) : _stageSubmit_(body)
+      );
+    }
+
+    if (act === "getMemberState") {
+      const isFree = _isFreeEntryId_(body.memberId);
+      return _jsonOut_(
+        isFree
+          ? _getMemberStateActionFree_(body.memberId)
+          : _getMemberStateAction_(body.memberId)
+      );
+    }
+
+    if (act === "postFailTasks")
+      return _jsonOut_(
+        _postFailTasks_(
+          body.imageDataUrl,
+          body.failMessage,
+          body.rawText
+        )
+      );
+
+    return _jsonOut_({
+      ok: false,
+      message: "Unknown action: " + act
+    });
+
+  } catch (err) {
+    return _jsonOut_({
+      ok: false,
+      message: "doPost error",
+      error: String(err)
+    });
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  STAGE SUBMIT — FREE ENTRIES version
+// ═══════════════════════════════════════════════════════════════
+function _stageSubmitFree_(body) {
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    return _stageSubmitFreeLocked_(body);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function _stageSubmitFreeLocked_(body) {
+
+  const mid          = _clean(body.memberId);
+  const itn          = _clean(body.itemName);
+  const stg          = String(body.stage || "").toUpperCase().trim();
+  const val          = (stg === "BOXES")
+                      ? Number(body.value)
+                      : _toNumber(body.value);
+  const dataUrl      = String(body.imageDataUrl || "").trim();
+  const weightEdited =
+    (body.weightEdited === true || body.weightEdited === "true");
+
+  if (!mid)
+    return { ok: false, message: "Member ID missing" };
+
+  if (!itn)
+    return { ok: false, message: "Item Name missing" };
+
+  if (!stg)
+    return { ok: false, message: "Stage missing" };
+
+  if (val === null || (stg !== "BOXES" && val === null))
+    return {
+      ok: false,
+      message: "Value (weight/count) is invalid"
+    };
+
+  if (!dataUrl)
+    return { ok: false, message: "Photo required" };
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_FREE_ENTRIES);
+
+  if (!sh)
+    return {
+      ok: false,
+      message:
+        "FREE ENTRIES sheet not found — run CREATE_FREE_ENTRIES_SHEET_() once."
+    };
+
+  // EXTRA WEIGHT needs a valid unlock (PIN from the sheet menu, see ExtraApproval.gs)
+  let extraHead = "";
+  if (stg === "EXTRA_WEIGHT") {
+    const ek = _checkExtraKey_(body.extraKey);
+    if (!ek.ok)
+      return { ok: false, message: "EXTRA WEIGHT rejected ❌  " + ek.message };
+    extraHead = ek.by;
+  }
+
+  // OUT: no restriction — always allowed for FREE ENTRIES.
+
+  if (stg === "IN") {
+
+    const openForIn =
+      _findFreeOpenRow_(sh, mid, "needsIn");
+
+    if (!openForIn) {
+
+      const lastOut =
+        _findFreeLastOutRow_(sh, mid);
+
+      if (!lastOut)
+        return {
+          ok: false,
+          message:
+            "IN rejected ❌  No OUT weight found. Submit OUT first."
+        };
+
+      return {
+        ok: false,
+        message:
+          "IN rejected ❌  IN weight already recorded for this member's last OUT entry."
+      };
+    }
+  }
+
+  if (stg === "READY" || stg === "BOXES") {
+
+    const openForReady =
+      _findFreeOpenRow_(sh, mid, "needsReady");
+
+    if (!openForReady) {
+
+      const openForIn =
+        _findFreeOpenRow_(sh, mid, "needsIn");
+
+      if (openForIn)
+        return {
+          ok: false,
+          message:
+            stg +
+            " rejected ❌  IN weight not yet recorded. Submit IN first."
+        };
+
+      const lastOut =
+        _findFreeLastOutRow_(sh, mid);
+
+      if (!lastOut)
+        return {
+          ok: false,
+          message:
+            stg +
+            " rejected ❌  No OUT found. Submit OUT first."
+        };
+
+      return {
+        ok: false,
+        message:
+          stg +
+          " rejected ❌  READY / BOXES already recorded for this member's last OUT entry."
+      };
+    }
+  }
+
+  if (stg === "EXTRA_WEIGHT") {
+
+    const openForExtra =
+      _findFreeOpenRow_(sh, mid, "needsIn");
+
+    if (!openForExtra) {
+
+      const lastOut =
+        _findFreeLastOutRow_(sh, mid);
+
+      if (!lastOut)
+        return {
+          ok: false,
+          message:
+            "EXTRA WEIGHT rejected ❌  No OUT weight found for this member."
+        };
+
+      return {
+        ok: false,
+        message:
+          "EXTRA WEIGHT rejected ❌  Last OUT entry already has IN / READY recorded. Extra weight can only be added to an open (no IN/READY) OUT entry."
+      };
+    }
+  }
+
+  let result;
+
+  if (stg === "OUT")
+    result =
+      _handleOutFree_(
+        sh,
+        mid,
+        itn,
+        val,
+        dataUrl,
+        weightEdited
+      );
+
+  else if (stg === "IN")
+    result =
+      _handleInFree_(
+        sh,
+        mid,
+        itn,
+        val,
+        dataUrl,
+        weightEdited
+      );
+
+  else if (stg === "READY")
+    result =
+      _handleReadyFree_(
+        sh,
+        mid,
+        itn,
+        val,
+        dataUrl,
+        weightEdited
+      );
+
+  else if (stg === "BOXES")
+    result =
+      _handleBoxesFree_(
+        sh,
+        mid,
+        itn,
+        val,
+        dataUrl,
+        false
+      );
+
+  else if (stg === "EXTRA_WEIGHT")
+    result =
+      _handleExtraWeightFree_(
+        sh,
+        mid,
+        itn,
+        val,
+        dataUrl,
+        weightEdited
+      );
+
+  else
+    return {
+      ok: false,
+      message: "Unknown stage: " + stg
+    };
+
+  if (stg === "EXTRA_WEIGHT" && result && result.ok)
+    _logExtraUse_(extraHead, mid, result, body.extraKey);
+
+  return result;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  GET MEMBER STATE — FREE ENTRIES version
+// ═══════════════════════════════════════════════════════════════
+function _getMemberStateActionFree_(memberId) {
+
+  try {
+
+    const mid = _clean(memberId);
+
+    if (!mid)
+      return {
+        ok: false,
+        message: "memberId missing"
+      };
+
+    const ss =
+      SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    const sh =
+      ss.getSheetByName(SHEET_FREE_ENTRIES);
+
+    if (!sh)
+      return {
+        ok: false,
+        message: "FREE ENTRIES sheet not found"
+      };
+
+    const state =
+      _getMemberState_(sh, mid);
+
+    return {
+      ok: true,
+      state
+    };
+
+  } catch (e) {
+
+    return {
+      ok: false,
+      message:
+        "getMemberStateFree error: " +
+        String(e)
+    };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  STAGE HANDLERS — FREE ENTRIES
+// ═══════════════════════════════════════════════════════════════
+function _handleOutFree_(sh, mid, itn, weight, dataUrl, weightEdited) {
+
+  const master = _getMaster_();
+  const mname  = _getMemberName_(master, mid);
+  const now    = new Date();
+
+  const typ = _extractType_(itn);
+
+  sh.appendRow([
+    now,
+    mid,
+    mname,
+    itn,
+    typ,
+    weight,
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]);
+
+  const newRow = sh.getLastRow();
+
+  // wipe any leftover orange / note on this row's weight cells (OUT, IN, READY)
+  sh.getRange(newRow, COL.OUT_WEIGHT, 1, 3).setBackground(null);
+  sh.getRange(newRow, COL.OUT_WEIGHT).clearNote();
+
+  // COMPANY LOCATION (col T) from the outsource sheet, against this member ID
+  _writeLocation_(sh, newRow, mid);
+
+  if (weightEdited) {
+    sh.getRange(
+      newRow,
+      COL.OUT_WEIGHT
+    ).setBackground(ORANGE_EDITED);
+  }
+
+  _enqueueImageSaveFree_(
+    newRow,
+    "OUT",
+    mid,
+    dataUrl
+  );
+
+  _syncFreeRowToEntries_(
+    sh,
+    newRow
+  );
+
+  const snap =
+    _getSnap_(
+      sh,
+      newRow
+    );
+
+  return {
+    ok: true,
+    stage: "OUT",
+    message:
+      "OUT saved (FREE ENTRY)" +
+      (weightEdited
+        ? " (weight edited ✏️)"
+        : ""),
+    data:
+      _snapData_(snap)
+  };
+}
+
+
+function _handleInFree_(sh, mid, itn, weight, dataUrl, weightEdited) {
+
+  const rowIdx =
+    _findFreeOpenRow_(
+      sh,
+      mid,
+      "needsIn"
+    );
+
+  if (!rowIdx)
+    return {
+      ok: false,
+      message:
+        "No open OUT entry for this member. Submit OUT first."
+    };
+
+  const outW =
+    _toNumber(
+      sh.getRange(
+        rowIdx,
+        COL.OUT_WEIGHT
+      ).getValue()
+    );
+
+  if (outW === null)
+    return {
+      ok: false,
+      message:
+        "Open row is missing OUT WEIGHT."
+    };
+
+  sh.getRange(
+    rowIdx,
+    COL.IN_WEIGHT
+  ).setValue(weight);
+
+  if (weightEdited) {
+    sh.getRange(
+      rowIdx,
+      COL.IN_WEIGHT
+    ).setBackground(ORANGE_EDITED);
+  }
+
+  _enqueueImageSaveFree_(
+    rowIdx,
+    "IN",
+    mid,
+    dataUrl
+  );
+
+  // SHORTAGE (col J) value + colour by script (see Shortage.gs)
+  _applyShortageToRow_(sh, rowIdx);
+
+  _syncFreeRowToEntries_(
+    sh,
+    rowIdx
+  );
+
+  const snap =
+    _getSnap_(
+      sh,
+      rowIdx
+    );
+
+  return {
+    ok: true,
+    stage: "IN",
+    message:
+      "IN saved (FREE ENTRY)" +
+      (weightEdited
+        ? " (weight edited ✏️)"
+        : ""),
+    data:
+      _snapData_(snap)
+  };
+}
+
+
+function _handleReadyFree_(sh, mid, itn, weight, dataUrl, weightEdited) {
+
+  const rowIdx =
+    _findFreeOpenRow_(
+      sh,
+      mid,
+      "needsReady"
+    );
+
+  if (!rowIdx)
+    return {
+      ok: false,
+      message:
+        "No open IN entry for this member. Submit IN first."
+    };
+
+  sh.getRange(
+    rowIdx,
+    COL.READY_WEIGHT
+  ).setValue(weight);
+
+  if (weightEdited) {
+    sh.getRange(
+      rowIdx,
+      COL.READY_WEIGHT
+    ).setBackground(ORANGE_EDITED);
+  }
+
+  _applyShortageToRow_(sh, rowIdx);     // READY col changed -> refresh SHORTAGE (col J)
+
+  _enqueueImageSaveFree_(
+    rowIdx,
+    "READY",
+    mid,
+    dataUrl
+  );
+
+  _setInDate_(
+    sh,
+    rowIdx
+  );
+
+  _syncFreeRowToEntries_(
+    sh,
+    rowIdx
+  );
+
+  const snap =
+    _getSnap_(
+      sh,
+      rowIdx
+    );
+
+  return {
+    ok: true,
+    stage: "READY",
+    message:
+      "READY saved (FREE ENTRY)" +
+      (weightEdited
+        ? " (weight edited ✏️)"
+        : ""),
+    data:
+      _snapData_(snap)
+  };
+}
+
+
+function _handleBoxesFree_(sh, mid, itn, boxCount, dataUrl, weightEdited) {
+
+  if (!/\(BOX(?:ES)?\)/i.test(itn)) {
+
+    return {
+      ok: false,
+      message:
+        "BOXES COUNT rejected ❌  Item name must contain (BOX) or (BOXES) in brackets. Found: [" +
+        itn +
+        "]"
+    };
+  }
+
+  const rowIdx =
+    _findFreeOpenRow_(
+      sh,
+      mid,
+      "needsReady"
+    );
+
+  if (!rowIdx)
+    return {
+      ok: false,
+      message:
+        "No open IN entry for this member. Submit IN first."
+    };
+
+  const count =
+    Math.max(
+      1,
+      Math.round(boxCount)
+    );
+
+  sh.getRange(
+    rowIdx,
+    COL.READY_WEIGHT
+  ).setValue(count);
+
+  _applyShortageToRow_(sh, rowIdx);     // box count known -> SHORTAGE with the 40 g per box allowance
+
+  _enqueueImageSaveFree_(
+    rowIdx,
+    "READY",
+    mid,
+    dataUrl
+  );
+
+  _setInDate_(
+    sh,
+    rowIdx
+  );
+
+  _syncFreeRowToEntries_(
+    sh,
+    rowIdx
+  );
+
+  const snap =
+    _getSnap_(
+      sh,
+      rowIdx
+    );
+
+  return {
+    ok: true,
+    stage: "BOXES",
+    message:
+      "BOXES COUNT saved (FREE ENTRY) (" +
+      count +
+      " boxes)",
+    boxesCount: count,
+    data:
+      _snapData_(snap)
+  };
+}
+
+
+function _handleExtraWeightFree_(sh, mid, itn, weight, dataUrl, weightEdited) {
+
+  const rowIdx =
+    _findFreeOpenRow_(
+      sh,
+      mid,
+      "needsIn"
+    );
+
+  if (!rowIdx)
+    return {
+      ok: false,
+      message:
+        "EXTRA WEIGHT rejected ❌  No open OUT entry found. Extra weight can only be added before IN is recorded."
+    };
+
+  const prevOut =
+    _toNumber(
+      sh.getRange(
+        rowIdx,
+        COL.OUT_WEIGHT
+      ).getValue()
+    );
+
+  if (prevOut === null)
+    return {
+      ok: false,
+      message:
+        "Existing OUT WEIGHT is invalid."
+    };
+
+  const newOut =
+    Math.round(
+      (prevOut + weight) * 1000
+    ) / 1000;
+
+  const outCell =
+    sh.getRange(
+      rowIdx,
+      COL.OUT_WEIGHT
+    );
+
+  outCell.setValue(newOut);
+  outCell.setBackground(ORANGE_EDITED);
+
+  try {
+
+    const tz =
+      Session.getScriptTimeZone() ||
+      "Asia/Kolkata";
+
+    const dateStr =
+      Utilities.formatDate(
+        new Date(),
+        tz,
+        "dd/MM/yyyy HH:mm"
+      );
+
+    const existing =
+      outCell.getNote() || "";
+
+    const entry =
+      "EXTRA WEIGHT ADDED\nDate  : " +
+      dateStr +
+      "\nAdded : +" +
+      weight +
+      " kg";
+
+    outCell.setNote(
+      existing
+        ? existing + "\n\n" + entry
+        : entry
+    );
+
+  } catch (e) {
+
+    Logger.log(
+      "Note insert error: " +
+      String(e)
+    );
+  }
+
+  // OUT changed -> refresh SHORTAGE (col J) by script
+  _applyShortageToRow_(sh, rowIdx);
+
+  const extraSlot =
+    _nextExtraSlot_(
+      sh,
+      rowIdx
+    );
+
+  if (extraSlot > 0) {
+
+    _enqueueImageSaveFree_(
+      rowIdx,
+      "EXTRA_" + extraSlot,
+      mid,
+      dataUrl
+    );
+
+  } else {
+
+    Logger.log(
+      "All 5 extra weight image slots used for row " +
+      rowIdx
+    );
+  }
+
+  _syncFreeRowToEntries_(
+    sh,
+    rowIdx
+  );
+
+  const snap =
+    _getSnap_(
+      sh,
+      rowIdx
+    );
+
+  return {
+    ok: true,
+    stage: "EXTRA_WEIGHT",
+    message:
+      "EXTRA WEIGHT added (FREE ENTRY). OUT: " +
+      prevOut +
+      " kg → " +
+      newOut +
+      " kg" +
+      (weightEdited
+        ? " (edited ✏️)"
+        : ""),
+    addedWeight: weight,
+    previousOutWeight: prevOut,
+    newOutWeight: newOut,
+    data:
+      _snapData_(snap)
+  };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  DRIVE + QUEUE — FREE ENTRIES
+// ═══════════════════════════════════════════════════════════════
+function _enqueueImageSaveFree_(rowIdx, stage, memberId, dataUrl) {
+
+  dataUrl =
+    String(dataUrl || "").trim();
+
+  if (!dataUrl) return;
+
+  const ss =
+    SpreadsheetApp.openById(
+      SPREADSHEET_ID
+    );
+
+  let q =
+    ss.getSheetByName(
+      SHEET_QUEUE_FREE
+    );
+
+  if (!q) {
+    q =
+      ss.insertSheet(
+        SHEET_QUEUE_FREE
+      );
+
+    q.appendRow([
+      "Timestamp",
+      "Row",
+      "Stage",
+      "MemberID",
+      "DataUrl"
+    ]);
+  }
+
+  q.appendRow([
+    new Date(),
+    rowIdx,
+    String(stage || ""),
+    String(memberId || ""),
+    dataUrl
+  ]);
+}
+
+
+function processUploadQueueFree_() {
+
+  const lock =
+    LockService.getScriptLock();
+
+  lock.waitLock(30000);
+
+  try {
+
+    const ss =
+      SpreadsheetApp.openById(
+        SPREADSHEET_ID
+      );
+
+    const en =
+      ss.getSheetByName(
+        SHEET_FREE_ENTRIES
+      );
+
+    const q =
+      ss.getSheetByName(
+        SHEET_QUEUE_FREE
+      );
+
+    if (!en || !q) return;
+
+    const last =
+      q.getLastRow();
+
+    if (last < 2) return;
+
+    const num =
+      Math.min(
+        5,
+        last - 1
+      );
+
+    const rows =
+      q.getRange(
+        2,
+        1,
+        num,
+        5
+      ).getValues();
+
+    for (let i = 0; i < rows.length; i++) {
+
+      const rowIdx =
+        Number(rows[i][1]);
+
+      const stage =
+        String(
+          rows[i][2] || ""
+        ).toUpperCase();
+
+      const memberId =
+        String(
+          rows[i][3] || ""
+        );
+
+      const dataUrl =
+        String(
+          rows[i][4] || ""
+        );
+
+      if (!rowIdx || !stage || !dataUrl) {
+        q.deleteRow(2);
+        continue;
+      }
+
+      const folderMap = {
+        OUT    : "OUT WEIGHT (FREE)",
+        IN     : "IN WEIGHT (FREE)",
+        READY  : "READY WEIGHT (FREE)",
+        EXTRA_1: "EXTRA WEIGHT (FREE)",
+        EXTRA_2: "EXTRA WEIGHT (FREE)",
+        EXTRA_3: "EXTRA WEIGHT (FREE)",
+        EXTRA_4: "EXTRA WEIGHT (FREE)",
+        EXTRA_5: "EXTRA WEIGHT (FREE)",
+        BOXES  : "BOXES COUNT (FREE)"
+      };
+
+      const colMap = {
+        OUT    : COL.OUT_IMAGE,
+        IN     : COL.IN_IMAGE,
+        READY  : COL.READY_IMAGE,
+        EXTRA_1: COL.EXTRA_IMAGE_1,
+        EXTRA_2: COL.EXTRA_IMAGE_2,
+        EXTRA_3: COL.EXTRA_IMAGE_3,
+        EXTRA_4: COL.EXTRA_IMAGE_4,
+        EXTRA_5: COL.EXTRA_IMAGE_5,
+        BOXES  : COL.READY_IMAGE
+      };
+
+      const folder =
+        folderMap[stage];
+
+      if (!folder) {
+        q.deleteRow(2);
+        continue;
+      }
+
+      let link = "";
+
+      try {
+
+        link =
+          _saveImageToDrive(
+            dataUrl,
+            folder,
+            memberId
+          );
+
+      } catch (saveErr) {
+
+        Logger.log(
+          "Image save error (FREE) row=" +
+          rowIdx +
+          " stage=" +
+          stage +
+          " err=" +
+          String(saveErr)
+        );
+
+        q.deleteRow(2);
+        continue;
+      }
+
+      if (link && colMap[stage]) {
+
+        try {
+          en
+            .getRange(
+              rowIdx,
+              colMap[stage]
+            )
+            .setValue(link);
+        } catch (e) {}
+
+        _syncFreeRowToEntries_(
+          en,
+          rowIdx
+        );
+      }
+
+      q.deleteRow(2);
+    }
+
+  } finally {
+
+    lock.releaseLock();
+  }
+}
+
+
+function INSTALL_QUEUE_TRIGGER_FREE() {
+
+  const triggers =
+    ScriptApp.getProjectTriggers();
+
+  for (const t of triggers) {
+
+    if (
+      t.getHandlerFunction() ===
+      "processUploadQueueFree_"
+    ) {
+      ScriptApp.deleteTrigger(t);
+    }
+  }
+
+  ScriptApp
+    .newTrigger(
+      "processUploadQueueFree_"
+    )
+    .timeBased()
+    .everyMinutes(1)
+    .create();
+}
+
+
+function RUN_QUEUE_NOW_FREE() {
+  processUploadQueueFree_();
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  SETUP HELPER
+// ═══════════════════════════════════════════════════════════════
+function CREATE_FREE_ENTRIES_SHEET_() {
+
+  const ss =
+    SpreadsheetApp.openById(
+      SPREADSHEET_ID
+    );
+
+  let sh =
+    ss.getSheetByName(
+      SHEET_FREE_ENTRIES
+    );
+
+  if (sh) {
+    Logger.log(
+      "FREE ENTRIES sheet already exists."
+    );
+    return;
+  }
+
+  sh =
+    ss.insertSheet(
+      SHEET_FREE_ENTRIES
+    );
+
+  const headers = [
+    "TIMESTAMP",
+    "NEW MNO",
+    "MEMBER NAME",
+    "ITEM NAME",
+    "TYPE",
+    "OUT WEIGHT",
+    "IN WEIGHT",
+    "READY WEIGHT / BOXES",
+    "IN DATE",
+    "SHORTAGE",
+    "OUT IMAGE",
+    "IN IMAGE",
+    "READY IMAGE",
+    "EXTRA IMAGE 1",
+    "EXTRA IMAGE 2",
+    "EXTRA IMAGE 3",
+    "EXTRA IMAGE 4",
+    "EXTRA IMAGE 5",
+    "LINKED ENTRIES ROW",
+    "COMPANY LOCATION"
+  ];
+
+  sh
+    .getRange(
+      1,
+      1,
+      1,
+      headers.length
+    )
+    .setValues([headers]);
+
+  sh.setFrozenRows(1);
+
+  Logger.log(
+    "FREE ENTRIES sheet created with headers."
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  SYNC FREE ENTRIES → ENTRIES
+// ═══════════════════════════════════════════════════════════════
+const FREE_LINK_COL = 19;
+
+function _getLinkedEntriesRow_(freeSh, freeRowIdx) {
+
+  const v =
+    freeSh
+      .getRange(
+        freeRowIdx,
+        FREE_LINK_COL
+      )
+      .getValue();
+
+  const n = Number(v);
+
+  return (
+    v !== "" &&
+    Number.isFinite(n) &&
+    n >= 2
+  )
+    ? n
+    : null;
+}
+
+
+function _setLinkedEntriesRow_(
+  freeSh,
+  freeRowIdx,
+  entriesRow
+) {
+
+  freeSh
+    .getRange(
+      freeRowIdx,
+      FREE_LINK_COL
+    )
+    .setValue(entriesRow);
+}
+
+
+// Duplicate guard: if a FREE ENTRIES row has no recorded link (or the
+// link was lost/broken), check whether a matching row already exists
+// in ENTRIES — by MEMBER ID + OUT TIMESTAMP, which are both set once
+// at OUT time and never change afterward — before creating a new row.
+// This is what stops the same OUT entry from being duplicated in
+// ENTRIES when IN/READY/BOXES/EXTRA_WEIGHT are synced later.
+function _findMatchingEntriesRowFree_(en, mid, itemName, ts) {
+
+  const lastRow = en.getLastRow();
+  if (lastRow < 2) return null;
+
+  const numRows = lastRow - 1;
+  const key     = _idKey_(mid);
+
+  const tsMs =
+    (ts instanceof Date)
+      ? ts.getTime()
+      : new Date(ts).getTime();
+
+  if (!key || !isFinite(tsMs)) return null;
+
+  const tsVals  = en.getRange(2, 1, numRows, 1).getValues();          // col A = TIMESTAMP
+  const midVals = en.getRange(2, COL.NEW_MNO, numRows, 1).getValues(); // col B = NEW MNO
+
+  // CHANGED: item name is intentionally no longer part of the match.
+  // It can legitimately be corrected after OUT, and matching on it used
+  // to mean that edit would break the link and spawn a duplicate row in
+  // ENTRIES next time this FREE row synced. Now match is Member ID +
+  // OUT Timestamp only.
+  for (let i = 0; i < numRows; i++) {
+
+    const rowMid = _idKey_(midVals[i][0]);
+    if (rowMid !== key) continue;
+
+    const rowTs = tsVals[i][0];
+    const rowTsMs =
+      (rowTs instanceof Date) ? rowTs.getTime() : new Date(rowTs).getTime();
+
+    if (isFinite(rowTsMs) && Math.abs(rowTsMs - tsMs) <= 1000) {
+      return i + 2;
+    }
+  }
+
+  return null;
+}
+
+// Writes an 18-col FREE ENTRIES row snapshot into ENTRIES at rowNum,
+// skipping col J (SHORTAGE) so ENTRIES' header ARRAYFORMULA in J is
+// never overwritten with a static value.
+function _writeEntriesRowSkipShortage_(en, rowNum, rowVals) {
+  en.getRange(rowNum, 1, 1, 9).setValues([rowVals.slice(0, 9)]);    // A-I
+  en.getRange(rowNum, 11, 1, 8).setValues([rowVals.slice(10, 18)]); // K-R
+  // col J (10) intentionally left untouched
+}
+
+
+// Core sync logic, shared by the live per-submission sync below and
+// by the manual catch-up function further down. Resolves the target
+// ENTRIES row by content — member ID + exact OUT timestamp, both set
+// once at OUT and never changed again — never by a cached row number.
+// If no matching row exists yet, appends at the next truly blank row
+// in ENTRIES column B (via _nextEntryRow_, same method Code.gs's own
+// OUT handler uses) rather than trying to insert mid-sheet in date
+// order — simpler, and it means nothing here ever shifts ENTRIES row
+// numbers out from under anything else.
+// Also copies COMPANY LOCATION (col T) into ENTRIES.
+// Returns { row, created } or null if the FREE row has no member ID.
+function _syncOneFreeRowToEntries_(freeSh, en, freeRowIdx) {
+
+  const rowVals = freeSh.getRange(freeRowIdx, 1, 1, 18).getValues()[0];
+  const freeTimestamp = rowVals[0];
+  const mid            = rowVals[1];
+  const itemName       = rowVals[3];
+
+  if (!_clean(mid)) return null;
+
+  // Location: take it from FREE ENTRIES col T, else look it up from the source
+  let loc = "";
+  try {
+    if (freeSh.getMaxColumns() >= LOC_COL) loc = _clean(freeSh.getRange(freeRowIdx, LOC_COL).getValue());
+  } catch (e) {}
+  if (!loc) loc = _locationOf_(mid);
+
+  let entriesRow = _findMatchingEntriesRowFree_(en, mid, itemName, freeTimestamp);
+  let created = false;
+
+  if (entriesRow) {
+    _writeEntriesRowSkipShortage_(en, entriesRow, rowVals);
+  } else {
+    entriesRow = _nextEntryRow_(en);
+    _writeEntriesRowSkipShortage_(en, entriesRow, rowVals);
+    created = true;
+  }
+
+  if (loc) {
+    try {
+      if (en.getMaxColumns() < LOC_COL) en.insertColumnsAfter(en.getMaxColumns(), LOC_COL - en.getMaxColumns());
+      en.getRange(entriesRow, LOC_COL).setValue(loc);
+    } catch (e) {
+      Logger.log("sync location error: " + String(e));
+    }
+  }
+
+  // ENTRIES col J (SHORTAGE) is filled by script now, so calculate it for the copied row too
+  _applyShortageToRow_(en, entriesRow);
+
+  return { row: entriesRow, created: created };
+}
+
+
+function _syncFreeRowToEntries_(
+  freeSh,
+  freeRowIdx
+) {
+
+  try {
+
+    const ss =
+      SpreadsheetApp.openById(
+        SPREADSHEET_ID
+      );
+
+    const en =
+      ss.getSheetByName(
+        SHEET_ENTRIES
+      );
+
+    if (!en) {
+      Logger.log(
+        "_syncFreeRowToEntries_: ENTRIES sheet not found"
+      );
+      return;
+    }
+
+    const result =
+      _syncOneFreeRowToEntries_(
+        freeSh,
+        en,
+        freeRowIdx
+      );
+
+    if (!result) {
+      Logger.log(
+        "_syncFreeRowToEntries_: FREE row " +
+        freeRowIdx +
+        " has no member ID, skipped"
+      );
+      return;
+    }
+
+    Logger.log(
+      (result.created
+        ? "_syncFreeRowToEntries_: inserted ENTRIES row "
+        : "_syncFreeRowToEntries_: updated ENTRIES row ") +
+      result.row +
+      " from FREE row " +
+      freeRowIdx
+    );
+
+  } catch (e) {
+
+    Logger.log(
+      "_syncFreeRowToEntries_ ERROR: " +
+      String(e)
+    );
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  MANUAL CATCH-UP — syncs every FREE ENTRIES row into ENTRIES on
+//  demand. For each row: if a matching ENTRIES row already exists
+//  (same member ID + same OUT timestamp), it's updated in place —
+//  "completing" that entry with whatever's now filled in; otherwise
+//  a new row is appended at the next truly blank row in column B.
+//  Run SYNC_ALL_FREE_ENTRIES_TO_ENTRIES_() manually any time you
+//  want ENTRIES fully caught up with FREE ENTRIES's current state.
+// ═══════════════════════════════════════════════════════════════
+function SYNC_ALL_FREE_ENTRIES_TO_ENTRIES_() {
+
+  const ss     = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const freeSh = ss.getSheetByName(SHEET_FREE_ENTRIES);
+  const en     = ss.getSheetByName(SHEET_ENTRIES);
+
+  if (!freeSh) { Logger.log("FREE ENTRIES sheet not found"); return; }
+  if (!en)     { Logger.log("ENTRIES sheet not found"); return; }
+
+  const lastRow = freeSh.getLastRow();
+  if (lastRow < 2) { Logger.log("No data rows in FREE ENTRIES"); return; }
+
+  let updated = 0;
+  let created = 0;
+  let skipped = 0;
+
+  for (let r = 2; r <= lastRow; r++) {
+
+    const result = _syncOneFreeRowToEntries_(freeSh, en, r);
+
+    if (!result) {
+      skipped++;
+      continue;
+    }
+
+    if (result.created) created++;
+    else updated++;
+  }
+
+  Logger.log(
+    "SYNC_ALL_FREE_ENTRIES_TO_ENTRIES_ complete — " +
+    "updated existing: " + updated +
+    ", created new: " + created +
+    ", skipped blank rows: " + skipped
+  );
+}
+
+
+// Finds the ENTRIES row number to insert BEFORE
+function _findEntriesInsertPositionByDate_(
+  en,
+  ts
+) {
+
+  const lastRow =
+    en.getLastRow();
+
+  if (lastRow < 2)
+    return lastRow + 1;
+
+  const t =
+    (ts instanceof Date)
+      ? ts.getTime()
+      : new Date(ts).getTime();
+
+  if (!isFinite(t))
+    return lastRow + 1;
+
+  const dates =
+    en
+      .getRange(
+        2,
+        1,
+        lastRow - 1,
+        1
+      )
+      .getValues();
+
+  for (
+    let i = 0;
+    i < dates.length;
+    i++
+  ) {
+
+    const d =
+      dates[i][0];
+
+    const dt =
+      (d instanceof Date)
+        ? d.getTime()
+        : new Date(d).getTime();
+
+    if (
+      isFinite(dt) &&
+      dt > t
+    ) {
+      return i + 2;
+    }
+  }
+
+  return lastRow + 1;
+}
+
+
+// Bumps any FREE ENTRIES link
+function _shiftFreeLinksFrom_(
+  freeSh,
+  fromRow,
+  delta
+) {
+
+  const lastRow =
+    freeSh.getLastRow();
+
+  if (lastRow < 2)
+    return;
+
+  const range =
+    freeSh.getRange(
+      2,
+      FREE_LINK_COL,
+      lastRow - 1,
+      1
+    );
+
+  const vals =
+    range.getValues();
+
+  let changed = false;
+
+  for (
+    let i = 0;
+    i < vals.length;
+    i++
+  ) {
+
+    const v =
+      vals[i][0];
+
+    const n =
+      Number(v);
+
+    if (
+      v !== "" &&
+      Number.isFinite(n) &&
+      n >= fromRow
+    ) {
+
+      vals[i][0] =
+        n + delta;
+
+      changed = true;
+    }
+  }
+
+  if (changed)
+    range.setValues(vals);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  ONE-TIME BACKFILL
+//  DUPLICATE-SAFE VERSION
+// ═══════════════════════════════════════════════════════════════
+function BACKFILL_ALL_FREE_ENTRIES_TO_ENTRIES_() {
+
+  const ss =
+    SpreadsheetApp.openById(
+      SPREADSHEET_ID
+    );
+
+  const freeSh =
+    ss.getSheetByName(
+      SHEET_FREE_ENTRIES
+    );
+
+  const en =
+    ss.getSheetByName(
+      SHEET_ENTRIES
+    );
+
+  if (!freeSh) {
+    Logger.log(
+      "FREE ENTRIES sheet not found"
+    );
+    return;
+  }
+
+  if (!en) {
+    Logger.log(
+      "ENTRIES sheet not found"
+    );
+    return;
+  }
+
+  const lastRow =
+    freeSh.getLastRow();
+
+  if (lastRow < 2) {
+    Logger.log(
+      "No data rows in FREE ENTRIES"
+    );
+    return;
+  }
+
+  let synced = 0;
+  let skipped = 0;
+  let alreadyLinked = 0;
+  let alreadyExists = 0;
+
+  // Read existing ENTRIES data once.
+  // This prevents duplicate insertion if a FREE row was already
+  // synced but its LINKED ENTRIES ROW cell is blank.
+  const entriesLastRow =
+    en.getLastRow();
+
+  const entriesData =
+    entriesLastRow >= 2
+      ? en
+          .getRange(
+            2,
+            1,
+            entriesLastRow - 1,
+            18
+          )
+          .getValues()
+      : [];
+
+  const entriesSignatures =
+    new Map();
+
+  for (
+    let i = 0;
+    i < entriesData.length;
+    i++
+  ) {
+
+    const sig =
+      _freeEntriesRowSignature_(
+        entriesData[i]
+      );
+
+    if (
+      !entriesSignatures.has(sig)
+    ) {
+      entriesSignatures.set(
+        sig,
+        i + 2
+      );
+    }
+  }
+
+  // Process top-to-bottom
+  for (
+    let r = 2;
+    r <= lastRow;
+    r++
+  ) {
+
+    const mid =
+      _clean(
+        freeSh
+          .getRange(
+            r,
+            COL.NEW_MNO
+          )
+          .getValue()
+      );
+
+    if (!mid) {
+      skipped++;
+      continue;
+    }
+
+    // -----------------------------------------------------------
+    // 1. Existing link = NEVER sync again
+    // -----------------------------------------------------------
+
+    const existingLink =
+      _getLinkedEntriesRow_(
+        freeSh,
+        r
+      );
+
+    if (existingLink) {
+
+      alreadyLinked++;
+
+      continue;
+    }
+
+    // -----------------------------------------------------------
+    // 2. No link — check whether exact same A:R row already
+    //    exists in ENTRIES
+    // -----------------------------------------------------------
+
+    const rowVals =
+      freeSh
+        .getRange(
+          r,
+          1,
+          1,
+          18
+        )
+        .getValues()[0];
+
+    const sig =
+      _freeEntriesRowSignature_(
+        rowVals
+      );
+
+    const existingEntriesRow =
+      entriesSignatures.get(sig);
+
+    if (existingEntriesRow) {
+
+      // Already present in ENTRIES.
+      // Only create the missing link.
+      _setLinkedEntriesRow_(
+        freeSh,
+        r,
+        existingEntriesRow
+      );
+
+      alreadyExists++;
+
+      Logger.log(
+        "FREE row " +
+        r +
+        " already exists in ENTRIES row " +
+        existingEntriesRow +
+        " — linked, NO duplicate inserted."
+      );
+
+      continue;
+    }
+
+    // -----------------------------------------------------------
+    // 3. Truly new row — perform normal existing sync
+    // -----------------------------------------------------------
+
+    _syncFreeRowToEntries_(
+      freeSh,
+      r
+    );
+
+    // -----------------------------------------------------------
+    // 4. Count only if link was actually created
+    // -----------------------------------------------------------
+
+    const newLink =
+      _getLinkedEntriesRow_(
+        freeSh,
+        r
+      );
+
+    if (newLink) {
+
+      synced++;
+
+      // Important:
+      // Add the newly inserted row to our duplicate map.
+      // Therefore another identical FREE row during THIS run
+      // will NOT create another ENTRIES row.
+      entriesSignatures.set(
+        sig,
+        newLink
+      );
+
+    } else {
+
+      Logger.log(
+        "FREE row " +
+        r +
+        " was not linked after sync — not counted as synced."
+      );
+    }
+  }
+
+  Logger.log(
+    "BACKFILL_ALL_FREE_ENTRIES_TO_ENTRIES_ complete — " +
+    "synced: " +
+    synced +
+    ", already linked (skipped): " +
+    alreadyLinked +
+    ", already existed (linked, no duplicate): " +
+    alreadyExists +
+    ", blank rows (skipped): " +
+    skipped
+  );
+}
+
+function BACKFILL_ALL_FREE_ENTRIES_TO_ENTRIES() {
+  BACKFILL_ALL_FREE_ENTRIES_TO_ENTRIES_();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DUPLICATE CHECK HELPER
+//  Used ONLY by the backfill.
+// ═══════════════════════════════════════════════════════════════
+function _freeEntriesRowSignature_(rowVals) {
+
+  return JSON.stringify(
+    rowVals.map(function(v) {
+
+      if (v instanceof Date)
+        return "__DATE__" + v.getTime();
+
+      if (
+        v === null ||
+        v === undefined
+      )
+        return "";
+
+      return String(v);
+    })
+  );
+}
+
+// Fires on ANY edit to the FREE ENTRIES sheet — including manual
+// corrections made directly in the sheet, not just edits made through
+// the OUT/IN/READY/BOXES/EXTRA_WEIGHT app flow — and re-syncs that row
+// into ENTRIES (same Member ID + Timestamp match as above), so any
+// change made anywhere in the row gets pushed through.
+function onEditFreeTrigger_(e) {
+  try {
+    if (!e || !e.range) return;
+
+    const sh = e.range.getSheet();
+    if (sh.getName() !== SHEET_FREE_ENTRIES) return;
+
+    const row = e.range.getRow();
+    const col = e.range.getColumn();
+
+    if (row < 2) return;                // skip header row
+    if (col === FREE_LINK_COL) return;  // don't re-trigger off the link bookkeeping column itself
+
+    const mid = _clean(sh.getRange(row, COL.NEW_MNO).getValue());
+    if (!mid) return;  // still a blank row, nothing to sync
+
+    _syncFreeRowToEntries_(sh, row);
+
+  } catch (err) {
+    Logger.log("onEditFreeTrigger_ error: " + String(err));
+  }
+}
+
+function INSTALL_FREE_ONEDIT_TRIGGER() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const t of triggers) {
+    if (t.getHandlerFunction() === "onEditFreeTrigger_") ScriptApp.deleteTrigger(t);
+  }
+  ScriptApp.newTrigger("onEditFreeTrigger_")
+    .forSpreadsheet(SPREADSHEET_ID)
+    .onEdit()
+    .create();
+}";
 
 /* ── WEIGHT-CORRECTION LOCK ──
    The "Weight wrong? Correct it here" box stays locked (not editable)
